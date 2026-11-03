@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class TableManagerApiController extends Controller
+class TableApiController extends Controller
 {
     /**
      * Danh sách 22 bảng chuẩn của Database ttyt_haichau_db
@@ -21,7 +21,7 @@ class TableManagerApiController extends Controller
     ];
 
     /**
-     * 1. Lấy thống kê số lượng bản ghi của toàn bộ 22 bảng (Kiểm tra >= 5 records)
+     * 1. Lấy thống kê số lượng bản ghi của toàn bộ 22 bảng
      */
     public function summary()
     {
@@ -153,5 +153,24 @@ class TableManagerApiController extends Controller
                 'message' => 'Không thể xóa bản ghi đang có khóa ngoại tham chiếu: ' . $e->getMessage()
             ], 422);
         }
+    }
+
+    /**
+     * 6. Nhận tệp hình ảnh / tài liệu chọn từ máy tính và lưu vào public/uploads
+     */
+    public function uploadFile(Request $request)
+    {
+        if (!$request->hasFile('file')) {
+            return response()->json(['status' => 'error', 'message' => 'Chưa chọn tệp!'], 400);
+        }
+
+        $file = $request->file('file');
+        $fileName = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+        $file->move(public_path('uploads'), $fileName);
+
+        return response()->json([
+            'status' => 'success',
+            'url'    => url('uploads/' . $fileName)
+        ]);
     }
 }
