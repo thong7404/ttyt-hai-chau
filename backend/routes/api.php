@@ -1,12 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\TableManagerApiController;
+use App\Http\Controllers\Api\TableApiController;
 
-// Nhóm Route Quản lý & Nhập dữ liệu cho 22 bảng CSDL
-Route::get('/tables-summary', [TableManagerApiController::class, 'summary']);
+// Thống kê số lượng bản ghi của 22 bảng và tải file/ảnh từ máy tính
+Route::get('/tables-summary', [TableApiController::class, 'summary']);
+Route::post('/tables-manager-upload', [TableApiController::class, 'uploadFile']);
 
-Route::prefix('tables-manager')->controller(TableManagerApiController::class)->group(function () {
+// Nhóm Route Thêm - Xem - Sửa - Xóa dữ liệu cho 22 bảng CSDL
+Route::prefix('tables-manager')->controller(TableApiController::class)->group(function () {
     Route::get('/{table}', 'show');
     Route::post('/{table}', 'store');
     Route::put('/{table}/{pkCol}/{id}', 'update');
