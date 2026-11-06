@@ -142,7 +142,7 @@ function renderDynamicFormFields() {
                 <div class="space-y-1.5">
                     <label class="font-bold text-slate-700 block">
                         ${col.Field}
-                        <span class="text-[10px] text-slate-400 font-normal">(${col.Type})</span>
+                        
                         ${isRequired ? '<span class="text-rose-600">*</span>' : ''}
                     </label>
                     <input type="file"
@@ -168,7 +168,7 @@ function renderDynamicFormFields() {
             <div>
                 <label class="font-bold text-slate-700 block mb-1">
                     ${col.Field}
-                    <span class="text-[10px] text-slate-400 font-normal">(${col.Type})</span>
+        
                     ${isAuto ? '<span class="text-[10px] text-teal-600 font-semibold">[Tự tăng]</span>' : (isRequired ? '<span class="text-rose-600">*</span>' : '')}
                 </label>
                 <input id="input-${col.Field}"
