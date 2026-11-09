@@ -1,0 +1,15 @@
+{
+    "liveServer.settings.ignoreFiles": [
+        ".vscode/**",
+        "backend/**",
+        "ai-service/**",
+        "ai-training/**",
+        "venv/**",
+        "docker/**",
+        "**/*.log",
+        "**/*.sqlite3",
+        "**/*.sql",
+        "**/*.py",
+        "**/*.php"
+    ]
+}

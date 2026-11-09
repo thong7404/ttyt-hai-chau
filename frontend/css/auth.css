@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+
+:root {
+    --primary: #0d9488;
+    --primary-container: #0f766e;
+    --soft-bg: #f2f7f8;
+    --soft-text: #2c4251;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--soft-text);
+    background-color: var(--soft-bg);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(20, 184, 166, 0.06) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.06) 0px, transparent 50%);
+    min-height: 100vh;
+}
+
+.bg-primary {
+    background-color: #0d9488 !important;
+}
+
+.hover\:bg-primary:hover,
+.hover\:bg-primary-container:hover {
+    background-color: #0f766e !important;
+}
+
+.text-primary {
+    color: #0d9488 !important;
+}
+
+.border-primary {
+    border-color: #0d9488 !important;
+}
+
+.auth-banner-bg {
+    background-image: 
+        linear-gradient(180deg, rgba(13, 148, 136, 0.82) 0%, rgba(15, 118, 110, 0.92) 100%),
+        url('https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=1000&q=80');
+    background-size: cover;
+    background-position: center;
+}
+
+.floating-shadow {
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 22;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.material-symbols-outlined.fill {
+    font-variation-settings: 'FILL' 1;
+}
+
+input:focus,
+select:focus {
+    border-color: #0d9488 !important;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.14) !important;
+    outline: none !important;
+}
+
+.reveal-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal-up.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@keyframes shakeError {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.shake-error {
+    animation: shakeError 0.4s ease-in-out;
+}

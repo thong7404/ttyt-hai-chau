@@ -744,7 +744,73 @@
             </form>
         </div>
     </div>
+    <!-- ========================================================================= -->
+    <!-- BẢNG THÔNG BÁO ĐẶT LỊCH THÀNH CÔNG & NÚT XEM LỊCH ĐÃ ĐẶT                   -->
+    <!-- ========================================================================= -->
+    <div id="booking-success-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-teal-200 animate-[fadeIn_0.2s_ease-out]">
+            <!-- Header bảng thông báo -->
+            <div class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-5 text-center relative">
+                <button type="button" onclick="closeBookingSuccessModal()" class="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-lg">close</span>
+                </button>
+                <div class="w-14 h-14 rounded-full bg-white text-emerald-600 flex items-center justify-center mx-auto mb-2.5 shadow-md">
+                    <span class="material-symbols-outlined text-4xl">check_circle</span>
+                </div>
+                <h3 class="font-heading font-extrabold text-lg">Đặt Lịch Hẹn Khám Thành Công!</h3>
+                <p class="text-xs text-teal-50 mt-0.5">Lịch hẹn của bạn đã được lưu vào hệ thống MySQL</p>
+            </div>
 
+            <!-- Bảng chi tiết thông tin lịch hẹn vừa đặt -->
+            <div class="p-6 space-y-4 text-sm">
+                <div class="overflow-hidden rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <tbody class="divide-y divide-slate-200">
+                            <tr class="bg-teal-50/60">
+                                <th class="py-2.5 px-3.5 font-semibold text-slate-600 w-2/5">Mã lịch hẹn</th>
+                                <td id="bsm-ma-lich-hen" class="py-2.5 px-3.5 font-extrabold text-teal-700 text-base">#LH006</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2.5 px-3.5 font-semibold text-slate-600">Họ tên bệnh nhân</th>
+                                <td id="bsm-ho-ten" class="py-2.5 px-3.5 font-bold text-slate-800 uppercase">CAO TRUNG</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2.5 px-3.5 font-semibold text-slate-600">Số điện thoại</th>
+                                <td id="bsm-sdt" class="py-2.5 px-3.5 font-medium text-slate-700">0987691004</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2.5 px-3.5 font-semibold text-slate-600">Chuyên khoa khám</th>
+                                <td id="bsm-chuyen-khoa" class="py-2.5 px-3.5 font-bold text-emerald-700">Khoa Cơ - Xương - Khớp (P106)</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2.5 px-3.5 font-semibold text-slate-600">Ngày & Giờ hẹn</th>
+                                <td id="bsm-thoi-gian" class="py-2.5 px-3.5 font-semibold text-slate-800">2026-11-12 • Ca Tối (13:30 - 19:00)</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2.5 px-3.5 font-semibold text-slate-600">Triệu chứng</th>
+                                <td id="bsm-trieu-chung" class="py-2.5 px-3.5 text-slate-600">Khám lâm sàng theo lịch hẹn</td>
+                            </tr>
+                            <tr class="bg-slate-50">
+                                <th class="py-2.5 px-3.5 font-semibold text-slate-600">Quầy tiếp nhận</th>
+                                <td class="py-2.5 px-3.5 font-semibold text-teal-800">Phòng P101 (Tiếp đón & Khám sàng lọc)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2 Nút thao tác: Đóng & Xem lịch đã đặt -->
+                <div class="flex flex-col sm:flex-row items-center gap-2.5 pt-1">
+                    <button type="button" onclick="closeBookingSuccessModal()" class="w-full sm:w-2/5 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm transition">
+                        Đóng lại
+                    </button>
+                    <button type="button" onclick="openBookedListFromSuccessModal()" class="w-full sm:w-3/5 py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md transition">
+                        <span class="material-symbols-outlined text-lg">event_available</span>
+                        <span>Xem lịch đã đặt</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Nhúng file JS chính xử lý nạp header.html, footer.html và toàn bộ chức năng trang chủ -->
     <script src="../js/index.js"></script>
 </body>
