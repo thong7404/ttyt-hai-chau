@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Đăng Ký Tài Khoản Công Dân - TTYT Phường Hải Châu</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d9488'/%3E%3Cpath d='M26 14h12v12h12v12H38v12H26V38H14V26h12V14z' fill='%23ffffff'/%3E%3C/svg%3E"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link rel="stylesheet" href="../css/auth.css"/>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white/95 border-b border-slate-200 py-3.5 px-6 shadow-sm">
+        <div class="max-w-[1120px] mx-auto flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3">
+                <img src="../img/logo3.jpg" alt="TTYT Phường Hải Châu" class="h-12 w-auto object-contain"/>
+                <div>
+                    <span class="font-heading font-bold text-primary text-base block leading-tight">TTYT PHƯỜNG HẢI CHÂU</span>
+                    <span class="text-xs text-slate-500">Cổng Xác Thực & Định Danh Điện Tử</span>
+                </div>
+            </a>
+            <a href="index.html" class="text-sm font-semibold text-primary hover:underline flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base">arrow_back</span> Quay về Trang chủ
+            </a>
+        </div>
+    </header>
+
+    <!-- Khung Đăng ký 2 cột -->
+    <main class="flex-1 flex items-center justify-center p-5 sm:p-8">
+        <div class="max-w-[1100px] w-full grid grid-cols-1 md:grid-cols-12 bg-white rounded-2xl overflow-hidden floating-shadow border border-slate-200 reveal-up">
+            
+            <!-- Cột trái: Hình nền bệnh viện -->
+            <div class="md:col-span-5 auth-banner-bg text-white p-7 sm:p-8 flex flex-col justify-between">
+                <div>
+                    <span class="px-3 py-1 rounded-full bg-white/20 text-xs font-semibold">Định danh Công dân Hải Châu</span>
+                    <h1 class="font-heading text-2xl font-bold mt-4 leading-snug">Tạo Hồ Sơ Sức Khỏe Điện Tử Cá Nhân</h1>
+                    <p class="text-sm text-slate-200 mt-3 leading-relaxed">
+                        Điền thông tin cá nhân và địa chỉ Gmail của bạn. Hệ thống sẽ gửi mã xác thực gồm 6 chữ số về Gmail để kích hoạt tài khoản bệnh nhân.
+                    </p>
+                </div>
+                <div class="space-y-3 text-sm pt-6 border-t border-white/20">
+                    <div class="flex items-center gap-2"><span class="material-symbols-outlined text-emerald-300">looks_one</span> Nhập thông tin cá nhân & địa chỉ</div>
+                    <div class="flex items-center gap-2"><span class="material-symbols-outlined text-emerald-300">looks_two</span> Nhận mã 6 số gửi về hộp thư Gmail</div>
+                    <div class="flex items-center gap-2"><span class="material-symbols-outlined text-emerald-300">looks_3</span> Nhập vào 6 ô xác nhận để kích hoạt</div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Form Đăng ký + 6 Ô OTP -->
+            <div class="md:col-span-7 p-7 sm:p-8">
+                <div class="flex p-1.5 bg-slate-100 rounded-xl mb-5 text-sm font-bold">
+                    <a href="login.html" class="flex-1 py-2.5 text-center rounded-lg text-slate-600 hover:text-primary transition">ĐĂNG NHẬP</a>
+                    <a href="register.html" class="flex-1 py-2.5 text-center rounded-lg bg-white text-primary shadow-sm transition">ĐĂNG KÝ TÀI KHOẢN MỚI</a>
+                </div>
+
+                <div id="auth-alert-box" class="hidden mb-4 p-3.5 rounded-xl border text-sm font-semibold flex items-center gap-2.5"></div>
+
+                <!-- FORM BƯỚC 1: NHẬP THÔNG TIN -->
+                <form onsubmit="submitRegisterStep1(event)" class="space-y-4 text-sm">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <div class="sm:col-span-2">
+                            <label class="font-semibold text-slate-700 block mb-1.5">Họ và tên người bệnh (In hoa) *</label>
+                            <input id="reg-fullname" type="text" required placeholder="NGUYỄN VĂN AN" class="w-full h-10 px-3.5 rounded-lg border-slate-300 uppercase text-sm focus:border-primary focus:ring-primary/20"/>
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1.5">Giới tính *</label>
+                            <select id="reg-gender" class="w-full h-10 px-3 rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary/20">
+                                <option value="Nam">Nam</option>
+                                <option value="Nu">Nữ</option>
+                                <option value="Khac">Khác</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1.5">Địa chỉ Gmail nhận mã OTP *</label>
+                            <input id="reg-email" type="email" required placeholder="tenban@gmail.com" class="w-full h-10 px-3.5 rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary/20"/>
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1.5">Số điện thoại liên hệ *</label>
+                            <input id="reg-phone" type="tel" required placeholder="0905xxxxxx" class="w-full h-10 px-3.5 rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary/20"/>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1.5">Ngày sinh *</label>
+                            <input id="reg-dob" type="date" required class="w-full h-10 px-3 rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary/20"/>
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1.5">Số CCCD / VNeID (12 số) *</label>
+                            <input id="reg-cccd" type="text" maxlength="12" required placeholder="0480xxxxxxxx" class="w-full h-10 px-3.5 rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary/20"/>
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1.5">Mã thẻ BHYT (Nếu có)</label>
+                            <input id="reg-bhyt" type="text" maxlength="15" placeholder="GD448..." class="w-full h-10 px-3.5 rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary/20"/>
+                        </div>
+                    </div>
+
+                    <!-- Ô ĐỊA CHỈ TỰ NHẬP BẰNG BÀN PHÍM -->
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1.5">Địa chỉ thường trú / Nơi ở hiện tại *</label>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">location_on</span>
+                            <input id="reg-address" type="text" required placeholder="Nhập số nhà, tên đường, phường Hải Châu, TP. Đà Nẵng..." class="w-full h-10 pl-10 pr-3.5 rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary/20"/>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1.5">Mật khẩu (tối thiểu 6 ký tự) *</label>
+                            <input id="reg-password" type="password" minlength="6" required placeholder="••••••••" class="w-full h-10 px-3.5 rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary/20"/>
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-700 block mb-1.5">Nhập lại mật khẩu *</label>
+                            <input id="reg-password-confirm" type="password" minlength="6" required placeholder="••••••••" class="w-full h-10 px-3.5 rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-primary/20"/>
+                        </div>
+                    </div>
+
+                    <button id="btn-register-send-otp" type="submit" class="w-full py-3 rounded-xl bg-primary hover:bg-primary-container text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition">
+                        
+                        <span>ĐĂNG KÝ</span>
+                    </button>
+                </form>
+
+                <!-- KHUNG BƯỚC 2: 6 Ô NHẬP MÃ OTP -->
+                <div id="otp-6boxes-section" class="hidden mt-5 p-5 rounded-xl bg-sky-50 border-2 border-primary/40 text-center space-y-3.5">
+                    <div class="text-sm font-bold text-primary">
+                        Đã gửi mã xác thực 6 số về Gmail: <span id="otp-sent-email" class="underline text-slate-900"></span>
+                    </div>
+
+                    <div id="otp-wrong-warning" class="hidden p-2.5 rounded-lg bg-red-100 text-red-700 border border-red-300 text-sm font-bold flex items-center justify-center gap-1.5">
+                        <span class="material-symbols-outlined text-base">warning</span>
+                        <span id="otp-wrong-text">Mã xác thực OTP không chính xác!</span>
+                    </div>
+
+                    <form onsubmit="submitVerifyOtpStep2(event)" class="space-y-3.5">
+                        <div id="otp-boxes-container" class="flex justify-center gap-2.5">
+                            <input type="text" maxlength="1" class="otp-digit-box w-11 h-12 text-center text-lg font-bold text-primary bg-white border-2 border-slate-300 rounded-xl focus:border-primary outline-none" oninput="handleOtpDigitInput(this,0)" onkeydown="handleOtpDigitKeydown(event,0)" onpaste="handleOtpDigitPaste(event)" required/>
+                            <input type="text" maxlength="1" class="otp-digit-box w-11 h-12 text-center text-lg font-bold text-primary bg-white border-2 border-slate-300 rounded-xl focus:border-primary outline-none" oninput="handleOtpDigitInput(this,1)" onkeydown="handleOtpDigitKeydown(event,1)" required/>
+                            <input type="text" maxlength="1" class="otp-digit-box w-11 h-12 text-center text-lg font-bold text-primary bg-white border-2 border-slate-300 rounded-xl focus:border-primary outline-none" oninput="handleOtpDigitInput(this,2)" onkeydown="handleOtpDigitKeydown(event,2)" required/>
+                            <input type="text" maxlength="1" class="otp-digit-box w-11 h-12 text-center text-lg font-bold text-primary bg-white border-2 border-slate-300 rounded-xl focus:border-primary outline-none" oninput="handleOtpDigitInput(this,3)" onkeydown="handleOtpDigitKeydown(event,3)" required/>
+                            <input type="text" maxlength="1" class="otp-digit-box w-11 h-12 text-center text-lg font-bold text-primary bg-white border-2 border-slate-300 rounded-xl focus:border-primary outline-none" oninput="handleOtpDigitInput(this,4)" onkeydown="handleOtpDigitKeydown(event,4)" required/>
+                            <input type="text" maxlength="1" class="otp-digit-box w-11 h-12 text-center text-lg font-bold text-primary bg-white border-2 border-slate-300 rounded-xl focus:border-primary outline-none" oninput="handleOtpDigitInput(this,5)" onkeydown="handleOtpDigitKeydown(event,5)" required/>
+                        </div>
+
+                        <div class="text-xs text-slate-600">
+                            Thời gian hiệu lực: <b id="otp-countdown" class="text-red-600">05:00</b>
+                        </div>
+
+                        <button id="btn-verify-otp-submit" type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow transition">
+                            XÁC NHẬN MÃ OTP & HOÀN TẤT ĐĂNG KÝ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/auth.js"></script>
+</body>
+</html>

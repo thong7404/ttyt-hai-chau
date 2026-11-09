@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Quản Lý Tài Khoản Cá Nhân - TTYT Phường Hải Châu</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d9488'/%3E%3Cpath d='M26 14h12v12h12v12H38v12H26V38H14V26h12V14z' fill='%23ffffff'/%3E%3C/svg%3E"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link rel="stylesheet" href="../css/index.css"/>
+</head>
+<body class="flex flex-col min-h-screen text-slate-700 bg-[#f2f7f8]">
+
+    <!-- THANH HEADER TRANG TÀI KHOẢN (CÓ NÚT QUAY VỀ TRANG CHỦ) -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 py-3 px-6 sticky top-0 z-40 shadow-xs">
+        <div class="max-w-[1320px] mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <a href="index.html" class="flex items-center">
+                    <img src="../img/logo.webp" alt="TTYT Phường Hải Châu" class="h-11 w-auto object-contain"/>
+                </a>
+                <span class="hidden sm:inline-block h-6 w-[1px] bg-slate-200"></span>
+                <div class="hidden sm:block">
+                    <h1 class="font-bold text-teal-900 text-sm sm:text-base">Cổng Thông Tin Tài Khoản Bệnh Nhân</h1>
+                    <p class="text-[11px] text-slate-500">Quản lý Hồ sơ cá nhân, VNeID, Thẻ BHYT, Bệnh án & Lịch hẹn khám</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+                <a href="index.html" class="px-4 py-2 rounded-xl bg-teal-50 hover:bg-teal-600 text-teal-800 hover:text-white border border-teal-200 font-bold text-xs flex items-center gap-1.5 transition shadow-2xs">
+                    <span class="material-symbols-outlined text-base">arrow_back</span>
+                    <span>Quay về trang chủ</span>
+                </a>
+                <button type="button" onclick="logoutSystem()" class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 font-bold text-xs flex items-center gap-1.5 transition">
+                    <span class="material-symbols-outlined text-base">logout</span>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- NỘI DUNG CHÍNH: CỘT TRÁI (4 DÒNG MENU) & CỘT PHẢI (NỘI DUNG CHI TIẾT) -->
+    <main class="flex-1 max-w-[1320px] w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- CỘT BÊN TRÁI (3/12): THÔNG TIN TÀI KHOẢN & 4 DÒNG CHỨC NĂNG -->
+        <aside class="lg:col-span-4 xl:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <!-- Thông tin tóm tắt Bệnh nhân -->
+            <div class="bg-gradient-to-br from-teal-600 to-teal-700 text-white p-5 flex items-center gap-3.5">
+                <img id="sidebar-user-avatar" src="https://ui-avatars.com/api/?name=Cao+Trung&background=fff&color=0d9488&bold=true" alt="Avatar" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm shrink-0"/>
+                <div class="min-w-0">
+                    <h2 id="sidebar-user-name" class="font-bold text-base truncate">CAO TRUNG</h2>
+                    <p id="sidebar-user-code" class="text-xs text-teal-100 font-medium truncate">Mã BN: #BN001</p>
+                    <p id="sidebar-user-email" class="text-[11px] text-teal-200 truncate mt-0.5">caotrung14022000@gmail.com</p>
+                </div>
+            </div>
+
+            <!-- 4 Dòng Menu chức năng bên tay trái -->
+            <nav class="p-3 space-y-1.5 text-xs sm:text-sm font-bold">
+                <button type="button" id="tab-btn-profile" onclick="switchAccountTab('profile')"
+                        class="w-full px-4 py-3 rounded-xl text-left flex items-center gap-3 transition bg-teal-600 text-white shadow-xs">
+                    <span class="material-symbols-outlined text-xl">manage_accounts</span>
+                    <span>Hồ sơ cá nhân, VNeID & BHYT</span>
+                </button>
+
+                <button type="button" id="tab-btn-password" onclick="switchAccountTab('password')"
+                        class="w-full px-4 py-3 rounded-xl text-left flex items-center gap-3 transition text-slate-700 hover:bg-teal-50 hover:text-teal-700">
+                    <span class="material-symbols-outlined text-xl text-amber-600">lock_reset</span>
+                    <span>Đổi mật khẩu</span>
+                </button>
+
+                <button type="button" id="tab-btn-records" onclick="switchAccountTab('records')"
+                        class="w-full px-4 py-3 rounded-xl text-left flex items-center gap-3 transition text-slate-700 hover:bg-teal-50 hover:text-teal-700">
+                    <span class="material-symbols-outlined text-xl text-emerald-600">clinical_notes</span>
+                    <span>Hồ sơ bệnh án điện tử</span>
+                </button>
+
+                <button type="button" id="tab-btn-appointments" onclick="switchAccountTab('appointments')"
+                        class="w-full px-4 py-3 rounded-xl text-left flex items-center gap-3 transition text-slate-700 hover:bg-teal-50 hover:text-teal-700">
+                    <span class="material-symbols-outlined text-xl text-sky-600">event_available</span>
+                    <span>Lịch khám đã đặt</span>
+                </button>
+            </nav>
+
+            <!-- Nút Quay về trang chủ ở cuối cột trái -->
+            <div class="p-3 pt-2 border-t border-slate-100">
+                <a href="index.html" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-teal-50 text-slate-700 hover:text-teal-800 font-bold text-xs flex items-center justify-center gap-2 transition">
+                    <span class="material-symbols-outlined text-base">home</span>
+                    <span>Quay về trang chủ</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- CỘT BÊN PHẢI (9/12): KHUNG HIỂN THỊ NỘI DUNG CỦA TỪNG MỤC -->
+        <section class="lg:col-span-8 xl:col-span-9 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+            <!-- Hộp thông báo trạng thái -->
+            <div id="account-modal-alert" class="hidden mb-5 p-3.5 rounded-xl border text-xs sm:text-sm font-bold"></div>
+
+            <!-- 1. PANEL HỒ SƠ CÁ NHÂN, VNeID & BHYT -->
+            <form id="panel-profile" onsubmit="handleUpdateProfile(event)" class="space-y-5 text-sm">
+                <div class="border-b border-slate-100 pb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-lg text-teal-900">Hồ Sơ Cá Nhân, VNeID & Bảo Hiểm Y Tế</h3>
+                        <p class="text-xs text-slate-500">Thông tin được đồng bộ trực tiếp với bảng <strong>NGUOI_DUNG</strong> và <strong>BENH_NHAN</strong> trong MySQL</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 pb-4 border-b border-slate-100">
+                    <img id="preview-profile-avatar" src="https://ui-avatars.com/api/?name=Cao+Trung&background=0d9488&color=fff&bold=true" class="w-16 h-16 rounded-full object-cover border-2 border-teal-500"/>
+                    <div>
+                        <label for="input-avatar-file" class="px-3.5 py-2 rounded-xl bg-teal-50 text-teal-700 hover:bg-teal-600 hover:text-white text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 transition">
+                            <span class="material-symbols-outlined text-base">photo_camera</span>
+                            <span>Chọn ảnh đại diện mới</span>
+                        </label>
+                        <input id="input-avatar-file" type="file" accept="image/*" class="hidden" onchange="onChangeProfileAvatar(event)"/>
+                        <p class="text-xs text-slate-500 mt-1">Ảnh đại diện hiển thị trên thanh menu của bạn</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Họ và tên *</label>
+                        <input id="pf-fullname" type="text" required class="w-full h-10 px-3 rounded-xl border-slate-300 uppercase font-bold text-sm"/>
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Số điện thoại *</label>
+                        <input id="pf-phone" type="tel" required class="w-full h-10 px-3 rounded-xl border-slate-300 text-sm"/>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Ngày tháng năm sinh</label>
+                        <input id="pf-dob" type="date" class="w-full h-10 px-3 rounded-xl border-slate-300 text-sm"/>
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-700 block mb-1">Giới tính</label>
+                        <select id="pf-gender" class="w-full h-10 px-3 rounded-xl border-slate-300 text-sm">
+                            <option value="Nam">Nam</option>
+                            <option value="Nu">Nữ</option>
+                            <option value="Khac">Khác</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-teal-50/70 border border-teal-200 space-y-3.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-teal-900 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-base text-teal-600">verified_user</span>
+                            ĐỊNH DANH VNeID, TÀI KHOẢN NGÂN HÀNG & THẺ BHYT
+                        </span>
+                        <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">Đồng bộ MySQL</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 block mb-1">Số định danh VNeID</label>
+                            <input id="pf-vneid" type="text" placeholder="048200001234" class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white font-mono font-bold text-teal-700 text-xs"/>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 block mb-1">STK Ngân hàng</label>
+                            <input id="pf-stk-ngan-hang" type="text" placeholder="VD: 987691004 - MB Bank" class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white font-bold text-slate-800 text-xs"/>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 block mb-1">Mã số thẻ BHYT</label>
+                            <input id="pf-bhyt" type="text" maxlength="20" placeholder="GD4480012345678" class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white font-bold text-teal-700 text-xs uppercase"/>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 block mb-1">Hạn thẻ BHYT</label>
+                            <input id="pf-bhyt-expire" type="date" class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white text-xs"/>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-700 block mb-1">Nơi đăng ký BHYT</label>
+                            <input id="pf-bhyt-place" type="text" placeholder="TTYT Phường Hải Châu" class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white text-xs"/>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-700 block mb-1">Tiền sử dị ứng thuốc / Bệnh nền</label>
+                        <input id="pf-allergy" type="text" placeholder="VD: Không dị ứng thuốc / Tăng huyết áp..." class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white text-xs"/>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="font-semibold text-slate-700 block mb-1">Địa chỉ thường trú *</label>
+                    <input id="pf-address" type="text" placeholder="Nhập địa chỉ của bạn..." class="w-full h-10 px-3 rounded-xl border-slate-300 text-sm"/>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow-sm transition">
+                        💾 Lưu Cập Nhật Thông Tin, VNeID & BHYT
+                    </button>
+                </div>
+            </form>
+
+            <!-- 2. PANEL ĐỔI MẬT KHẨU -->
+            <form id="panel-password" onsubmit="handleChangePassword(event)" class="hidden space-y-4 text-sm max-w-lg">
+                <div class="border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-lg text-teal-900">Đổi Mật Khẩu Tài Khoản</h3>
+                    <p class="text-xs text-slate-500">Cập nhật mật khẩu bảo mật mới trong bảng <strong>NGUOI_DUNG</strong></p>
+                </div>
+
+                <div>
+                    <label class="font-semibold text-slate-700 block mb-1">Mật khẩu hiện tại *</label>
+                    <input id="pwd-current" type="password" required placeholder="Nhập mật khẩu đang dùng..." class="w-full h-10 px-3 rounded-xl border-slate-300 text-sm"/>
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block mb-1">Mật khẩu mới (tối thiểu 6 ký tự) *</label>
+                    <input id="pwd-new" type="password" minlength="6" required placeholder="Nhập mật khẩu mới..." class="w-full h-10 px-3 rounded-xl border-slate-300 text-sm"/>
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-700 block mb-1">Nhập lại mật khẩu mới *</label>
+                    <input id="pwd-confirm" type="password" minlength="6" required placeholder="Xác nhận mật khẩu mới..." class="w-full h-10 px-3 rounded-xl border-slate-300 text-sm"/>
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-sm transition">
+                        🔑 Xác Nhận Đổi Mật Khẩu
+                    </button>
+                </div>
+            </form>
+
+            <!-- 3. PANEL HỒ SƠ BỆNH ÁN ĐIỆN TỬ -->
+            <div id="panel-records" class="hidden space-y-4 text-sm">
+                <div class="border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-lg text-teal-900">Hồ Sơ Bệnh Án Điện Tử</h3>
+                    <p class="text-xs text-slate-500">Lịch sử khám sàng lọc, chỉ định Cận lâm sàng, Đơn thuốc và Hóa đơn viện phí</p>
+                </div>
+                <div id="records-list-container" class="space-y-3"></div>
+            </div>
+
+            <!-- 4. PANEL LỊCH KHÁM ĐÃ ĐẶT -->
+            <div id="panel-appointments" class="hidden space-y-4 text-sm">
+                <div class="border-b border-slate-100 pb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-lg text-teal-900">Danh Sách Lịch Khám Đã Đặt</h3>
+                        <p class="text-xs text-slate-500">Tải trực tiếp từ bảng <strong>LICH_HEN_KHAM</strong> trong MySQL</p>
+                    </div>
+                    <a href="index.html#booking-box" class="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition">
+                        + Đặt lịch hẹn mới
+                    </a>
+                </div>
+                <div id="booked-appointments-list" class="space-y-3"></div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Vùng nhúng Footer -->
+    <div id="app-footer" class="mt-auto"></div>
+
+    <script src="../js/account.js"></script>
+</body>
+</html>

@@ -4,17 +4,15 @@
 const API_CONFIG = {
     BASE_API_URL: "http://127.0.0.1:8000/api",
     LARAVEL_AUTH_URL: "http://127.0.0.1:8000/api",
-    FASTAPI_CHAT_URL: "http://127.0.0.1:8001/api/chat-symptom"
+    FASTAPI_CHAT_URL: "http://127.0.0.1:8001/api/ai/triage-chat"
 };
 
 let symptomImageFiles = [];
 let chatSessions = [];
 let activeSessionId = null;
-let cachedMedicalRecords = [];
-let cachedBookedAppointments = [];
 
 /**
- * Hàm lấy thông tin người dùng đang đăng nhập từ localStorage
+ * 1. Hàm lấy thông tin người dùng đang đăng nhập từ localStorage
  */
 function getCurrentUser() {
     try {
@@ -26,7 +24,7 @@ function getCurrentUser() {
 }
 
 /**
- * Hàm đăng xuất tài khoản
+ * 2. Hàm đăng xuất tài khoản
  */
 function logoutSystem() {
     localStorage.removeItem("current_user");
@@ -35,7 +33,7 @@ function logoutSystem() {
 }
 
 /**
- * Hàm nạp trực tiếp 2 file tĩnh header.html và footer.html vào #app-header và #app-footer
+ * 3. Hàm nạp trực tiếp 2 file tĩnh header.html và footer.html vào #app-header và #app-footer
  */
 async function loadHeaderAndFooterHtml() {
     const headerPlaceholder = document.getElementById("app-header");
@@ -61,7 +59,7 @@ async function loadHeaderAndFooterHtml() {
 }
 
 /**
- * Hàm lấy chuỗi ngày hôm nay theo định dạng YYYY-MM-DD
+ * 4. Hàm lấy chuỗi ngày hôm nay theo định dạng YYYY-MM-DD
  */
 function getTodayDateStr() {
     const now = new Date();
@@ -72,7 +70,7 @@ function getTodayDateStr() {
 }
 
 /**
- * Hàm giới hạn ngày đặt lịch khám tối thiểu là ngày hôm nay
+ * 5. Hàm giới hạn ngày đặt lịch khám tối thiểu là ngày hôm nay
  */
 function initBookingDateMin() {
     const todayStr = getTodayDateStr();
@@ -91,7 +89,7 @@ function initBookingDateMin() {
 document.addEventListener("DOMContentLoaded", async () => {
     await loadHeaderAndFooterHtml();
     initBookingDateMin();
-    initChatSessionsSystem();
+    await initChatSessionsSystem();
     initScrollAnimations();
 
     document.addEventListener("click", (e) => {
@@ -131,7 +129,10 @@ function renderHeaderAuthStatus() {
     const guestZone = document.getElementById("header-guest-zone");
     const userDropdownWrapper = document.getElementById("header-user-dropdown-wrapper");
 
-    if (user) {
+    const bkName = document.getElementById("bk-fullname");
+    const bkPhone = document.getElementById("bk-phone");
+
+    if (user && user.ma_nguoi_dung) {
         if (guestZone) guestZone.classList.add("hidden");
         if (userDropdownWrapper) userDropdownWrapper.classList.remove("hidden");
 
@@ -154,13 +155,13 @@ function renderHeaderAuthStatus() {
         if (dropName) dropName.textContent = user.ho_ten;
         if (dropEmail) dropEmail.textContent = user.email;
 
-        const bkName = document.getElementById("bk-fullname");
-        const bkPhone = document.getElementById("bk-phone");
-        if (bkName && !bkName.value) bkName.value = user.ho_ten;
+        if (bkName && !bkName.value) bkName.value = user.ho_ten || "";
         if (bkPhone && !bkPhone.value) bkPhone.value = user.so_dien_thoai || "";
     } else {
         if (guestZone) guestZone.classList.remove("hidden");
         if (userDropdownWrapper) userDropdownWrapper.classList.add("hidden");
+        if (bkName) bkName.value = "";
+        if (bkPhone) bkPhone.value = "";
     }
 }
 
@@ -171,11 +172,287 @@ function toggleUserProfileMenu(event) {
 }
 
 // =========================================================================
-// 2. HỆ THỐNG LỊCH SỬ CHAT AI ĐA PHIÊN (PHIEN_TRO_CHUYEN_AI, LICH_SU_TIN_NHAN_AI)
+// 2. BẢNG YÊU CẦU ĐĂNG NHẬP & BẢNG ĐẶT LỊCH THÀNH CÔNG
+// =========================================================================
+
+/**
+ * Hiển thị bảng thông báo yêu cầu đăng nhập khi người dùng chưa đăng nhập mà nhấn Đặt lịch
+ */
+function showRequireLoginModal() {
+    let modal = document.getElementById("require-login-modal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "require-login-modal";
+        modal.className = "fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4";
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-teal-200 animate-[fadeIn_0.2s_ease-out]">
+                <div class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-5 text-center relative">
+                    <div class="w-14 h-14 rounded-full bg-white text-teal-600 flex items-center justify-center mx-auto mb-2.5 shadow-md">
+                        <span class="material-symbols-outlined text-3xl">lock</span>
+                    </div>
+                    <h3 class="font-heading font-extrabold text-lg">Thông Báo Hệ Thống</h3>
+                </div>
+                <div class="p-6 text-center space-y-5">
+                    <p class="text-sm sm:text-base text-slate-700 font-bold leading-relaxed">
+                        Hãy đăng nhập để đặt lịch và xem hồ sơ bệnh án
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="closeRequireLoginModal()"
+                                class="w-2/5 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm transition">
+                            Đóng lại
+                        </button>
+                        <a href="login.html"
+                           class="w-3/5 py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md transition">
+                            <span class="material-symbols-outlined text-base">login</span>
+                            <span>Đăng nhập ngay</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    } else {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    }
+}
+
+function closeRequireLoginModal() {
+    const modal = document.getElementById("require-login-modal");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
+}
+
+function showBookingSuccessModal(bookingInfo) {
+    const modal = document.getElementById("booking-success-modal");
+    if (!modal) return;
+
+    document.getElementById("bsm-ma-lich-hen").textContent = `#${bookingInfo.ma_lich_hen}`;
+    document.getElementById("bsm-ho-ten").textContent = bookingInfo.ho_ten || "";
+    document.getElementById("bsm-sdt").textContent = bookingInfo.so_dien_thoai || "";
+    document.getElementById("bsm-chuyen-khoa").textContent = bookingInfo.chuyen_khoa || "";
+    document.getElementById("bsm-thoi-gian").textContent = `${bookingInfo.ngay_hen_kham} • ${bookingInfo.khung_gio_hen}`;
+    document.getElementById("bsm-trieu-chung").textContent = bookingInfo.trieu_chung_ban_dau || "Khám lâm sàng theo lịch hẹn";
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+}
+
+function closeBookingSuccessModal() {
+    const modal = document.getElementById("booking-success-modal");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
+}
+
+function openBookedListFromSuccessModal() {
+    window.location.href = "account.html?tab=appointments";
+}
+
+// =========================================================================
+// 3. TỰ ĐỘNG ĐIỀN FORM ĐẶT LỊCH & LƯU VÀO BẢNG LICH_HEN_KHAM (BẮT BUỘC ĐĂNG NHẬP)
+// =========================================================================
+function autoFillHomepageBookingForm(suggestion) {
+    if (!suggestion) return;
+    const user = getCurrentUser();
+    const todayStr = getTodayDateStr();
+
+    const deptEl = document.getElementById("bk-department");
+    const shiftEl = document.getElementById("bk-shift");
+    const dateEl = document.getElementById("bk-date");
+    const symptomEl = document.getElementById("bk-symptom");
+    const nameEl = document.getElementById("bk-fullname");
+    const phoneEl = document.getElementById("bk-phone");
+
+    if (deptEl && suggestion.chuyen_khoa) deptEl.value = suggestion.chuyen_khoa;
+    if (shiftEl && suggestion.ca_kham) shiftEl.value = suggestion.ca_kham;
+    if (dateEl) {
+        dateEl.value = (suggestion.ngay_hen && suggestion.ngay_hen >= todayStr) ? suggestion.ngay_hen : todayStr;
+    }
+    if (symptomEl && suggestion.trieu_chung_tom_tat) {
+        symptomEl.value = suggestion.trieu_chung_tom_tat;
+    }
+    if (user) {
+        if (nameEl) nameEl.value = user.ho_ten || "";
+        if (phoneEl) phoneEl.value = user.so_dien_thoai || "";
+    }
+}
+
+function scrollAndHighlightBookingForm() {
+    const win = document.getElementById("ai-chat-popup");
+    if (win) win.classList.add("hidden");
+
+    const bookingBox = document.getElementById("booking-box");
+    if (bookingBox) {
+        bookingBox.scrollIntoView({ behavior: "smooth", block: "center" });
+        bookingBox.classList.add("ring-4", "ring-emerald-400", "transition-all");
+        setTimeout(() => {
+            bookingBox.classList.remove("ring-4", "ring-emerald-400");
+        }, 3500);
+    }
+}
+
+async function saveAppointmentToMySql(bookingPayload) {
+    const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/book-appointment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(bookingPayload)
+    });
+    const data = await res.json();
+    return {
+        ok: res.ok && data.status === "success",
+        ma_lich_hen: data.ma_lich_hen,
+        message: data.message
+    };
+}
+
+/**
+ * Hàm đặt lịch trực tiếp từ Phiếu đặt lịch gợi ý trong khung Chat AI
+ * (Chưa đăng nhập -> Hiện bảng thông báo yêu cầu đăng nhập)
+ */
+async function confirmAiBookingDirectly(cardId) {
+    const user = getCurrentUser();
+    if (!user || !user.ma_nguoi_dung) {
+        showRequireLoginModal();
+        return;
+    }
+
+    const todayStr = getTodayDateStr();
+    const dept = document.getElementById(`ai-bk-dept-${cardId}`).value;
+    const shift = document.getElementById(`ai-bk-shift-${cardId}`).value;
+    const dateInput = document.getElementById(`ai-bk-date-${cardId}`);
+    const date = dateInput.value;
+    const symptom = document.getElementById(`ai-bk-symptom-${cardId}`).value;
+    const nameInput = document.getElementById(`ai-bk-name-${cardId}`);
+    const phoneInput = document.getElementById(`ai-bk-phone-${cardId}`);
+
+    const hoTen = nameInput ? nameInput.value.trim() : (user.ho_ten || "");
+    const soDienThoai = phoneInput ? phoneInput.value.trim() : (user.so_dien_thoai || "");
+
+    if (!hoTen || !soDienThoai) {
+        alert("⚠️ Vui lòng nhập Họ tên và Số điện thoại trong thẻ đặt lịch để xác nhận!");
+        return;
+    }
+
+    if (!date || date < todayStr) {
+        alert(`⚠️ Không thể đặt lịch vào ngày đã qua (${date})!`);
+        dateInput.value = todayStr;
+        return;
+    }
+
+    const bookingPayload = {
+        ma_nguoi_dung: user.ma_nguoi_dung,
+        ma_benh_nhan: user.ma_benh_nhan,
+        ho_ten: hoTen,
+        so_dien_thoai: soDienThoai,
+        chuyen_khoa: dept,
+        khung_gio_hen: shift,
+        ngay_hen_kham: date,
+        trieu_chung_ban_dau: symptom
+    };
+
+    try {
+        const result = await saveAppointmentToMySql(bookingPayload);
+        if (!result.ok) {
+            alert("⚠️ " + (result.message || "Không thể lưu lịch hẹn vào MySQL!"));
+            return;
+        }
+
+        const btnConfirm = document.getElementById(`btn-ai-confirm-${cardId}`);
+        if (btnConfirm) {
+            btnConfirm.disabled = true;
+            btnConfirm.className = "w-full py-2 rounded-lg bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1 cursor-default";
+            btnConfirm.innerHTML = `<span class="material-symbols-outlined text-sm">verified</span> Đã lưu Lịch hẹn #${result.ma_lich_hen}`;
+        }
+
+        showBookingSuccessModal({
+            ma_lich_hen: result.ma_lich_hen,
+            ho_ten: hoTen,
+            so_dien_thoai: soDienThoai,
+            chuyen_khoa: dept,
+            ngay_hen_kham: date,
+            khung_gio_hen: shift,
+            trieu_chung_ban_dau: symptom
+        });
+    } catch (e) {
+        alert("⚠️ Không kết nối được tới Server Laravel (Cổng 8000) để lưu lịch hẹn!");
+    }
+}
+
+/**
+ * Hàm xử lý khi nhấn nút "XÁC NHẬN ĐẶT LỊCH KHÁM" trên trang chủ
+ * (Chưa đăng nhập -> Hiện bảng thông báo yêu cầu đăng nhập, không chuyển sang Cao Trung)
+ */
+async function handleQuickBooking(event) {
+    event.preventDefault();
+    const user = getCurrentUser();
+
+    if (!user || !user.ma_nguoi_dung) {
+        showRequireLoginModal();
+        return;
+    }
+
+    const todayStr = getTodayDateStr();
+    const dateInput = document.getElementById("bk-date");
+    const selectedDate = dateInput.value;
+
+    if (!selectedDate || selectedDate < todayStr) {
+        alert(`⚠️ Ngày hẹn khám không hợp lệ!\nVui lòng chọn từ ngày hôm nay (${todayStr}) trở đi.`);
+        dateInput.value = todayStr;
+        return;
+    }
+
+    const deptVal = document.getElementById("bk-department").value;
+    const shiftVal = document.getElementById("bk-shift").value;
+    const fullNameVal = document.getElementById("bk-fullname").value.trim();
+    const phoneVal = document.getElementById("bk-phone").value.trim();
+    const symptomVal = document.getElementById("bk-symptom").value.trim() || "Khám lâm sàng theo lịch hẹn";
+
+    const bookingPayload = {
+        ma_nguoi_dung: user.ma_nguoi_dung,
+        ma_benh_nhan: user.ma_benh_nhan,
+        ho_ten: fullNameVal,
+        so_dien_thoai: phoneVal,
+        chuyen_khoa: deptVal,
+        khung_gio_hen: shiftVal,
+        ngay_hen_kham: selectedDate,
+        trieu_chung_ban_dau: symptomVal
+    };
+
+    try {
+        const result = await saveAppointmentToMySql(bookingPayload);
+        if (!result.ok) {
+            alert("⚠️ " + (result.message || "Không thể đặt lịch khám!"));
+            return;
+        }
+
+        showBookingSuccessModal({
+            ma_lich_hen: result.ma_lich_hen,
+            ho_ten: fullNameVal,
+            so_dien_thoai: phoneVal,
+            chuyen_khoa: deptVal,
+            ngay_hen_kham: selectedDate,
+            khung_gio_hen: shiftVal,
+            trieu_chung_ban_dau: symptomVal
+        });
+
+        event.target.reset();
+        initBookingDateMin();
+        renderHeaderAuthStatus();
+    } catch (e) {
+        alert("⚠️ Không kết nối được tới Server Laravel (Cổng 8000)!");
+    }
+}
+
+// =========================================================================
+// 4. HỆ THỐNG LỊCH SỬ CHAT AI ĐA PHIÊN (PHIEN_TRO_CHUYEN_AI, LICH_SU_TIN_NHAN_AI, ANH_TIN_NHAN_AI)
 // =========================================================================
 function getChatStorageConfig() {
     const user = getCurrentUser();
-    if (user) {
+    if (user && user.ma_nguoi_dung) {
         return {
             storage: localStorage,
             key: `ai_sessions_user_${user.ma_nguoi_dung}`,
@@ -204,8 +481,38 @@ async function initChatSessionsSystem() {
         }
     }
 
-    const raw = cfg.storage.getItem(cfg.key);
-    chatSessions = raw ? JSON.parse(raw) : [];
+    if (cfg.isLogged) {
+        try {
+            const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/ai-sessions/${cfg.user.ma_nguoi_dung}`, {
+                headers: { "Accept": "application/json" }
+            });
+            const data = await res.json();
+            if (res.ok && Array.isArray(data.sessions)) {
+                chatSessions = data.sessions.map(s => ({
+                    id: "session_" + (s.ma_phien_chat || Date.now()),
+                    ma_phien_chat: s.ma_phien_chat || null,
+                    title: s.tieu_de_cuoc_tro_chuyen || "Cuộc trò chuyện AI",
+                    createdAt: s.thoi_gian_tao || "",
+                    messages: (s.messages || []).map(m => ({
+                        ma_tin_nhan: m.ma_tin_nhan || null,
+                        nguoi_gui: m.nguoi_gui || "NguoiDung",
+                        noi_dung: m.noi_dung_tin_nhan || m.noi_dung || "",
+                        images: (m.images || []).map(img => typeof img === "string" ? img : (img.duong_dan_anh || "")),
+                        booking_suggestion: m.booking_suggestion || null
+                    }))
+                }));
+                cfg.storage.setItem(cfg.key, JSON.stringify(chatSessions));
+            } else {
+                chatSessions = [];
+            }
+        } catch (e) {
+            const raw = cfg.storage.getItem(cfg.key);
+            chatSessions = raw ? JSON.parse(raw) : [];
+        }
+    } else {
+        const raw = cfg.storage.getItem(cfg.key);
+        chatSessions = raw ? JSON.parse(raw) : [];
+    }
 
     if (chatSessions.length === 0) {
         createNewSessionObject();
@@ -257,6 +564,18 @@ function selectAiChatSession(sessionId) {
 
 async function deleteAiChatSession(sessionId, event) {
     event.stopPropagation();
+    const target = chatSessions.find(s => s.id === sessionId);
+
+    if (target && target.ma_phien_chat) {
+        try {
+            await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/ai-sessions/delete`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify({ ma_phien_chat: target.ma_phien_chat })
+            });
+        } catch (e) {}
+    }
+
     chatSessions = chatSessions.filter(s => s.id !== sessionId);
 
     if (chatSessions.length === 0) {
@@ -272,6 +591,22 @@ async function deleteAiChatSession(sessionId, event) {
 
 async function clearAllAiChatSessions() {
     if (!confirm("Bạn có chắc muốn xóa toàn bộ lịch sử các cuộc trò chuyện không?")) return;
+    const cfg = getChatStorageConfig();
+
+    if (cfg.isLogged) {
+        for (const s of chatSessions) {
+            if (s.ma_phien_chat) {
+                try {
+                    await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/ai-sessions/delete`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                        body: JSON.stringify({ ma_phien_chat: s.ma_phien_chat })
+                    });
+                } catch (e) {}
+            }
+        }
+    }
+
     chatSessions = [];
     createNewSessionObject();
     renderSessionSidebarList();
@@ -281,6 +616,33 @@ async function clearAllAiChatSessions() {
 function saveAllChatSessions() {
     const cfg = getChatStorageConfig();
     cfg.storage.setItem(cfg.key, JSON.stringify(chatSessions));
+}
+
+async function syncMessageToMySql(sessionObj, sender, content, images = []) {
+    const user = getCurrentUser();
+    if (!user || !user.ma_nguoi_dung) return;
+
+    try {
+        const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/ai-sessions/save-message`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify({
+                ma_nguoi_dung: user.ma_nguoi_dung,
+                ma_phien_chat: sessionObj.ma_phien_chat || null,
+                tieu_de_cuoc_tro_chuyen: sessionObj.title,
+                nguoi_gui: sender,
+                noi_dung_tin_nhan: content,
+                images: images
+            })
+        });
+        const data = await res.json();
+        if (res.ok && data.ma_phien_chat) {
+            sessionObj.ma_phien_chat = data.ma_phien_chat;
+            saveAllChatSessions();
+        }
+    } catch (err) {
+        console.error("Không thể đồng bộ tin nhắn AI vào MySQL:", err);
+    }
 }
 
 function renderSessionSidebarList() {
@@ -319,15 +681,25 @@ function renderSessionSidebarList() {
 }
 
 /**
- * Bộ phân luồng Y tế AI thông minh (Xử lý ngay cả khi cổng 8001 chưa bật)
+ * Bộ phân luồng Y tế AI thông minh dự phòng tại trình duyệt (Khi cổng 8001 chưa bật)
  */
 function buildLocalMedicalTriageFallback(userMessage, hasImages = false) {
-    const msg = (userMessage || "").toLowerCase();
+    const msg = (userMessage || "").toLowerCase().trim();
     const todayStr = getTodayDateStr();
+
+    // Nhận diện nếu người dùng chỉ mới chào hỏi
+    const cleanGreeting = msg.replace(/[^\w\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, "").trim();
+    const greetings = ["xin chào", "chào", "chào bạn", "chào bác sĩ", "hi", "hello", "alo", "bác sĩ ơi"];
+    if (greetings.includes(cleanGreeting) && !hasImages) {
+        return {
+            reply: "Xin chào bạn! 👋 Tôi là **Bác sĩ Trợ lý AI** của **Trung tâm Y tế Phường Hải Châu**.\n\nHiện tại bạn đang gặp triệu chứng gì (ví dụ: *đau rát họng, sốt, đau đầu, chóng mặt, đau nhức xương khớp...*) hoặc cần tư vấn thủ tục khám BHYT? Hãy mô tả hoặc gửi kèm hình ảnh để tôi tư vấn đúng Khoa/Phòng cho bạn nhé!",
+            booking_suggestion: null
+        };
+    }
 
     let dept = "Khoa Nội Tổng Quát (P102)";
     let price = "45.000đ";
-    let analysis = "Triệu chứng nội khoa tổng quát, cần kiểm tra sinh hiệu (mạch, huyết áp, nhiệt độ) và khám lâm sàng.";
+    let analysis = "Triệu chứng nội khoa tổng quát, cần kiểm tra sinh hiệu (mạch, huyết áp, nhiệt độ) tại Phòng P101 và khám lâm sàng tại Phòng P102.";
 
     if (msg.includes("tay") || msg.includes("chân") || msg.includes("khớp") || msg.includes("xương") || msg.includes("lưng") || msg.includes("gối") || msg.includes("cổ tay") || msg.includes("sưng") || msg.includes("tê bì") || msg.includes("gout")) {
         dept = "Khoa Cơ - Xương - Khớp (P106)";
@@ -343,22 +715,39 @@ function buildLocalMedicalTriageFallback(userMessage, hasImages = false) {
         analysis = "Thực hiện kỹ thuật Cận lâm sàng & Chẩn đoán hình ảnh tại Phòng P201.";
     }
 
+    const wantsBooking = ["đặt lịch", "đặt hẹn", "đăng ký khám", "đặt cho tôi", "lập phiếu"].some(k => msg.includes(k));
+
     const reply =
         `🩺 **Đánh giá sơ bộ từ Bác sĩ Trợ lý AI:**\n` +
         `- **Triệu chứng ghi nhận:** ${userMessage || "Hình ảnh triệu chứng lâm sàng"}${hasImages ? " (Đã phân tích hình ảnh đính kèm)" : ""}.\n` +
         `- **Nhận định chuyên môn:** ${analysis}\n` +
         `- **Chỉ định phân luồng:** **${dept}** (Giá khám niêm yết: **${price}**, BHYT hỗ trợ 80%).\n\n` +
-        `📋 Tôi đã tự động điền sẵn **Phiếu Đặt Lịch Khám** bên dưới cho bạn. Bạn chỉ cần bấm nút **"Xác nhận đặt lịch ngay"** để lưu vào hệ thống!`;
+        (wantsBooking
+            ? `📋 Tôi đã tự động điền sẵn **Phiếu Đặt Lịch Khám** bên dưới cho bạn. Bạn chỉ cần bấm nút **"Xác nhận đặt lịch ngay"** để lưu vào hệ thống!`
+            : `👉 Nếu bạn muốn đặt lịch khám ngay, hãy nhắn **"Hãy đặt lịch cho tôi"** nhé!`);
 
     return {
         reply: reply,
-        booking_suggestion: {
+        booking_suggestion: wantsBooking ? {
             chuyen_khoa: dept,
             ca_kham: "Ca Sáng (07:00 - 11:30)",
             ngay_hen: todayStr,
             trieu_chung_tom_tat: userMessage || "Khám theo tư vấn phân luồng của AI"
-        }
+        } : null
     };
+}
+
+/**
+ * Hàm chuyển đổi văn bản Markdown (**in đậm**, *in nghiêng*) sang thẻ HTML đẹp mắt
+ */
+function formatAiMarkdownText(text) {
+    if (!text) return "";
+    return String(text)
+        .replace(/&/g, "&")
+        .replace(/</g, "<")
+        .replace(/>/g, ">")
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-teal-900">$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em class="italic text-slate-600">$1</em>');
 }
 
 function renderActiveSessionMessages() {
@@ -414,166 +803,7 @@ function quickAskSymptom(text) {
 }
 
 // =========================================================================
-// 3. TỰ ĐỘNG ĐIỀN FORM ĐẶT LỊCH & LƯU VÀO BẢNG LICH_HEN_KHAM (MÃ CHỮ + SỐ)
-// =========================================================================
-function autoFillHomepageBookingForm(suggestion) {
-    if (!suggestion) return;
-    const user = getCurrentUser();
-    const todayStr = getTodayDateStr();
-
-    const deptEl = document.getElementById("bk-department");
-    const shiftEl = document.getElementById("bk-shift");
-    const dateEl = document.getElementById("bk-date");
-    const symptomEl = document.getElementById("bk-symptom");
-    const nameEl = document.getElementById("bk-fullname");
-    const phoneEl = document.getElementById("bk-phone");
-
-    if (deptEl && suggestion.chuyen_khoa) deptEl.value = suggestion.chuyen_khoa;
-    if (shiftEl && suggestion.ca_kham) shiftEl.value = suggestion.ca_kham;
-    if (dateEl) {
-        dateEl.value = (suggestion.ngay_hen && suggestion.ngay_hen >= todayStr) ? suggestion.ngay_hen : todayStr;
-    }
-    if (symptomEl && suggestion.trieu_chung_tom_tat) {
-        symptomEl.value = suggestion.trieu_chung_tom_tat;
-    }
-    if (user) {
-        if (nameEl) nameEl.value = user.ho_ten || "";
-        if (phoneEl) phoneEl.value = user.so_dien_thoai || "";
-    }
-}
-
-function scrollAndHighlightBookingForm() {
-    const win = document.getElementById("ai-chat-popup");
-    if (win) win.classList.add("hidden");
-
-    const bookingBox = document.getElementById("booking-box");
-    if (bookingBox) {
-        bookingBox.scrollIntoView({ behavior: "smooth", block: "center" });
-        bookingBox.classList.add("ring-4", "ring-emerald-400", "transition-all");
-        setTimeout(() => {
-            bookingBox.classList.remove("ring-4", "ring-emerald-400");
-        }, 3500);
-    }
-}
-
-/**
- * Hàm ánh xạ tên Chuyên khoa sang Mã lịch làm việc (LLV002, LLV004, LLV005, LLV006)
- */
-function mapDepartmentToMaLichLam(deptName) {
-    const d = (deptName || "").toLowerCase();
-    if (d.includes("tai") || d.includes("p103")) return "LLV004";
-    if (d.includes("xương") || d.includes("p106")) return "LLV005";
-    if (d.includes("hình ảnh") || d.includes("p201")) return "LLV006";
-    return "LLV002";
-}
-
-/**
- * Hàm lưu trực tiếp lịch hẹn vào bảng LICH_HEN_KHAM thông qua TableApiController
- */
-async function saveAppointmentToTableManager(dept, shift, date, symptom) {
-    const listRes = await fetch(`${API_CONFIG.BASE_API_URL}/tables-manager/LICH_HEN_KHAM`);
-    const listData = await listRes.json();
-    const nextNum = (listData.count || 5) + 1;
-    const maLichHen = "LH" + String(nextNum).padStart(3, "0");
-
-    const payload = {
-        ma_lich_hen: maLichHen,
-        ma_benh_nhan: "BN001",
-        ma_lich_lam: mapDepartmentToMaLichLam(dept),
-        ngay_hen_kham: date,
-        khung_gio_hen: shift,
-        trieu_chung_ban_dau: symptom || "Khám theo lịch hẹn trực tuyến",
-        trang_thai_hen: "ChoTiepNhan"
-    };
-
-    const res = await fetch(`${API_CONFIG.BASE_API_URL}/tables-manager/LICH_HEN_KHAM`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    return { ok: res.ok && data.status === "success", ma_lich_hen: maLichHen, message: data.message };
-}
-
-async function confirmAiBookingDirectly(cardId) {
-    const user = getCurrentUser();
-    const todayStr = getTodayDateStr();
-    const dept = document.getElementById(`ai-bk-dept-${cardId}`).value;
-    const shift = document.getElementById(`ai-bk-shift-${cardId}`).value;
-    const dateInput = document.getElementById(`ai-bk-date-${cardId}`);
-    const date = dateInput.value;
-    const symptom = document.getElementById(`ai-bk-symptom-${cardId}`).value;
-    const nameInput = document.getElementById(`ai-bk-name-${cardId}`);
-    const phoneInput = document.getElementById(`ai-bk-phone-${cardId}`);
-
-    const hoTen = nameInput ? nameInput.value.trim() : (user ? user.ho_ten : "");
-    const soDienThoai = phoneInput ? phoneInput.value.trim() : (user ? user.so_dien_thoai : "");
-
-    if (!hoTen || !soDienThoai) {
-        alert("⚠️ Vui lòng nhập Họ tên và Số điện thoại trong thẻ đặt lịch để xác nhận!");
-        return;
-    }
-
-    if (!date || date < todayStr) {
-        alert(`⚠️ Không thể đặt lịch vào ngày đã qua (${date})!`);
-        dateInput.value = todayStr;
-        return;
-    }
-
-    try {
-        const result = await saveAppointmentToTableManager(dept, shift, date, symptom);
-        if (!result.ok) {
-            alert("⚠️ " + (result.message || "Không thể lưu lịch hẹn vào MySQL!"));
-            return;
-        }
-
-        const btnConfirm = document.getElementById(`btn-ai-confirm-${cardId}`);
-        if (btnConfirm) {
-            btnConfirm.disabled = true;
-            btnConfirm.className = "w-full py-2 rounded-lg bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1 cursor-default";
-            btnConfirm.innerHTML = `<span class="material-symbols-outlined text-sm">verified</span> Đã lưu Lịch hẹn #${result.ma_lich_hen}`;
-        }
-
-        alert(`🎉 Đã lưu lịch hẹn vào bảng LICH_HEN_KHAM thành công!\n- Mã lịch hẹn: #${result.ma_lich_hen}\n- Chuyên khoa: ${dept}\n- Ngày hẹn: ${date} (${shift})`);
-    } catch (e) {
-        alert("⚠️ Không kết nối được tới Server Laravel (Cổng 8000) để lưu lịch hẹn!");
-    }
-}
-
-async function handleQuickBooking(event) {
-    event.preventDefault();
-    const todayStr = getTodayDateStr();
-    const dateInput = document.getElementById("bk-date");
-    const selectedDate = dateInput.value;
-
-    if (!selectedDate || selectedDate < todayStr) {
-        alert(`⚠️ Ngày hẹn khám không hợp lệ!\nVui lòng chọn từ ngày hôm nay (${todayStr}) trở đi.`);
-        dateInput.value = todayStr;
-        return;
-    }
-
-    const deptVal = document.getElementById("bk-department").value;
-    const shiftVal = document.getElementById("bk-shift").value;
-    const symptomVal = document.getElementById("bk-symptom").value.trim() || "Khám lâm sàng theo lịch hẹn";
-
-    try {
-        const result = await saveAppointmentToTableManager(deptVal, shiftVal, selectedDate, symptomVal);
-        if (!result.ok) {
-            alert("⚠️ " + (result.message || "Không thể đặt lịch khám!"));
-            return;
-        }
-
-        alert(`🎉 Đã lưu lịch hẹn vào bảng LICH_HEN_KHAM thành công!\n- Mã lịch hẹn: #${result.ma_lich_hen}\n- Chuyên khoa: ${deptVal}\n- Ngày hẹn: ${selectedDate} (${shiftVal})`);
-        event.target.reset();
-        initBookingDateMin();
-        renderHeaderAuthStatus();
-    } catch (e) {
-        alert("⚠️ Không kết nối được tới Server Laravel (Cổng 8000)!");
-    }
-}
-
-// =========================================================================
-// 4. CHỌN NHIỀU ẢNH TRIỆU CHỨNG & GỬI CHAT AI
+// 5. CHỌN NHIỀU ẢNH TRIỆU CHỨNG & GỬI LÊN SERVER AI (FASTAPI 8001)
 // =========================================================================
 function onSelectSymptomImages(event) {
     const files = Array.from(event.target.files);
@@ -588,6 +818,7 @@ function removeSelectedSymptomImage(index) {
 
 function renderSymptomPreviewStrip() {
     const strip = document.getElementById("ai-image-preview-strip");
+    if (!strip) return;
     strip.innerHTML = "";
     if (symptomImageFiles.length === 0) {
         strip.classList.add("hidden");
@@ -643,6 +874,18 @@ async function sendSymptomChatToAi(event) {
     renderSessionSidebarList();
     renderUserBubbleDOM(displayMessage, savedImageUrls);
 
+    await syncMessageToMySql(currentSession, "NguoiDung", displayMessage, savedImageUrls);
+
+    const formData = new FormData();
+    formData.append("message", message || "Hãy phân tích các hình ảnh triệu chứng này giúp tôi");
+    formData.append(
+        "history_json",
+        JSON.stringify(currentSession.messages.map(m => ({ nguoi_gui: m.nguoi_gui, noi_dung: m.noi_dung })))
+    );
+    symptomImageFiles.forEach(file => {
+        formData.append("symptom_images", file);
+    });
+
     const hadImages = symptomImageFiles.length > 0;
     input.value = "";
     symptomImageFiles = [];
@@ -651,17 +894,31 @@ async function sendSymptomChatToAi(event) {
 
     const loadingId = renderAiLoadingBubble();
 
-    let aiResponseData = buildLocalMedicalTriageFallback(message, hadImages);
+    let aiResponseData = null;
+    try {
+        const res = await fetch(API_CONFIG.FASTAPI_CHAT_URL, {
+            method: "POST",
+            body: formData
+        });
+        if (res.ok) {
+            aiResponseData = await res.json();
+        } else {
+            aiResponseData = buildLocalMedicalTriageFallback(message, hadImages);
+        }
+    } catch (networkOrCorsError) {
+        aiResponseData = buildLocalMedicalTriageFallback(message, hadImages);
+    }
+
     removeBubbleById(loadingId);
 
     if (aiResponseData && aiResponseData.booking_suggestion) {
         autoFillHomepageBookingForm(aiResponseData.booking_suggestion);
     }
 
-    const replyText = aiResponseData.reply;
-    const suggestionObj = aiResponseData.booking_suggestion;
-    const msgIndex = currentSession.messages.length;
+    const replyText = (aiResponseData && aiResponseData.reply) ? aiResponseData.reply : "Đã phân tích triệu chứng.";
+    const suggestionObj = (aiResponseData && aiResponseData.booking_suggestion) ? aiResponseData.booking_suggestion : null;
 
+    const msgIndex = currentSession.messages.length;
     renderAiBubbleDOM(replyText, suggestionObj, msgIndex);
 
     currentSession.messages.push({
@@ -672,6 +929,8 @@ async function sendSymptomChatToAi(event) {
     });
     saveAllChatSessions();
     renderSessionSidebarList();
+
+    await syncMessageToMySql(currentSession, "AI", replyText, []);
 }
 
 function renderUserBubbleDOM(text, imgUrls = []) {
@@ -723,8 +982,8 @@ function renderAiBubbleDOM(replyText, bookingSuggestion = null, cardIndex = Date
 
     let bookingCardHtml = "";
     if (bookingSuggestion && bookingSuggestion.chuyen_khoa) {
-        const defaultName = user ? (user.ho_ten || "") : "CAO TRUNG";
-        const defaultPhone = user ? (user.so_dien_thoai || "") : "0987691004";
+        const defaultName = user ? (user.ho_ten || "") : "";
+        const defaultPhone = user ? (user.so_dien_thoai || "") : "";
         const validSuggestedDate = (bookingSuggestion.ngay_hen && bookingSuggestion.ngay_hen >= todayStr)
             ? bookingSuggestion.ngay_hen
             : todayStr;
@@ -792,7 +1051,7 @@ function renderAiBubbleDOM(replyText, bookingSuggestion = null, cardIndex = Date
             <span class="material-symbols-outlined text-base">smart_toy</span>
         </div>
         <div class="bg-white p-3.5 rounded-xl rounded-tl-none shadow-sm border border-slate-200 text-sm text-slate-800 max-w-[90%] leading-relaxed">
-            <div class="whitespace-pre-wrap">${replyText}</div>
+            <div class="whitespace-pre-wrap">${formatAiMarkdownText(replyText)}</div>
             ${bookingCardHtml}
         </div>
     `;
@@ -800,43 +1059,9 @@ function renderAiBubbleDOM(replyText, bookingSuggestion = null, cardIndex = Date
     box.scrollTop = box.scrollHeight;
 }
 
-// =========================================================================
-// 5. LỌC ĐỘI NGŨ BÁC SĨ THEO CHUYÊN KHOA & ĐÓNG/MỞ MODAL CÁ NHÂN
-// =========================================================================
 function filterDoctorsByDept(deptCode) {
-    const cards = document.querySelectorAll(".doctor-item-card");
-    cards.forEach(card => {
-        if (deptCode === "ALL" || card.dataset.dept === deptCode) {
-            card.classList.remove("hidden");
-        } else {
-            card.classList.add("hidden");
-        }
-    });
-}
-
-function closeAccountModal() {
-    const modal = document.getElementById("patient-account-modal");
-    if (modal) {
-        modal.classList.add("hidden");
-        modal.classList.remove("flex");
-    }
-}
-
-function switchAccountTab(tabName) {
-    const tabs = ["profile", "password", "records", "appointments"];
-    const alertBox = document.getElementById("account-modal-alert");
-    if (alertBox) alertBox.classList.add("hidden");
-
-    tabs.forEach(t => {
-        const panel = document.getElementById(`panel-${t}`);
-        const btn = document.getElementById(`tab-btn-${t}`);
-        if (!panel || !btn) return;
-        if (t === tabName) {
-            panel.classList.remove("hidden");
-            btn.className = "px-4 py-2.5 rounded-t-lg bg-white text-teal-700 border-t border-x border-slate-200 flex items-center gap-1.5";
-        } else {
-            panel.classList.add("hidden");
-            btn.className = "px-4 py-2.5 rounded-t-lg text-slate-600 hover:text-teal-700 flex items-center gap-1.5";
-        }
+    document.querySelectorAll(".doctor-item-card").forEach(card => {
+        if (deptCode === "ALL" || card.dataset.dept === deptCode) card.classList.remove("hidden");
+        else card.classList.add("hidden");
     });
 }
