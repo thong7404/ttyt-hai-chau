@@ -8,15 +8,26 @@ let otpCountdownTimer = null;
 
 /**
  * Khởi chạy hiệu ứng hiển thị mượt (reveal-up) khi trang Đăng nhập / Đăng ký tải xong
+ * và tự động điền sẵn Email nếu vừa đăng ký thành công chuyển sang
  */
 document.addEventListener("DOMContentLoaded", () => {
     const animatedEls = document.querySelectorAll(".reveal-up, .reveal-left, .reveal-right, .reveal-zoom");
+    animatedEls.forEach(el => el.classList.add("is-visible"));
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) entry.target.classList.add("is-visible");
         });
     }, { threshold: 0.1 });
     animatedEls.forEach(el => observer.observe(el));
+
+    // Tự động điền Email vừa đăng ký khi chuyển sang trang login.html
+    const savedEmail = sessionStorage.getItem("last_registered_email");
+    const loginEmailEl = document.getElementById("login-email");
+    if (savedEmail && loginEmailEl) {
+        loginEmailEl.value = savedEmail;
+        sessionStorage.removeItem("last_registered_email");
+    }
 });
 
 /**
@@ -45,10 +56,10 @@ function togglePassword(inputId, iconId) {
     if (!input) return;
     if (input.type === "password") {
         input.type = "text";
-        icon.textContent = "visibility_off";
+        if (icon) icon.textContent = "visibility_off";
     } else {
         input.type = "password";
-        icon.textContent = "visibility";
+        if (icon) icon.textContent = "visibility";
     }
 }
 
@@ -90,16 +101,20 @@ async function submitLoginForm(event) {
         });
         const data = await res.json();
 
-        if (!res.ok) {
+        if (!res.ok || data.status === "error") {
             showAuthAlert(data.message || "Thông tin đăng nhập hoặc mật khẩu không chính xác!", "error");
             return;
         }
 
-        // Lưu thông tin phiên đăng nhập vào localStorage để hiển thị trên Header trang chủ
+        // Lưu thông tin phiên đăng nhập vào localStorage (được api-config.js cô lập theo từng Tab)
         localStorage.setItem("current_user", JSON.stringify(data.user));
         localStorage.setItem("demo_role", data.user.vai_tro);
 
-        window.location.href = "index.html";
+        const redirectMap = {
+            QuanTri: "admin.html",
+            BenhNhan: "index.html"
+        };
+        window.location.href = redirectMap[data.user.vai_tro] || "index.html";
     } catch (error) {
         showAuthAlert("Không kết nối được tới Server Laravel (Cổng 8000). Hãy kiểm tra lệnh php artisan serve!", "error");
     } finally {
@@ -110,7 +125,7 @@ async function submitLoginForm(event) {
 
 /**
  * 2. Hàm xử lý Đăng ký Bước 1 (Gọi POST /api/send-otp tới AuthApiController):
- * Tạo bản ghi người dùng trạng thái ChoXacThuc và gửi mã OTP 6 số vào bảng MA_XAC_THUC_OTP + Gmail
+ * Chỉ gửi mã OTP 6 số về Gmail + lưu bảng MA_XAC_THUC_OTP (Chưa tạo tài khoản trong NGUOI_DUNG)
  */
 async function submitRegisterStep1(event) {
     event.preventDefault();
@@ -124,14 +139,14 @@ async function submitRegisterStep1(event) {
     }
 
     const diaChiNhap = document.getElementById("reg-address")?.value.trim() || "";
-    const vneidInput = document.getElementById("reg-cccd")?.value.trim() || "";
+    const vneidInput = (document.getElementById("reg-cccd")?.value || document.getElementById("reg-vneid")?.value || "").trim();
     const bhytInput = document.getElementById("reg-bhyt")?.value.trim() || "";
 
     pendingRegisterPayload = {
         vneid: vneidInput || null,
         ho_ten: document.getElementById("reg-fullname").value.trim().toUpperCase(),
         gioi_tinh: document.getElementById("reg-gender").value,
-        email: document.getElementById("reg-email").value.trim(),
+        email: document.getElementById("reg-email").value.trim().toLowerCase(),
         so_dien_thoai: document.getElementById("reg-phone").value.trim(),
         ngay_sinh: document.getElementById("reg-dob").value,
         dia_chi: diaChiNhap,
@@ -151,27 +166,33 @@ async function submitRegisterStep1(event) {
         });
         const data = await res.json();
 
-        if (!res.ok) {
+        if (!res.ok || data.status === "error") {
             showAuthAlert(data.message || "Không thể gửi mã OTP về Gmail!", "error");
             return;
         }
 
-        // Hiển thị thông báo kèm mã OTP thực tế trong trường hợp máy local chưa cấu hình SMTP Gmail
-        const otpHint = data.demo_otp ? ` (Mã OTP trong MySQL: ${data.demo_otp})` : "";
+        const otpCodeFromServer = data.demo_otp || data.otp_demo || "";
+        const otpHint = otpCodeFromServer ? ` (Mã OTP trong MySQL: ${otpCodeFromServer})` : "";
         showAuthAlert(`Đã gửi mã xác thực 6 số về Gmail (${pendingRegisterPayload.email})${otpHint}!`, "success");
 
         const otpSection = document.getElementById("otp-6boxes-section");
-        otpSection.classList.remove("hidden");
-        document.getElementById("otp-sent-email").textContent = pendingRegisterPayload.email;
-        document.getElementById("otp-wrong-warning").classList.add("hidden");
+        if (otpSection) {
+            otpSection.classList.remove("hidden");
+            otpSection.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        const sentEmailEl = document.getElementById("otp-sent-email");
+        if (sentEmailEl) sentEmailEl.textContent = pendingRegisterPayload.email;
+
+        const wrongWarnEl = document.getElementById("otp-wrong-warning");
+        if (wrongWarnEl) wrongWarnEl.classList.add("hidden");
 
         const boxes = document.querySelectorAll(".otp-digit-box");
         boxes.forEach(box => {
             box.value = "";
             box.classList.remove("border-red-600", "bg-red-50");
         });
-        boxes[0].focus();
-        otpSection.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (boxes[0]) boxes[0].focus();
 
         startOtpTimer(300);
     } catch (error) {
@@ -184,13 +205,14 @@ async function submitRegisterStep1(event) {
 
 /**
  * Hàm tự động nhảy con trỏ sang ô OTP tiếp theo khi người dùng gõ 1 chữ số
- * (Chỉ ẩn cảnh báo lỗi khi người dùng thực sự gõ chữ số mới vào ô)
  */
 function handleOtpDigitInput(input, index) {
     input.value = input.value.replace(/[^0-9]/g, "");
 
     if (input.value !== "") {
-        document.getElementById("otp-wrong-warning").classList.add("hidden");
+        const wrongWarnEl = document.getElementById("otp-wrong-warning");
+        if (wrongWarnEl) wrongWarnEl.classList.add("hidden");
+
         const boxes = document.querySelectorAll(".otp-digit-box");
         boxes.forEach(b => b.classList.remove("border-red-600", "bg-red-50"));
 
@@ -246,25 +268,34 @@ function startOtpTimer(seconds) {
 }
 
 /**
- * 3. Hàm xử lý Xác nhận 6 số OTP ở Bước 2
+ * 3. Hàm xử lý Xác nhận 6 số OTP ở Bước 2:
+ * Khi mã OTP chính xác mới chính thức tạo tài khoản vào NGUOI_DUNG & BENH_NHAN
  */
 async function submitVerifyOtpStep2(event) {
     if (event) event.preventDefault();
     const boxes = document.querySelectorAll(".otp-digit-box");
-    const otpCode = Array.from(boxes).map(b => b.value).join("");
+    const otpCode = Array.from(boxes).map(b => b.value.trim()).join("");
     const warningEl = document.getElementById("otp-wrong-warning");
     const warningText = document.getElementById("otp-wrong-text");
     const boxesWrapper = document.getElementById("otp-boxes-container");
 
     if (otpCode.length < 6) {
-        warningText.textContent = "Vui lòng nhập đủ 6 chữ số xác thực từ Gmail!";
-        warningEl.classList.remove("hidden");
+        if (warningText) warningText.textContent = "Vui lòng nhập đủ 6 chữ số xác thực từ Gmail!";
+        if (warningEl) warningEl.classList.remove("hidden");
         return;
     }
 
-    const emailToVerify = pendingRegisterPayload
-        ? pendingRegisterPayload.email
-        : document.getElementById("reg-email").value.trim();
+    const currentFormPayload = pendingRegisterPayload || {
+        vneid: (document.getElementById("reg-cccd")?.value || document.getElementById("reg-vneid")?.value || "").trim() || null,
+        ho_ten: document.getElementById("reg-fullname")?.value.trim().toUpperCase() || "",
+        gioi_tinh: document.getElementById("reg-gender")?.value || "Nam",
+        email: document.getElementById("reg-email")?.value.trim().toLowerCase() || "",
+        so_dien_thoai: document.getElementById("reg-phone")?.value.trim() || "",
+        ngay_sinh: document.getElementById("reg-dob")?.value || "2000-01-01",
+        dia_chi: document.getElementById("reg-address")?.value.trim() || "",
+        so_the_bhyt: document.getElementById("reg-bhyt")?.value.trim() || null,
+        mat_khau: document.getElementById("reg-password")?.value || "123456"
+    };
 
     const btn = document.getElementById("btn-verify-otp-submit");
     btn.disabled = true;
@@ -275,35 +306,109 @@ async function submitVerifyOtpStep2(event) {
             method: "POST",
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({
-                email: emailToVerify,
-                ma_xac_thuc: otpCode
+                ...currentFormPayload,
+                ma_xac_thuc: otpCode,
+                ma_otp: otpCode
             })
         });
         const data = await res.json();
 
-        // Kiểm tra cả !res.ok lẫn data.status !== "success"
         if (!res.ok || data.status !== "success") {
-            warningText.textContent = data.message || "Mã xác thực OTP không chính xác! Vui lòng kiểm tra lại.";
-            warningEl.classList.remove("hidden");
-            boxesWrapper.classList.remove("shake-error");
-            void boxesWrapper.offsetWidth;
-            boxesWrapper.classList.add("shake-error");
+            if (warningText) warningText.textContent = data.message || "Mã xác thực OTP không chính xác! Vui lòng kiểm tra lại.";
+            if (warningEl) warningEl.classList.remove("hidden");
+            if (boxesWrapper) {
+                boxesWrapper.classList.remove("shake-error");
+                void boxesWrapper.offsetWidth;
+                boxesWrapper.classList.add("shake-error");
+            }
             boxes.forEach(b => {
                 b.value = "";
                 b.classList.add("border-red-600", "bg-red-50");
             });
-            boxes[0].focus();
+            if (boxes[0]) boxes[0].focus();
             return;
         }
 
-        const maBn = data.user?.ma_benh_nhan ? `#${data.user.ma_benh_nhan}` : "";
-        alert(`🎉 ${data.message}\nMã Bệnh nhân của bạn trong MySQL là: ${maBn}\nBây giờ bạn sẽ được chuyển sang trang Đăng nhập!`);
-        window.location.href = "login.html";
+        clearInterval(otpCountdownTimer);
+
+        // Hiện bảng thông báo Đã đăng ký thành công kèm nút chuyển sang trang Đăng nhập
+        showRegisterSuccessModal(data.user);
     } catch (error) {
-        warningText.textContent = "Lỗi kết nối Server khi xác thực mã OTP!";
-        warningEl.classList.remove("hidden");
+        if (warningText) warningText.textContent = "Lỗi kết nối Server khi xác thực mã OTP!";
+        if (warningEl) warningEl.classList.remove("hidden");
     } finally {
         btn.disabled = false;
         btn.textContent = "XÁC NHẬN MÃ OTP & HOÀN TẤT ĐĂNG KÝ";
     }
+}
+
+/**
+ * Hàm hiển thị Bảng thông báo Đã đăng ký tài khoản thành công
+ * và nút chuyển sang trang Đăng nhập (login.html)
+ */
+function showRegisterSuccessModal(user) {
+    // Đảm bảo không tự động đăng nhập sẵn trước khi người dùng bấm sang trang Đăng nhập
+    localStorage.removeItem("current_user");
+    localStorage.removeItem("demo_role");
+
+    // Lưu tạm email vừa đăng ký để tự động điền sẵn ô Email bên trang login.html
+    if (user && user.email) {
+        sessionStorage.setItem("last_registered_email", user.email);
+    }
+
+    const maBenhNhan = (user && user.ma_benh_nhan) ? `#${user.ma_benh_nhan}` : "#BN008";
+    const hoTen = (user && user.ho_ten) ? user.ho_ten : "Bệnh nhân";
+    const email = (user && user.email) ? user.email : "";
+
+    let modal = document.getElementById("register-success-modal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "register-success-modal";
+        modal.className = "fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4";
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-teal-200 animate-[fadeIn_0.2s_ease-out]">
+            <div class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-6 text-center">
+                <div class="w-16 h-16 rounded-full bg-white text-emerald-600 flex items-center justify-center mx-auto mb-3 shadow-md">
+                    <span class="material-symbols-outlined text-4xl">verified</span>
+                </div>
+                <h3 class="font-heading font-extrabold text-xl">Đã Đăng Ký Thành Công!</h3>
+                <p class="text-xs text-teal-100 mt-1">Tài khoản của bạn đã được xác thực OTP và kích hoạt</p>
+            </div>
+
+            <div class="p-6 space-y-4 text-sm">
+                <div class="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 space-y-2 text-xs sm:text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-500 font-medium">Mã Bệnh nhân (MySQL):</span>
+                        <span class="px-2.5 py-0.5 rounded-md bg-emerald-600 text-white font-bold">${maBenhNhan}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-500 font-medium">Họ và tên:</span>
+                        <span class="font-bold text-slate-800">${hoTen}</span>
+                    </div>
+                    ${email ? `
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-500 font-medium">Email đăng nhập:</span>
+                        <span class="font-semibold text-teal-700">${email}</span>
+                    </div>
+                    ` : ""}
+                </div>
+
+                <p class="text-xs text-center text-slate-500 leading-relaxed">
+                    Vui lòng nhấn nút <b>Đăng nhập</b> bên dưới để chuyển sang trang đăng nhập vào hệ thống.
+                </p>
+
+                <button type="button" onclick="window.location.href='login.html'"
+                        class="w-full py-3 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm shadow-md flex items-center justify-center gap-2 transition">
+                    <span class="material-symbols-outlined text-lg">login</span>
+                    <span>ĐĂNG NHẬP NGAY</span>
+                </button>
+            </div>
+        </div>
+    `;
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
 }

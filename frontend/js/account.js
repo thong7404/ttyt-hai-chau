@@ -1,8 +1,5 @@
-// Cấu hình địa chỉ kết nối tới Backend Laravel API ở cổng 8000
-const API_CONFIG = {
-    BASE_API_URL: "http://127.0.0.1:8000/api",
-    LARAVEL_AUTH_URL: "http://127.0.0.1:8000/api"
-};
+// Sử dụng ACCOUNT_API_URL riêng để không bao giờ bị đụng độ biến const API_CONFIG với api-config.js
+const ACCOUNT_API_URL = "http://127.0.0.1:8000/api";
 
 let cachedMedicalRecords = [];
 let cachedBookedAppointments = [];
@@ -95,52 +92,47 @@ function showAccountAlert(msg, isSuccess = true) {
 
 /**
  * 6. Hàm điền dữ liệu của người dùng vào cột bên trái và Form Hồ sơ cá nhân
+ * (Đã gỡ bỏ preview-profile-avatar để không gây lỗi dừng hàm)
  */
 function fillProfileFormInputs(userData) {
-    const savedAvatar = localStorage.getItem(`avatar_user_${userData.ma_nguoi_dung}`)
-        || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.ho_ten || "BN")}&background=0d9488&color=fff&bold=true`;
+    if (!userData) return;
 
-    document.getElementById("sidebar-user-avatar").src = savedAvatar;
-    document.getElementById("preview-profile-avatar").src = savedAvatar;
-    document.getElementById("sidebar-user-name").textContent = userData.ho_ten || "";
-    document.getElementById("sidebar-user-code").textContent =
-        `Mã BN: #${userData.ma_benh_nhan || userData.ma_nguoi_dung}${userData.vneid ? " • VNeID: " + userData.vneid : ""}`;
-    document.getElementById("sidebar-user-email").textContent = userData.email || "";
+    const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.ho_ten || "BN")}&background=fff&color=0d9488&bold=true`;
 
-    document.getElementById("pf-fullname").value = userData.ho_ten || "";
-    document.getElementById("pf-phone").value = userData.so_dien_thoai || "";
-    document.getElementById("pf-dob").value = userData.ngay_sinh ? userData.ngay_sinh.substring(0, 10) : "";
-    document.getElementById("pf-gender").value = userData.gioi_tinh || "Nam";
-    document.getElementById("pf-bhyt").value = userData.so_the_bhyt || "";
-    document.getElementById("pf-vneid").value = userData.vneid || "";
-    document.getElementById("pf-stk-ngan-hang").value = userData.stk_ngan_hang || "";
-    document.getElementById("pf-bhyt-expire").value = userData.han_the_bhyt ? userData.han_the_bhyt.substring(0, 10) : "";
-    document.getElementById("pf-bhyt-place").value = userData.noi_dang_ky_bhyt || "TTYT Phường Hải Châu";
-    document.getElementById("pf-allergy").value = userData.tien_su_di_ung_benh_nen || "";
-    document.getElementById("pf-address").value = userData.dia_chi || "";
-}
+    const sidebarAvatarEl = document.getElementById("sidebar-user-avatar");
+    if (sidebarAvatarEl) sidebarAvatarEl.src = defaultAvatar;
 
-/**
- * 7. Hàm thay đổi ảnh đại diện cá nhân
- */
-function onChangeProfileAvatar(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const user = getCurrentUser();
-    if (!user || !user.ma_nguoi_dung) return;
+    const sidebarNameEl = document.getElementById("sidebar-user-name");
+    if (sidebarNameEl) sidebarNameEl.textContent = userData.ho_ten || "";
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const base64Img = e.target.result;
-        localStorage.setItem(`avatar_user_${user.ma_nguoi_dung}`, base64Img);
-        document.getElementById("preview-profile-avatar").src = base64Img;
-        document.getElementById("sidebar-user-avatar").src = base64Img;
+    const sidebarCodeEl = document.getElementById("sidebar-user-code");
+    if (sidebarCodeEl) {
+        sidebarCodeEl.textContent = `Mã BN: #${userData.ma_benh_nhan || userData.ma_nguoi_dung}${userData.vneid ? " • VNeID: " + userData.vneid : ""}`;
+    }
+
+    const sidebarEmailEl = document.getElementById("sidebar-user-email");
+    if (sidebarEmailEl) sidebarEmailEl.textContent = userData.email || "";
+
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
     };
-    reader.readAsDataURL(file);
+
+    setVal("pf-fullname", userData.ho_ten || "");
+    setVal("pf-phone", userData.so_dien_thoai || "");
+    setVal("pf-dob", userData.ngay_sinh ? String(userData.ngay_sinh).substring(0, 10) : "");
+    setVal("pf-gender", userData.gioi_tinh || "Nam");
+    setVal("pf-bhyt", userData.so_the_bhyt || "");
+    setVal("pf-vneid", userData.vneid || "");
+    setVal("pf-stk-ngan-hang", userData.stk_ngan_hang || "");
+    setVal("pf-bhyt-expire", userData.han_the_bhyt ? String(userData.han_the_bhyt).substring(0, 10) : "");
+    setVal("pf-bhyt-place", userData.noi_dang_ky_bhyt || "TTYT Phường Hải Châu");
+    setVal("pf-allergy", userData.tien_su_di_ung_benh_nen || "");
+    setVal("pf-address", userData.dia_chi || "");
 }
 
 /**
- * 8. Hàm lưu cập nhật thông tin Hồ sơ cá nhân, VNeID, STK ngân hàng & BHYT vào MySQL
+ * 7. Hàm lưu cập nhật thông tin Hồ sơ cá nhân, VNeID, STK ngân hàng & BHYT vào MySQL
  */
 async function handleUpdateProfile(event) {
     event.preventDefault();
@@ -167,7 +159,7 @@ async function handleUpdateProfile(event) {
     };
 
     try {
-        const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/update-profile`, {
+        const res = await fetch(`${ACCOUNT_API_URL}/update-profile`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify(updatedData)
@@ -188,7 +180,7 @@ async function handleUpdateProfile(event) {
 }
 
 /**
- * 9. Hàm xử lý Đổi mật khẩu trong bảng NGUOI_DUNG
+ * 8. Hàm xử lý Đổi mật khẩu trong bảng NGUOI_DUNG
  */
 async function handleChangePassword(event) {
     event.preventDefault();
@@ -208,7 +200,7 @@ async function handleChangePassword(event) {
     }
 
     try {
-        const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/change-password`, {
+        const res = await fetch(`${ACCOUNT_API_URL}/change-password`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({
@@ -259,13 +251,12 @@ function checkIsAppointmentExpired(ngayHen, khungGio) {
 }
 
 /**
- * 10. Hàm tải dữ liệu Hồ sơ bệnh án và Lịch khám đã đặt của đúng bệnh nhân đang đăng nhập từ MySQL
- * (Tự động chuyển lịch quá hạn sang Đã hủy với lý do: "Bệnh nhân không lên khám")
+ * 9. Hàm tải dữ liệu Hồ sơ bệnh án và Lịch khám đã đặt của đúng bệnh nhân đang đăng nhập từ MySQL
  */
 async function loadPatientPortalDataFromMySql(maNguoiDung) {
     if (!maNguoiDung) return;
     try {
-        const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/patient-portal-data/${maNguoiDung}`, {
+        const res = await fetch(`${ACCOUNT_API_URL}/patient-portal-data/${maNguoiDung}`, {
             headers: { "Accept": "application/json" }
         });
         if (res.ok) {
@@ -281,7 +272,7 @@ async function loadPatientPortalDataFromMySql(maNguoiDung) {
                     trangThai = "DaHuy";
                     lyDoHuy = "Bệnh nhân không lên khám";
                     try {
-                        await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/cancel-appointment`, {
+                        await fetch(`${ACCOUNT_API_URL}/cancel-appointment`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json", "Accept": "application/json" },
                             body: JSON.stringify({
@@ -318,7 +309,7 @@ async function loadPatientPortalDataFromMySql(maNguoiDung) {
 }
 
 /**
- * 11. Hàm vẽ danh sách Hồ sơ bệnh án điện tử
+ * 10. Hàm vẽ danh sách Hồ sơ bệnh án điện tử
  */
 function renderMedicalRecordsFromMySql(records) {
     const container = document.getElementById("records-list-container");
@@ -424,7 +415,7 @@ function toggleMedicalRecordDetail(index) {
 }
 
 /**
- * 12. Hàm vẽ danh sách Lịch khám đã đặt kèm nút Hủy lịch hẹn
+ * 11. Hàm vẽ danh sách Lịch khám đã đặt kèm nút Hủy lịch hẹn
  */
 function renderBookedAppointmentsList() {
     const container = document.getElementById("booked-appointments-list");
@@ -553,7 +544,7 @@ async function submitCancelAppointment(index) {
     if (!targetItem) return;
 
     try {
-        await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/cancel-appointment`, {
+        await fetch(`${ACCOUNT_API_URL}/cancel-appointment`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({
@@ -570,8 +561,7 @@ async function submitCancelAppointment(index) {
 }
 
 /**
- * Khởi chạy tự động khi mở trang account.html:
- * Nếu người dùng chưa đăng nhập thì hiện thông báo và chuyển về trang login.html
+ * Khởi chạy tự động khi mở trang account.html
  */
 document.addEventListener("DOMContentLoaded", async () => {
     loadFooterHtml();
@@ -590,7 +580,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     fillProfileFormInputs(user);
 
     try {
-        const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/profile/${user.ma_nguoi_dung}`);
+        const res = await fetch(`${ACCOUNT_API_URL}/profile/${user.ma_nguoi_dung}`);
         if (res.ok) {
             const data = await res.json();
             if (data.user) {

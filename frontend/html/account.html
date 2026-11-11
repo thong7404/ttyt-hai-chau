@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Quản Lý Tài Khoản Cá Nhân - TTYT Phường Hải Châu</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d9488'/%3E%3Cpath d='M26 14h12v12h12v12H38v12H26V38H14V26h12V14z' fill='%23ffffff'/%3E%3C/svg%3E"/>
+    <link rel="icon" type="image/jpeg" href="../img/logo3.jpg"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link rel="stylesheet" href="../css/index.css"/>
@@ -45,11 +45,11 @@
         <aside class="lg:col-span-4 xl:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <!-- Thông tin tóm tắt Bệnh nhân -->
             <div class="bg-gradient-to-br from-teal-600 to-teal-700 text-white p-5 flex items-center gap-3.5">
-                <img id="sidebar-user-avatar" src="https://ui-avatars.com/api/?name=Cao+Trung&background=fff&color=0d9488&bold=true" alt="Avatar" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm shrink-0"/>
+                <img id="sidebar-user-avatar" src="https://ui-avatars.com/api/?name=BN&background=fff&color=0d9488&bold=true" alt="Avatar" class="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm shrink-0"/>
                 <div class="min-w-0">
-                    <h2 id="sidebar-user-name" class="font-bold text-base truncate">CAO TRUNG</h2>
-                    <p id="sidebar-user-code" class="text-xs text-teal-100 font-medium truncate">Mã BN: #BN001</p>
-                    <p id="sidebar-user-email" class="text-[11px] text-teal-200 truncate mt-0.5">caotrung14022000@gmail.com</p>
+                    <h2 id="sidebar-user-name" class="font-bold text-base truncate">ĐANG TẢI...</h2>
+                    <p id="sidebar-user-code" class="text-xs text-teal-100 font-medium truncate">Mã BN: #---</p>
+                    <p id="sidebar-user-email" class="text-[11px] text-teal-200 truncate mt-0.5">---</p>
                 </div>
             </div>
 
@@ -94,24 +94,11 @@
             <!-- Hộp thông báo trạng thái -->
             <div id="account-modal-alert" class="hidden mb-5 p-3.5 rounded-xl border text-xs sm:text-sm font-bold"></div>
 
-            <!-- 1. PANEL HỒ SƠ CÁ NHÂN, VNeID & BHYT -->
+            <!-- 1. PANEL HỒ SƠ CÁ NHÂN, VNeID & BHYT (ĐÃ BỎ CHỌN ẢNH ĐẠI DIỆN) -->
             <form id="panel-profile" onsubmit="handleUpdateProfile(event)" class="space-y-5 text-sm">
                 <div class="border-b border-slate-100 pb-3 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h3 class="font-bold text-lg text-teal-900">Hồ Sơ Cá Nhân, VNeID & Bảo Hiểm Y Tế</h3>
-                        <p class="text-xs text-slate-500">Thông tin được đồng bộ trực tiếp với bảng <strong>NGUOI_DUNG</strong> và <strong>BENH_NHAN</strong> trong MySQL</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-4 pb-4 border-b border-slate-100">
-                    <img id="preview-profile-avatar" src="https://ui-avatars.com/api/?name=Cao+Trung&background=0d9488&color=fff&bold=true" class="w-16 h-16 rounded-full object-cover border-2 border-teal-500"/>
-                    <div>
-                        <label for="input-avatar-file" class="px-3.5 py-2 rounded-xl bg-teal-50 text-teal-700 hover:bg-teal-600 hover:text-white text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 transition">
-                            <span class="material-symbols-outlined text-base">photo_camera</span>
-                            <span>Chọn ảnh đại diện mới</span>
-                        </label>
-                        <input id="input-avatar-file" type="file" accept="image/*" class="hidden" onchange="onChangeProfileAvatar(event)"/>
-                        <p class="text-xs text-slate-500 mt-1">Ảnh đại diện hiển thị trên thanh menu của bạn</p>
                     </div>
                 </div>
 
@@ -147,7 +134,6 @@
                             <span class="material-symbols-outlined text-base text-teal-600">verified_user</span>
                             ĐỊNH DANH VNeID, TÀI KHOẢN NGÂN HÀNG & THẺ BHYT
                         </span>
-                        <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">Đồng bộ MySQL</span>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -189,7 +175,7 @@
 
                 <div class="pt-2">
                     <button type="submit" class="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow-sm transition">
-                        💾 Lưu Cập Nhật Thông Tin, VNeID & BHYT
+                        Lưu thông tin
                     </button>
                 </div>
             </form>
@@ -198,7 +184,6 @@
             <form id="panel-password" onsubmit="handleChangePassword(event)" class="hidden space-y-4 text-sm max-w-lg">
                 <div class="border-b border-slate-100 pb-3">
                     <h3 class="font-bold text-lg text-teal-900">Đổi Mật Khẩu Tài Khoản</h3>
-                    <p class="text-xs text-slate-500">Cập nhật mật khẩu bảo mật mới trong bảng <strong>NGUOI_DUNG</strong></p>
                 </div>
 
                 <div>
@@ -215,7 +200,7 @@
                 </div>
                 <div class="pt-2">
                     <button type="submit" class="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-sm transition">
-                        🔑 Xác Nhận Đổi Mật Khẩu
+                        Xác Nhận Đổi Mật Khẩu
                     </button>
                 </div>
             </form>
@@ -224,7 +209,6 @@
             <div id="panel-records" class="hidden space-y-4 text-sm">
                 <div class="border-b border-slate-100 pb-3">
                     <h3 class="font-bold text-lg text-teal-900">Hồ Sơ Bệnh Án Điện Tử</h3>
-                    <p class="text-xs text-slate-500">Lịch sử khám sàng lọc, chỉ định Cận lâm sàng, Đơn thuốc và Hóa đơn viện phí</p>
                 </div>
                 <div id="records-list-container" class="space-y-3"></div>
             </div>
@@ -234,7 +218,6 @@
                 <div class="border-b border-slate-100 pb-3 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h3 class="font-bold text-lg text-teal-900">Danh Sách Lịch Khám Đã Đặt</h3>
-                        <p class="text-xs text-slate-500">Tải trực tiếp từ bảng <strong>LICH_HEN_KHAM</strong> trong MySQL</p>
                     </div>
                     <a href="index.html#booking-box" class="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition">
                         + Đặt lịch hẹn mới
@@ -250,6 +233,7 @@
     <!-- Vùng nhúng Footer -->
     <div id="app-footer" class="mt-auto"></div>
 
+    <script src="../js/api-config.js"></script>
     <script src="../js/account.js"></script>
 </body>
 </html>
