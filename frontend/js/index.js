@@ -1,7 +1,7 @@
 // =========================================================================
 // CẤU HÌNH ĐỊA CHỈ API BACKEND LARAVEL (8000) & FASTAPI AI (8001)
 // =========================================================================
-const API_CONFIG = {
+const INDEX_API = {
     BASE_API_URL: "http://127.0.0.1:8000/api",
     LARAVEL_AUTH_URL: "http://127.0.0.1:8000/api",
     FASTAPI_CHAT_URL: "http://127.0.0.1:8001/api/ai/triage-chat"
@@ -10,6 +10,22 @@ const API_CONFIG = {
 let symptomImageFiles = [];
 let chatSessions = [];
 let activeSessionId = null;
+
+// Danh sách Bác sĩ mặc định theo từng Chuyên khoa (sẽ được bổ sung/cập nhật thêm từ MySQL)
+let doctorsByDeptMap = {
+    "KH001": [
+        { ma_nhan_vien: "NV003", ho_ten: "BS.CKI Nguyễn Văn Hưng" }
+    ],
+    "KH002": [
+        { ma_nhan_vien: "NV004", ho_ten: "ThS.BS Lê Quang Đức" }
+    ],
+    "KH003": [
+        { ma_nhan_vien: "NV008", ho_ten: "BS.CKII Phan Thị Mỹ Duyên" }
+    ],
+    "KH004": [
+        { ma_nhan_vien: "NV005", ho_ten: "BS.CKI Trần Ngọc Sơn" }
+    ]
+};
 
 /**
  * 1. Hàm lấy thông tin người dùng đang đăng nhập từ localStorage
@@ -84,11 +100,106 @@ function initBookingDateMin() {
 }
 
 /**
+ * 6. Tải danh sách Chuyên khoa & Bác sĩ từ MySQL để đồng bộ vào ô chọn
+ */
+async function loadDepartmentsAndDoctorsFromMySql() {
+    try {
+        const res = await fetch(`${INDEX_API.BASE_API_URL}/admin/overview-data`, {
+            headers: { "Accept": "application/json" }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const depts = data.departments || [];
+        const rooms = (data.rooms || []).filter(r => r.loai_phong === "PhongKhamBS" || r.loai_phong === "PhongCLS");
+        const users = (data.users || []).filter(
+            u => (u.vai_tro === "BacSi" || u.chuc_vu === "BacSi") && u.trang_thai !== "DaKhoa"
+        );
+
+        // Nếu trong MySQL có danh sách Bác sĩ, gom nhóm theo ma_khoa
+        if (users.length > 0) {
+            const newMap = {};
+            users.forEach(u => {
+                const maKhoa = u.ma_khoa || "KH001";
+                if (!newMap[maKhoa]) newMap[maKhoa] = [];
+                newMap[maKhoa].push({
+                    ma_nhan_vien: u.ma_nhan_vien || u.ma_nguoi_dung,
+                    ho_ten: u.ho_ten
+                });
+            });
+            // Gộp với map mặc định để khoa nào cũng có bác sĩ
+            doctorsByDeptMap = { ...doctorsByDeptMap, ...newMap };
+        }
+
+        // Cập nhật danh sách Chuyên khoa nếu có dữ liệu từ bảng KHOA
+        const deptSelect = document.getElementById("bk-department");
+        if (deptSelect && depts.length > 0) {
+            const currentVal = deptSelect.value;
+            deptSelect.innerHTML = `<option value="">-- Chọn Khoa & Phòng --</option>` +
+                depts.map(d => {
+                    const room = rooms.find(r => String(r.ma_khoa) === String(d.ma_khoa));
+                    const roomCode = room ? room.so_phong : (d.ma_khoa === "KH002" ? "P103" : (d.ma_khoa === "KH004" ? "P106" : (d.ma_khoa === "KH003" ? "P201" : "P102")));
+                    const valueStr = `${d.ten_khoa} (${roomCode})`;
+                    const priceStr = Number(d.gia_kham) > 0 ? ` - ${Number(d.gia_kham).toLocaleString("vi-VN")}đ` : "";
+                    return `<option value="${valueStr}" data-ma-khoa="${d.ma_khoa}">${d.ten_khoa} (${roomCode}${priceStr})</option>`;
+                }).join("");
+            if (currentVal) deptSelect.value = currentVal;
+        }
+    } catch (e) {
+        // Nếu chưa bật cổng 8000 thì dùng danh sách 4 khoa & bác sĩ mặc định
+    }
+}
+
+/**
+ * 7. Khi bệnh nhân chọn Chuyên khoa -> Mở khóa và nạp danh sách Bác sĩ khám thuộc khoa đó
+ */
+function onChangeBookingDepartment() {
+    const deptSelect = document.getElementById("bk-department");
+    const doctorSelect = document.getElementById("bk-doctor");
+    if (!deptSelect || !doctorSelect) return;
+
+    const selectedOpt = deptSelect.options[deptSelect.selectedIndex];
+    const deptVal = deptSelect.value || "";
+
+    if (!deptVal) {
+        doctorSelect.disabled = true;
+        doctorSelect.className = "w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75";
+        doctorSelect.innerHTML = `<option value="">-- Chọn Chuyên khoa trước --</option>`;
+        return;
+    }
+
+    // Xác định mã khoa từ data-ma-khoa hoặc tên khoa
+    let maKhoa = selectedOpt ? selectedOpt.getAttribute("data-ma-khoa") : "";
+    if (!maKhoa) {
+        if (deptVal.includes("Tai") || deptVal.includes("P103")) maKhoa = "KH002";
+        else if (deptVal.includes("Xương") || deptVal.includes("P106")) maKhoa = "KH004";
+        else if (deptVal.includes("Hình") || deptVal.includes("CLS") || deptVal.includes("P201")) maKhoa = "KH003";
+        else maKhoa = "KH001";
+    }
+
+    let doctors = doctorsByDeptMap[maKhoa] || [];
+    if (doctors.length === 0) {
+        doctors = Object.values(doctorsByDeptMap).flat();
+    }
+    doctorSelect.disabled = false;
+    doctorSelect.className = "w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-bold text-teal-900 bg-white focus:border-teal-500 focus:ring-teal-500";
+
+    if (doctors.length === 0) {
+        doctorSelect.innerHTML = `<option value="ANY" data-ten-bs="Bác sĩ phân công theo ca trực">👨‍⚕️ Bác sĩ phân công theo ca trực</option>`;
+    } else {
+        doctorSelect.innerHTML =
+            doctors.map(doc => `<option value="${doc.ma_nhan_vien}" data-ten-bs="${doc.ho_ten}">👨‍⚕️ ${doc.ho_ten}</option>`).join("") +
+            `<option value="ANY" data-ten-bs="Bác sĩ bất kỳ trong khoa">-- Bác sĩ bất kỳ trong khoa --</option>`;
+    }
+}
+
+/**
  * Khởi chạy toàn bộ chức năng khi trang index.html tải xong
  */
 document.addEventListener("DOMContentLoaded", async () => {
     await loadHeaderAndFooterHtml();
     initBookingDateMin();
+    await loadDepartmentsAndDoctorsFromMySql();
     await initChatSessionsSystem();
     initScrollAnimations();
 
@@ -136,8 +247,7 @@ function renderHeaderAuthStatus() {
         if (guestZone) guestZone.classList.add("hidden");
         if (userDropdownWrapper) userDropdownWrapper.classList.remove("hidden");
 
-        const savedAvatar = localStorage.getItem(`avatar_user_${user.ma_nguoi_dung}`)
-            || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.ho_ten)}&background=0e828a&color=fff&bold=true`;
+        const savedAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.ho_ten)}&background=0e828a&color=fff&bold=true`;
 
         const navAvatar = document.getElementById("nav-user-avatar");
         const navName = document.getElementById("nav-user-name");
@@ -174,10 +284,6 @@ function toggleUserProfileMenu(event) {
 // =========================================================================
 // 2. BẢNG YÊU CẦU ĐĂNG NHẬP & BẢNG ĐẶT LỊCH THÀNH CÔNG
 // =========================================================================
-
-/**
- * Hiển thị bảng thông báo yêu cầu đăng nhập khi người dùng chưa đăng nhập mà nhấn Đặt lịch
- */
 function showRequireLoginModal() {
     let modal = document.getElementById("require-login-modal");
     if (!modal) {
@@ -233,6 +339,10 @@ function showBookingSuccessModal(bookingInfo) {
     document.getElementById("bsm-ho-ten").textContent = bookingInfo.ho_ten || "";
     document.getElementById("bsm-sdt").textContent = bookingInfo.so_dien_thoai || "";
     document.getElementById("bsm-chuyen-khoa").textContent = bookingInfo.chuyen_khoa || "";
+
+    const bsEl = document.getElementById("bsm-bac-si");
+    if (bsEl) bsEl.textContent = bookingInfo.ten_bac_si || "Bác sĩ chuyên khoa";
+
     document.getElementById("bsm-thoi-gian").textContent = `${bookingInfo.ngay_hen_kham} • ${bookingInfo.khung_gio_hen}`;
     document.getElementById("bsm-trieu-chung").textContent = bookingInfo.trieu_chung_ban_dau || "Khám lâm sàng theo lịch hẹn";
 
@@ -253,7 +363,7 @@ function openBookedListFromSuccessModal() {
 }
 
 // =========================================================================
-// 3. TỰ ĐỘNG ĐIỀN FORM ĐẶT LỊCH & LƯU VÀO BẢNG LICH_HEN_KHAM (BẮT BUỘC ĐĂNG NHẬP)
+// 3. TỰ ĐỘNG ĐIỀN FORM ĐẶT LỊCH & LƯU VÀO BẢNG LICH_HEN_KHAM
 // =========================================================================
 function autoFillHomepageBookingForm(suggestion) {
     if (!suggestion) return;
@@ -267,7 +377,10 @@ function autoFillHomepageBookingForm(suggestion) {
     const nameEl = document.getElementById("bk-fullname");
     const phoneEl = document.getElementById("bk-phone");
 
-    if (deptEl && suggestion.chuyen_khoa) deptEl.value = suggestion.chuyen_khoa;
+    if (deptEl && suggestion.chuyen_khoa) {
+        deptEl.value = suggestion.chuyen_khoa;
+        onChangeBookingDepartment();
+    }
     if (shiftEl && suggestion.ca_kham) shiftEl.value = suggestion.ca_kham;
     if (dateEl) {
         dateEl.value = (suggestion.ngay_hen && suggestion.ngay_hen >= todayStr) ? suggestion.ngay_hen : todayStr;
@@ -296,7 +409,7 @@ function scrollAndHighlightBookingForm() {
 }
 
 async function saveAppointmentToMySql(bookingPayload) {
-    const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/book-appointment`, {
+    const res = await fetch(`${INDEX_API.LARAVEL_AUTH_URL}/book-appointment`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify(bookingPayload)
@@ -310,8 +423,7 @@ async function saveAppointmentToMySql(bookingPayload) {
 }
 
 /**
- * Hàm đặt lịch trực tiếp từ Phiếu đặt lịch gợi ý trong khung Chat AI
- * (Chưa đăng nhập -> Hiện bảng thông báo yêu cầu đăng nhập)
+ * Đặt lịch trực tiếp từ Phiếu đặt lịch gợi ý trong khung Chat AI
  */
 async function confirmAiBookingDirectly(cardId) {
     const user = getCurrentUser();
@@ -373,6 +485,7 @@ async function confirmAiBookingDirectly(cardId) {
             ho_ten: hoTen,
             so_dien_thoai: soDienThoai,
             chuyen_khoa: dept,
+            ten_bac_si: "Bác sĩ chuyên khoa theo ca trực",
             ngay_hen_kham: date,
             khung_gio_hen: shift,
             trieu_chung_ban_dau: symptom
@@ -383,8 +496,7 @@ async function confirmAiBookingDirectly(cardId) {
 }
 
 /**
- * Hàm xử lý khi nhấn nút "XÁC NHẬN ĐẶT LỊCH KHÁM" trên trang chủ
- * (Chưa đăng nhập -> Hiện bảng thông báo yêu cầu đăng nhập, không chuyển sang Cao Trung)
+ * Xử lý khi nhấn nút "XÁC NHẬN ĐẶT LỊCH KHÁM" trên trang chủ (Có chọn Khoa & Bác sĩ)
  */
 async function handleQuickBooking(event) {
     event.preventDefault();
@@ -405,18 +517,34 @@ async function handleQuickBooking(event) {
         return;
     }
 
-    const deptVal = document.getElementById("bk-department").value;
+    const deptSelect = document.getElementById("bk-department");
+    const doctorSelect = document.getElementById("bk-doctor");
+    const selectedDeptOpt = deptSelect.options[deptSelect.selectedIndex];
+    const selectedDocOpt = doctorSelect && doctorSelect.selectedIndex >= 0
+        ? doctorSelect.options[doctorSelect.selectedIndex]
+        : null;
+
+    const deptVal = deptSelect.value;
+    const maKhoa = selectedDeptOpt ? (selectedDeptOpt.getAttribute("data-ma-khoa") || null) : null;
+    const maNhanVienBs = (doctorSelect && doctorSelect.value && doctorSelect.value !== "ANY") ? doctorSelect.value : null;
+    const tenBacSi = selectedDocOpt
+        ? (selectedDocOpt.getAttribute("data-ten-bs") || selectedDocOpt.text.replace(/^👨‍⚕️\s*/, ""))
+        : "Bác sĩ chuyên khoa";
+
     const shiftVal = document.getElementById("bk-shift").value;
-    const fullNameVal = document.getElementById("bk-fullname").value.trim();
+    const fullNameVal = document.getElementById("bk-fullname").value.trim().toUpperCase();
     const phoneVal = document.getElementById("bk-phone").value.trim();
     const symptomVal = document.getElementById("bk-symptom").value.trim() || "Khám lâm sàng theo lịch hẹn";
 
     const bookingPayload = {
         ma_nguoi_dung: user.ma_nguoi_dung,
         ma_benh_nhan: user.ma_benh_nhan,
+        ma_khoa: maKhoa,
+        chuyen_khoa: deptVal,
+        ma_nhan_vien: maNhanVienBs,
+        ten_bac_si: tenBacSi,
         ho_ten: fullNameVal,
         so_dien_thoai: phoneVal,
-        chuyen_khoa: deptVal,
         khung_gio_hen: shiftVal,
         ngay_hen_kham: selectedDate,
         trieu_chung_ban_dau: symptomVal
@@ -434,12 +562,14 @@ async function handleQuickBooking(event) {
             ho_ten: fullNameVal,
             so_dien_thoai: phoneVal,
             chuyen_khoa: deptVal,
+            ten_bac_si: tenBacSi,
             ngay_hen_kham: selectedDate,
             khung_gio_hen: shiftVal,
             trieu_chung_ban_dau: symptomVal
         });
 
         event.target.reset();
+        onChangeBookingDepartment();
         initBookingDateMin();
         renderHeaderAuthStatus();
     } catch (e) {
@@ -448,7 +578,7 @@ async function handleQuickBooking(event) {
 }
 
 // =========================================================================
-// 4. HỆ THỐNG LỊCH SỬ CHAT AI ĐA PHIÊN (PHIEN_TRO_CHUYEN_AI, LICH_SU_TIN_NHAN_AI, ANH_TIN_NHAN_AI)
+// 4. HỆ THỐNG LỊCH SỬ CHAT AI ĐA PHIÊN
 // =========================================================================
 function getChatStorageConfig() {
     const user = getCurrentUser();
@@ -483,7 +613,7 @@ async function initChatSessionsSystem() {
 
     if (cfg.isLogged) {
         try {
-            const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/ai-sessions/${cfg.user.ma_nguoi_dung}`, {
+            const res = await fetch(`${INDEX_API.LARAVEL_AUTH_URL}/ai-sessions/${cfg.user.ma_nguoi_dung}`, {
                 headers: { "Accept": "application/json" }
             });
             const data = await res.json();
@@ -568,7 +698,7 @@ async function deleteAiChatSession(sessionId, event) {
 
     if (target && target.ma_phien_chat) {
         try {
-            await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/ai-sessions/delete`, {
+            await fetch(`${INDEX_API.LARAVEL_AUTH_URL}/ai-sessions/delete`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Accept": "application/json" },
                 body: JSON.stringify({ ma_phien_chat: target.ma_phien_chat })
@@ -597,7 +727,7 @@ async function clearAllAiChatSessions() {
         for (const s of chatSessions) {
             if (s.ma_phien_chat) {
                 try {
-                    await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/ai-sessions/delete`, {
+                    await fetch(`${INDEX_API.LARAVEL_AUTH_URL}/ai-sessions/delete`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json", "Accept": "application/json" },
                         body: JSON.stringify({ ma_phien_chat: s.ma_phien_chat })
@@ -623,7 +753,7 @@ async function syncMessageToMySql(sessionObj, sender, content, images = []) {
     if (!user || !user.ma_nguoi_dung) return;
 
     try {
-        const res = await fetch(`${API_CONFIG.LARAVEL_AUTH_URL}/ai-sessions/save-message`, {
+        const res = await fetch(`${INDEX_API.LARAVEL_AUTH_URL}/ai-sessions/save-message`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({
@@ -680,14 +810,10 @@ function renderSessionSidebarList() {
     }).join("");
 }
 
-/**
- * Bộ phân luồng Y tế AI thông minh dự phòng tại trình duyệt (Khi cổng 8001 chưa bật)
- */
 function buildLocalMedicalTriageFallback(userMessage, hasImages = false) {
     const msg = (userMessage || "").toLowerCase().trim();
     const todayStr = getTodayDateStr();
 
-    // Nhận diện nếu người dùng chỉ mới chào hỏi
     const cleanGreeting = msg.replace(/[^\w\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, "").trim();
     const greetings = ["xin chào", "chào", "chào bạn", "chào bác sĩ", "hi", "hello", "alo", "bác sĩ ơi"];
     if (greetings.includes(cleanGreeting) && !hasImages) {
@@ -737,9 +863,6 @@ function buildLocalMedicalTriageFallback(userMessage, hasImages = false) {
     };
 }
 
-/**
- * Hàm chuyển đổi văn bản Markdown (**in đậm**, *in nghiêng*) sang thẻ HTML đẹp mắt
- */
 function formatAiMarkdownText(text) {
     if (!text) return "";
     return String(text)
@@ -762,7 +885,7 @@ function renderActiveSessionMessages() {
 
     box.innerHTML = `
         <div class="flex items-start gap-2.5">
-            <div class="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 mt-0.5">
+            <div class="w-7 h-7 rounded-full bg-teal-600/15 text-teal-700 flex items-center justify-center shrink-0 mt-0.5">
                 <span class="material-symbols-outlined text-base">smart_toy</span>
             </div>
             <div class="bg-white p-3 rounded-xl rounded-tl-none shadow-sm border border-slate-200 text-sm text-slate-700 max-w-[88%]">
@@ -829,7 +952,7 @@ function renderSymptomPreviewStrip() {
         const wrap = document.createElement("div");
         wrap.className = "relative shrink-0";
         wrap.innerHTML = `
-            <img src="${URL.createObjectURL(file)}" class="w-14 h-14 object-cover rounded-lg border-2 border-primary"/>
+            <img src="${URL.createObjectURL(file)}" class="w-14 h-14 object-cover rounded-lg border-2 border-teal-600"/>
             <button type="button" onclick="removeSelectedSymptomImage(${idx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center shadow">×</button>
         `;
         strip.appendChild(wrap);
@@ -896,7 +1019,7 @@ async function sendSymptomChatToAi(event) {
 
     let aiResponseData = null;
     try {
-        const res = await fetch(API_CONFIG.FASTAPI_CHAT_URL, {
+        const res = await fetch(INDEX_API.FASTAPI_CHAT_URL, {
             method: "POST",
             body: formData
         });
@@ -940,12 +1063,12 @@ function renderUserBubbleDOM(text, imgUrls = []) {
     let imgsHtml = "";
     if (imgUrls && imgUrls.length > 0) {
         imgsHtml = `<div class="flex gap-1.5 flex-wrap justify-end">` +
-            imgUrls.map(u => `<img src="${u}" class="w-16 h-16 object-cover rounded-lg border-2 border-primary shadow-sm">`).join("") +
+            imgUrls.map(u => `<img src="${u}" class="w-16 h-16 object-cover rounded-lg border-2 border-teal-600 shadow-sm">`).join("") +
             `</div>`;
     }
     div.innerHTML = `
         ${imgsHtml}
-        <div class="bg-primary text-white px-3.5 py-2.5 rounded-xl rounded-tr-none text-sm max-w-[85%] whitespace-pre-wrap shadow-sm">${text}</div>
+        <div class="bg-teal-600 text-white px-3.5 py-2.5 rounded-xl rounded-tr-none text-sm max-w-[85%] whitespace-pre-wrap shadow-sm">${text}</div>
     `;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
@@ -959,7 +1082,7 @@ function renderAiLoadingBubble() {
     div.className = "flex items-start gap-2";
     div.innerHTML = `
         <div class="bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-500 flex items-center gap-2 shadow-sm">
-            <span class="w-2.5 h-2.5 rounded-full bg-primary animate-ping"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-teal-600 animate-ping"></span>
             <span>Bác sĩ AI đang phân tích triệu chứng...</span>
         </div>
     `;
@@ -1037,7 +1160,7 @@ function renderAiBubbleDOM(replyText, bookingSuggestion = null, cardIndex = Date
                         <span class="material-symbols-outlined text-sm">check_circle</span>
                         <span>Xác nhận đặt lịch ngay</span>
                     </button>
-                    <button type="button" onclick="scrollAndHighlightBookingForm()" class="py-2 px-3 rounded-lg bg-white hover:bg-slate-100 text-primary border border-primary/40 font-bold text-xs flex items-center justify-center gap-1 transition">
+                    <button type="button" onclick="scrollAndHighlightBookingForm()" class="py-2 px-3 rounded-lg bg-white hover:bg-slate-100 text-teal-700 border border-teal-600/40 font-bold text-xs flex items-center justify-center gap-1 transition">
                         <span class="material-symbols-outlined text-sm">open_in_new</span>
                         <span>Xem trên biểu mẫu</span>
                     </button>
@@ -1047,7 +1170,7 @@ function renderAiBubbleDOM(replyText, bookingSuggestion = null, cardIndex = Date
     }
 
     div.innerHTML = `
-        <div class="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0 mt-0.5">
+        <div class="w-7 h-7 rounded-full bg-teal-600/15 text-teal-700 flex items-center justify-center shrink-0 mt-0.5">
             <span class="material-symbols-outlined text-base">smart_toy</span>
         </div>
         <div class="bg-white p-3.5 rounded-xl rounded-tl-none shadow-sm border border-slate-200 text-sm text-slate-800 max-w-[90%] leading-relaxed">

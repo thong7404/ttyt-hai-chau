@@ -112,6 +112,8 @@ async function submitLoginForm(event) {
 
         const redirectMap = {
             QuanTri: "admin.html",
+            NVYT: "staff.html",
+            BacSi: "doctor.html",
             BenhNhan: "index.html"
         };
         window.location.href = redirectMap[data.user.vai_tro] || "index.html";
