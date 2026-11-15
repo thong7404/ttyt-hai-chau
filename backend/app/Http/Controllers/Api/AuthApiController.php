@@ -412,7 +412,7 @@ class AuthApiController extends Controller
     }
 
     /**
-     * 5. ĐẶT LỊCH HẸN KHÁM & HỦY LỊCH HẸN
+     * 5. ĐẶT LỊCH HẸN KHÁM (Lưu đúng Chuyên khoa & Bác sĩ bệnh nhân đã chọn vào MySQL)
      */
     public function bookAppointment(Request $request)
     {
@@ -444,22 +444,58 @@ class AuthApiController extends Controller
                 $maBenhNhan = $bn->ma_benh_nhan;
             }
 
-            $tenKhoaInput = $request->chuyen_khoa ?: $request->ten_khoa ?: 'Khoa Nội';
-            $maKhoa = 'KH001';
-            if (stripos($tenKhoaInput, 'Tai') !== false || stripos($tenKhoaInput, 'P103') !== false) $maKhoa = 'KH002';
-            elseif (stripos($tenKhoaInput, 'Xương') !== false || stripos($tenKhoaInput, 'P106') !== false) $maKhoa = 'KH004';
-            elseif (stripos($tenKhoaInput, 'Hình') !== false || stripos($tenKhoaInput, 'CLS') !== false || stripos($tenKhoaInput, 'P201') !== false) $maKhoa = 'KH003';
+            // 1. Xác định Mã Khoa (ưu tiên lấy từ ma_khoa gửi lên)
+            $maKhoa = $request->filled('ma_khoa') ? trim((string) $request->ma_khoa) : '';
+            if ($maKhoa === '') {
+                $tenKhoaInput = $request->chuyen_khoa ?: $request->ten_khoa ?: 'Khoa Nội';
+                $maKhoa = 'KH001';
+                if (stripos($tenKhoaInput, 'Tai') !== false || stripos($tenKhoaInput, 'P103') !== false) $maKhoa = 'KH002';
+                elseif (stripos($tenKhoaInput, 'Xương') !== false || stripos($tenKhoaInput, 'P106') !== false) $maKhoa = 'KH004';
+                elseif (stripos($tenKhoaInput, 'Hình') !== false || stripos($tenKhoaInput, 'CLS') !== false || stripos($tenKhoaInput, 'P201') !== false) $maKhoa = 'KH003';
+            }
+
+            // 2. Tìm Phòng khám thuộc Chuyên khoa đó
+            $phongKham = DB::table('PHONG')
+                ->where('ma_khoa', $maKhoa)
+                ->where('loai_phong', 'PhongKhamBS')
+                ->first() ?: DB::table('PHONG')->where('ma_khoa', $maKhoa)->first();
+            $maPhong = $phongKham ? $phongKham->ma_phong : 'PH002';
+
+            // 3. Xác định Bác sĩ khám mà bệnh nhân đã chọn
+            $maBacSi = $request->filled('ma_nhan_vien') ? trim((string) $request->ma_nhan_vien) : '';
+            if ($maBacSi === '') {
+                $bsRow = DB::table('NHAN_VIEN')
+                    ->where('ma_khoa', $maKhoa)
+                    ->where('chuc_vu', 'BacSi')
+                    ->first() ?: DB::table('NHAN_VIEN')->where('chuc_vu', 'BacSi')->first();
+                $maBacSi = $bsRow ? $bsRow->ma_nhan_vien : 'NV003';
+            }
 
             $ngayHen = $request->ngay_hen_kham ?: Carbon::today()->format('Y-m-d');
             $khungGio = $request->khung_gio_hen ?: 'Ca Sáng (07:00 - 11:30)';
+            $caTruc = (stripos($khungGio, 'Sáng') !== false) ? 'Sang' : 'Toi';
 
-            $lichLam = DB::table('LICH_LAM_VIEC as llv')
-                ->join('PHONG as p', 'llv.ma_phong', '=', 'p.ma_phong')
-                ->where('p.ma_khoa', $maKhoa)
-                ->select('llv.ma_lich_lam')
+            // 4. Tìm hoặc tạo LICH_LAM_VIEC gắn đúng Bác sĩ & Phòng khám đã chọn
+            $lichLam = DB::table('LICH_LAM_VIEC')
+                ->where('ma_nhan_vien', $maBacSi)
+                ->where('ma_phong', $maPhong)
                 ->first();
 
-            $maLichLam = $lichLam ? $lichLam->ma_lich_lam : 'LLV002';
+            if ($lichLam) {
+                $maLichLam = $lichLam->ma_lich_lam;
+            } else {
+                $maLichLam = $this->generateNextCode('LICH_LAM_VIEC', 'ma_lich_lam', 'LLV', 3);
+                DB::table('LICH_LAM_VIEC')->insert($this->filterValidColumns('LICH_LAM_VIEC', [
+                    'ma_lich_lam'        => $maLichLam,
+                    'ma_nhan_vien'       => $maBacSi,
+                    'ma_phong'           => $maPhong,
+                    'ngay_lam_viec'      => $ngayHen,
+                    'ca_truc'            => $caTruc,
+                    'so_luong_bn_toi_da' => 30
+                ]));
+            }
+
+            // 5. Lưu Lịch hẹn khám vào bảng LICH_HEN_KHAM
             $maLichHen = $this->generateNextCode('LICH_HEN_KHAM', 'ma_lich_hen', 'LH', 3);
 
             DB::table('LICH_HEN_KHAM')->insert($this->filterValidColumns('LICH_HEN_KHAM', [

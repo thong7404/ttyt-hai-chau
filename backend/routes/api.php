@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\TableApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\AdminApiController;
+use App\Http\Controllers\Api\StaffApiController;
+use App\Http\Controllers\Api\DoctorApiController;
 
 // 1. Nhóm Route Xác thực (Đăng nhập, Đăng ký OTP, Hồ sơ bệnh nhân, Đặt lịch & Lịch sử AI)
 Route::controller(AuthApiController::class)->group(function () {
@@ -44,6 +46,27 @@ $adminRoutes = function () {
     Route::delete('/delete-cls-service/{id}', 'deleteClsService');
 
 };
+
+// Nhóm Route Cổng Nghiệp Vụ Nhân Viên Y Tế (Staff)
+$staffRoutes = function () {
+    Route::get('/dashboard-data', 'getDashboardData');
+    Route::post('/receive-patient', 'receivePatient');
+    Route::post('/save-vitals', 'saveVitalSigns');
+    Route::post('/upload-cls-result', 'uploadClsResult');
+};
+
+// Nhóm Route Phân hệ Bác Sĩ (Doctor)
+$doctorRoutes = function () {
+    Route::get('/dashboard-data', 'getDashboardData');
+    Route::post('/order-cls', 'orderClsServices');
+    Route::post('/complete-exam', 'completeExamination');
+    Route::get('/patient-history/{maBenhNhan}', 'getPatientHistory');
+};
+Route::prefix('doctor')->controller(DoctorApiController::class)->group($doctorRoutes);
+Route::prefix('v1/doctor')->controller(DoctorApiController::class)->group($doctorRoutes);
+
+Route::prefix('staff')->controller(StaffApiController::class)->group($staffRoutes);
+Route::prefix('v1/staff')->controller(StaffApiController::class)->group($staffRoutes);
 
 Route::prefix('admin')->controller(AdminApiController::class)->group($adminRoutes);
 Route::prefix('v1/admin')->controller(AdminApiController::class)->group($adminRoutes);
