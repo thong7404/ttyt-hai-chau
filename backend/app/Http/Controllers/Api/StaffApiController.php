@@ -60,7 +60,7 @@ class StaffApiController extends Controller
     }
 
     /**
-     * 1. ĐỒNG BỘ DỮ LIỆU CHO NHÂN VIÊN Y TẾ (Gồmทั้ง danh sách Chờ đo & Đã đo sinh hiệu)
+     * 1. ĐỒNG BỘ DỮ LIỆU CHO NHÂN VIÊN Y TẾ
      */
     public function getDashboardData()
     {
@@ -119,7 +119,6 @@ class StaffApiController extends Controller
                 )
                 ->get();
 
-            // Lấy toàn bộ danh sách hồ sơ khám kèm chỉ số sinh hiệu (Cả Chờ đo và Đã đo)
             $danhSachSinhHieu = DB::table('HO_SO_KHAM_BENH as hs')
                 ->join('BENH_NHAN as bn', 'hs.ma_benh_nhan', '=', 'bn.ma_benh_nhan')
                 ->leftJoin('NGUOI_DUNG as nd_bn', 'bn.ma_nguoi_dung', '=', 'nd_bn.ma_nguoi_dung')
@@ -182,6 +181,7 @@ class StaffApiController extends Controller
                     'dm.don_gia_cls',
                     'hs.ma_benh_nhan',
                     'hs.so_thu_tu_kham',
+                    'hs.thoi_gian_tiep_nhan',
                     'nd_bn.vneid',
                     'nd_bn.ho_ten',
                     'p_bs.so_phong as phong_bac_si',
@@ -388,61 +388,127 @@ class StaffApiController extends Controller
     }
 
     /**
-     * 4. TRẢ KẾT QUẢ & ĐA ẢNH CẬN LÂM SÀNG
+     * 4. CẬP NHẬT KẾT QUẢ & ĐA ẢNH CẬN LÂM SÀNG
+     * Chỉ chuyển hồ sơ sang Bác sĩ (ChoBSDocCLS) khi TẤT CẢ chỉ định CLS của hồ sơ đó đã có kết quả
      */
     public function uploadClsResult(Request $request)
     {
         $maChiDinh = trim((string) $request->ma_chi_dinh_cls);
-        $maNhanVien = $this->resolveMaNhanVien($request->ma_nhan_vien ?? $request->ma_nvyt_thuc_hien, 'NV008');
+        $ketQuaCls = trim((string) $request->ket_qua_cls);
+        $aiNote = trim((string) ($request->ai_phan_tich_cls ?? ''));
+        $images = $request->images ?? [];
+
+        if ($maChiDinh === '' || $ketQuaCls === '') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Vui lòng nhập đầy đủ mô tả kết quả Cận lâm sàng!'
+            ], 400);
+        }
 
         DB::beginTransaction();
         try {
-            $cd = DB::table('CHI_DINH_CAN_LAM_SANG')->where('ma_chi_dinh_cls', $maChiDinh)->first();
-            if (!$cd) {
-                return response()->json(['status' => 'error', 'message' => 'Không tìm thấy chỉ định CLS!'], 404);
+            $chiDinh = DB::table('CHI_DINH_CAN_LAM_SANG')
+                ->where('ma_chi_dinh_cls', $maChiDinh)
+                ->first();
+
+            if (!$chiDinh) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Không tìm thấy mã chỉ định Cận lâm sàng!'
+                ], 404);
             }
 
+            if ($chiDinh->trang_thai_nop_tien !== 'DaNop') {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Chỉ định CLS này chưa được đóng phí tại Quầy Kế toán P104!'
+                ], 400);
+            }
+
+            $maNhanVien = $this->resolveMaNhanVien($request->ma_nhan_vien, 'NV008');
+
+            // 1. Cập nhật kết quả cho chỉ định CLS hiện tại
             DB::table('CHI_DINH_CAN_LAM_SANG')
                 ->where('ma_chi_dinh_cls', $maChiDinh)
                 ->update($this->filterValidColumns('CHI_DINH_CAN_LAM_SANG', [
                     'ma_nhan_vien'         => $maNhanVien,
+                    'ket_qua_cls'          => $ketQuaCls,
+                    'ai_phan_tich_cls'     => $aiNote,
                     'trang_thai_thuc_hien' => 'DaCoKetQua',
-                    'ket_qua_cls'          => $request->ket_qua_cls,
-                    'ai_phan_tich_cls'     => $request->ai_phan_tich_cls,
                     'thoi_gian_co_ket_qua' => Carbon::now('Asia/Ho_Chi_Minh')
                 ]));
 
-            if (is_array($request->images) && count($request->images) > 0) {
+            // 2. Lưu danh sách ảnh kết quả CLS (nếu có)
+            if (is_array($images) && count($images) > 0) {
                 $anhCols = Schema::getColumnListing('ANH_KET_QUA_CLS');
-                $pkCol = in_array('ma_anh_cls', $anhCols) ? 'ma_anh_cls' : 'ma_anh_ket_qua';
+                $anhPk = in_array('ma_anh_cls', $anhCols) ? 'ma_anh_cls' : null;
 
-                foreach ($request->images as $img) {
-                    $maAnh = $this->generateNextCode('ANH_KET_QUA_CLS', $pkCol, 'ACLS', 3);
-                    DB::table('ANH_KET_QUA_CLS')->insert($this->filterValidColumns('ANH_KET_QUA_CLS', [
-                        $pkCol              => $maAnh,
+                foreach ($images as $imgItem) {
+                    $base64Str = $imgItem['base64'] ?? '';
+                    if (!$base64Str) continue;
+
+                    $rowAnh = [
                         'ma_chi_dinh_cls'   => $maChiDinh,
-                        'duong_dan_anh_cls' => $img['base64'] ?? '',
-                        'ghi_chu_anh'       => $img['note'] ?? 'Ảnh kết quả CLS',
+                        'duong_dan_anh_cls' => $base64Str,
+                        'ghi_chu_anh'       => trim((string) ($imgItem['note'] ?? 'Ảnh kết quả CLS')),
                         'thoi_gian_tai_len' => Carbon::now('Asia/Ho_Chi_Minh')
-                    ]));
+                    ];
+                    if ($anhPk) {
+                        $rowAnh[$anhPk] = $this->generateNextCode('ANH_KET_QUA_CLS', $anhPk, 'ACLS', 3);
+                    }
+                    DB::table('ANH_KET_QUA_CLS')->insert($this->filterValidColumns('ANH_KET_QUA_CLS', $rowAnh));
                 }
             }
 
-            DB::table('HO_SO_KHAM_BENH')
-                ->where('ma_ho_so_kham', $cd->ma_ho_so_kham)
-                ->update($this->filterValidColumns('HO_SO_KHAM_BENH', [
-                    'trang_thai_hang_doi' => 'ChoKhamBS'
-                ]));
+            // 3. KIỂM TRA XEM HỒ SƠ KHÁM NÀY CÒN DỊCH VỤ CLS NÀO CHƯA CẬP NHẬT KẾT QUẢ KHÔNG
+            $maHoSo = $chiDinh->ma_ho_so_kham;
+            $pendingClsCount = DB::table('CHI_DINH_CAN_LAM_SANG')
+                ->where('ma_ho_so_kham', $maHoSo)
+                ->where(function ($q) {
+                    $q->where('trang_thai_thuc_hien', '!=', 'DaCoKetQua')
+                      ->orWhereNull('ket_qua_cls')
+                      ->orWhereRaw("TRIM(ket_qua_cls) = ''");
+                })
+                ->count();
+
+            $unpaidClsCount = DB::table('CHI_DINH_CAN_LAM_SANG')
+                ->where('ma_ho_so_kham', $maHoSo)
+                ->where('trang_thai_nop_tien', '!=', 'DaNop')
+                ->count();
+
+            if ($pendingClsCount === 0 && $unpaidClsCount === 0) {
+                DB::table('HO_SO_KHAM_BENH')
+                    ->where('ma_ho_so_kham', $maHoSo)
+                    ->update($this->filterValidColumns('HO_SO_KHAM_BENH', [
+                        'trang_thai_hang_doi' => 'ChoBSDocCLS'
+                    ]));
+
+                $msg = "Đã hoàn tất toàn bộ chỉ định Cận lâm sàng của hồ sơ #{$maHoSo} và chuyển về Phòng Bác sĩ đọc kết quả!";
+            } else {
+                $holdStatus = ($unpaidClsCount > 0) ? 'ChoThuTienCLS' : 'ChoLamCLS';
+                DB::table('HO_SO_KHAM_BENH')
+                    ->where('ma_ho_so_kham', $maHoSo)
+                    ->update($this->filterValidColumns('HO_SO_KHAM_BENH', [
+                        'trang_thai_hang_doi' => $holdStatus
+                    ]));
+
+                $msg = "Đã lưu kết quả chỉ định #{$maChiDinh}. Hồ sơ #{$maHoSo} vẫn còn {$pendingClsCount} dịch vụ Cận lâm sàng chưa có kết quả nên chưa chuyển sang Bác sĩ!";
+            }
 
             DB::commit();
 
             return response()->json([
-                'status'  => 'success',
-                'message' => 'Đã lưu kết quả & hình ảnh CLS vào MySQL và đẩy hồ sơ về lại Phòng Bác sĩ!'
+                'status'            => 'success',
+                'pending_cls_count' => $pendingClsCount,
+                'all_cls_completed' => ($pendingClsCount === 0 && $unpaidClsCount === 0),
+                'message'           => $msg
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['status' => 'error', 'message' => 'Lỗi lưu kết quả CLS: ' . $e->getMessage()], 400);
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Lỗi lưu kết quả CLS: ' . $e->getMessage()
+            ], 400);
         }
     }
 }

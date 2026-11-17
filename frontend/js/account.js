@@ -92,7 +92,6 @@ function showAccountAlert(msg, isSuccess = true) {
 
 /**
  * 6. Hàm điền dữ liệu của người dùng vào cột bên trái và Form Hồ sơ cá nhân
- * (Đã gỡ bỏ preview-profile-avatar để không gây lỗi dừng hàm)
  */
 function fillProfileFormInputs(userData) {
     if (!userData) return;
@@ -293,8 +292,8 @@ async function loadPatientPortalDataFromMySql(maNguoiDung) {
                     trieu_chung: a.trieu_chung_ban_dau || "Khám theo lịch hẹn",
                     trang_thai: trangThai,
                     trang_thai_text: trangThai === "DaTiepNhan"
-                        ? "✅ Đã tiếp nhận khám tại Trung tâm"
-                        : (trangThai === "DaHuy" ? "Đã hủy lịch hẹn" : "⏳ Chờ tiếp nhận tại Quầy P101"),
+                        ? "Đã tiếp nhận khám tại Trung tâm"
+                        : (trangThai === "DaHuy" ? "Đã hủy lịch hẹn" : "Chờ tiếp nhận tại Quầy P101"),
                     ly_do_huy: lyDoHuy,
                     thoi_gian_huy: thoiGianHuy
                 };
@@ -302,10 +301,88 @@ async function loadPatientPortalDataFromMySql(maNguoiDung) {
 
             renderBookedAppointmentsList();
             cachedMedicalRecords = Array.isArray(data.medical_records) ? data.medical_records : [];
-            renderMedicalRecordsFromMySql(cachedMedicalRecords);
+            filterPatientMedicalRecords();
             return;
         }
     } catch (e) {}
+}
+
+/**
+ * Lấy ngày YYYY-MM-DD của hồ sơ bệnh án
+ */
+function extractMedicalRecordDateYmd(rec) {
+    const raw = rec.thoi_gian_tiep_nhan || rec.thoi_gian_hoan_tat || "";
+    return String(raw).substring(0, 10);
+}
+
+/**
+ * Lọc & Sắp xếp danh sách Hồ sơ bệnh án điện tử theo Từ khóa, Trạng thái, Ngày khám
+ */
+function filterPatientMedicalRecords() {
+    const keyword = (document.getElementById("rec-search-keyword")?.value || "").toLowerCase().trim();
+    const statusFilter = document.getElementById("rec-filter-status")?.value || "ALL";
+    const dateFilter = document.getElementById("rec-filter-date")?.value || "";
+    const sortOrder = document.getElementById("rec-sort-date")?.value || "DESC";
+
+    const filtered = (cachedMedicalRecords || []).filter(rec => {
+        // Kiểm tra xem hồ sơ còn dịch vụ CLS nào chưa có kết quả không
+        const clsList = rec.cls_results || [];
+        const hasPendingCls = clsList.some(
+            c => c.trang_thai_thuc_hien !== "DaCoKetQua" || !c.ket_qua_cls || String(c.ket_qua_cls).trim() === ""
+        );
+        const effectiveStatus = (hasPendingCls && rec.trang_thai_hang_doi === "HoanTat")
+            ? "ChoLamCLS"
+            : rec.trang_thai_hang_doi;
+
+        if (statusFilter === "HoanTat" && effectiveStatus !== "HoanTat") return false;
+        if (statusFilter === "DANG_XU_LY" && effectiveStatus === "HoanTat") return false;
+
+        if (dateFilter) {
+            const recDate = extractMedicalRecordDateYmd(rec);
+            if (recDate !== dateFilter) return false;
+        }
+
+        if (keyword) {
+            const matchHs = String(rec.ma_ho_so_kham || "").toLowerCase().includes(keyword);
+            const matchKhoa = (rec.ten_khoa || "").toLowerCase().includes(keyword);
+            const matchPhong = (rec.so_phong || "").toLowerCase().includes(keyword);
+            const matchBs = (rec.ten_bac_si || "").toLowerCase().includes(keyword);
+            const matchSymptom = (rec.trieu_chung_lam_sang || "").toLowerCase().includes(keyword);
+            const matchDiag = (rec.ket_luan_chan_doan || "").toLowerCase().includes(keyword);
+            if (!matchHs && !matchKhoa && !matchPhong && !matchBs && !matchSymptom && !matchDiag) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    filtered.sort((a, b) => {
+        const dA = String(a.thoi_gian_tiep_nhan || "");
+        const dB = String(b.thoi_gian_tiep_nhan || "");
+        if (dA !== dB) {
+            return sortOrder === "ASC" ? dA.localeCompare(dB) : dB.localeCompare(dA);
+        }
+        return sortOrder === "ASC"
+            ? String(a.ma_ho_so_kham || "").localeCompare(String(b.ma_ho_so_kham || ""))
+            : String(b.ma_ho_so_kham || "").localeCompare(String(a.ma_ho_so_kham || ""));
+    });
+
+    renderMedicalRecordsFromMySql(filtered);
+}
+
+function clearPatientRecordFilters() {
+    const kwEl = document.getElementById("rec-search-keyword");
+    const stEl = document.getElementById("rec-filter-status");
+    const dtEl = document.getElementById("rec-filter-date");
+    const sortEl = document.getElementById("rec-sort-date");
+
+    if (kwEl) kwEl.value = "";
+    if (stEl) stEl.value = "ALL";
+    if (dtEl) dtEl.value = "";
+    if (sortEl) sortEl.value = "DESC";
+
+    filterPatientMedicalRecords();
 }
 
 /**
@@ -316,32 +393,46 @@ function renderMedicalRecordsFromMySql(records) {
     if (!container) return;
 
     if (!records || records.length === 0) {
+        const emptyText = (cachedMedicalRecords && cachedMedicalRecords.length > 0)
+            ? "Không tìm thấy hồ sơ bệnh án nào khớp với bộ lọc tìm kiếm hoặc ngày khám đã chọn."
+            : "Hiện bạn chưa có hồ sơ bệnh án nào trong cơ sở dữ liệu MySQL.";
         container.innerHTML = `
             <div class="p-6 text-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500">
-                Hiện bạn chưa có hồ sơ bệnh án nào trong cơ sở dữ liệu MySQL.
+                ${emptyText}
             </div>
         `;
         return;
     }
 
     const statusMap = {
-        ChoSinhHieu: { label: "⏳ Đang chờ khám sàng lọc", cls: "bg-amber-100 text-amber-800" },
-        ChoKhamBS: { label: "👨‍⚕️ Đang chờ Bác sĩ khám", cls: "bg-sky-100 text-sky-800" },
-        ChoLamCLS: { label: "🔬 Đang làm Cận lâm sàng", cls: "bg-indigo-100 text-indigo-800" },
-        HoanTat: { label: "✅ Đã hoàn tất khám", cls: "bg-emerald-100 text-emerald-800" }
+        ChoSinhHieu: { label: "Đang chờ khám sàng lọc", cls: "bg-amber-100 text-amber-800" },
+        ChoKhamBS: { label: "Đang chờ Bác sĩ khám", cls: "bg-sky-100 text-sky-800" },
+        ChoBSKham: { label: "Đang chờ Bác sĩ khám", cls: "bg-sky-100 text-sky-800" },
+        ChoThuTienCLS: { label: "Chờ nộp phí Cận lâm sàng (P104)", cls: "bg-amber-100 text-amber-800" },
+        ChoLamCLS: { label: "Đang làm Cận lâm sàng (P201)", cls: "bg-indigo-100 text-indigo-800" },
+        ChoBSDocCLS: { label: "Đã có KQ CLS • Chờ Bác sĩ đọc", cls: "bg-purple-100 text-purple-800" },
+        HoanTat: { label: "Đã hoàn tất khám", cls: "bg-emerald-100 text-emerald-800" }
     };
 
     container.innerHTML = records.map((rec, idx) => {
-        const st = statusMap[rec.trang_thai_hang_doi] || { label: rec.trang_thai_hang_doi, cls: "bg-slate-100 text-slate-700" };
         const clsList = rec.cls_results || [];
+        const pendingClsCount = clsList.filter(
+            c => c.trang_thai_thuc_hien !== "DaCoKetQua" || !c.ket_qua_cls || String(c.ket_qua_cls).trim() === ""
+        ).length;
+
+        const effectiveStatusKey = (pendingClsCount > 0 && rec.trang_thai_hang_doi === "HoanTat")
+            ? "ChoLamCLS"
+            : rec.trang_thai_hang_doi;
+
+        const st = statusMap[effectiveStatusKey] || { label: effectiveStatusKey, cls: "bg-slate-100 text-slate-700" };
         const thuocList = rec.prescription_items || [];
         const invoicesList = rec.invoices || [];
 
         const clsHtml = clsList.map(c => `
             <div class="mt-2.5 p-3 rounded-lg bg-indigo-50/70 border border-indigo-200 text-xs">
-                <b class="text-indigo-900">🔬 Dịch vụ Cận lâm sàng (#${c.ma_chi_dinh_cls}): ${c.ten_dich_vu_cls}</b>
-                <p class="text-slate-700 mt-1"><b>Kết quả:</b> ${c.ket_qua_cls || "Đang chờ kết quả"}</p>
-                ${c.ai_phan_tich_cls ? `<p class="text-indigo-800 mt-0.5"><b>Nhận định AI:</b> ${c.ai_phan_tich_cls}</p>` : ""}
+                <b class="text-indigo-900">Dịch vụ Cận lâm sàng (#${c.ma_chi_dinh_cls}): ${c.ten_dich_vu_cls}</b>
+                <p class="text-slate-700 mt-1"><b>Kết quả:</b> ${c.ket_qua_cls || "<span class='text-amber-700 font-semibold italic'>Đang chờ kết quả từ Phòng P201</span>"}</p>
+                ${c.ai_phan_tich_cls ? `<p class="text-indigo-800 mt-0.5"><b>Nhận định CLS:</b> ${c.ai_phan_tich_cls}</p>` : ""}
                 ${c.images && c.images.length > 0 ? `
                     <div class="flex gap-2 mt-2 overflow-x-auto">
                         ${c.images.map(img => `<img src="${img.duong_dan_anh_cls}" class="w-24 h-24 object-cover rounded-lg border border-indigo-300"/>`).join("")}
@@ -352,7 +443,7 @@ function renderMedicalRecordsFromMySql(records) {
 
         const thuocHtml = thuocList.length > 0 ? `
             <div class="mt-2.5 p-3 rounded-lg bg-sky-50 border border-sky-200 text-xs">
-                <b class="text-sky-900">💊 Đơn thuốc Bác sĩ kê:</b>
+                <b class="text-sky-900">Đơn thuốc Bác sĩ kê:</b>
                 <ul class="list-disc list-inside mt-1 text-slate-700 space-y-1">
                     ${thuocList.map(t => `<li><b>${t.ten_thuoc}</b> (#${t.ma_thuoc}) — Số lượng: <b>${t.so_luong} ${t.don_vi_tinh}</b> (<i>${t.lieu_dung_huong_dan}</i>)</li>`).join("")}
                 </ul>
@@ -362,7 +453,7 @@ function renderMedicalRecordsFromMySql(records) {
         const hoaDonHtml = invoicesList.map(hd => `
             <div class="mt-2.5 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs space-y-1">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span>💳 <b>Hóa đơn #${hd.ma_hoa_don}</b> • Tổng tiền gốc: <b>${Number(hd.tong_tien_goc).toLocaleString("vi-VN")}đ</b></span>
+                    <span><b>Hóa đơn #${hd.ma_hoa_don}</b> • Tổng tiền gốc: <b>${Number(hd.tong_tien_goc).toLocaleString("vi-VN")}đ</b></span>
                     <span class="text-emerald-800 font-bold">BHYT chi trả: ${Number(hd.tien_bhyt_chi_tra).toLocaleString("vi-VN")}đ | Bệnh nhân trả: ${Number(hd.tien_benh_nhan_tra).toLocaleString("vi-VN")}đ</span>
                 </div>
             </div>
@@ -379,7 +470,7 @@ function renderMedicalRecordsFromMySql(records) {
                             <span class="text-xs text-slate-500">• 🕒 ${rec.thoi_gian_tiep_nhan || ""}</span>
                         </div>
                         <h4 class="font-bold text-base text-slate-900 mt-1">${rec.ten_khoa || "Chuyên khoa"} — Phòng ${rec.so_phong || "P102"}</h4>
-                        <p class="text-xs text-slate-600 mt-0.5">👨‍⚕️ Bác sĩ: <b>${rec.ten_bac_si || "-"}</b> • Chẩn đoán: <b>${rec.ket_luan_chan_doan || "Đang khám"}</b></p>
+                        <p class="text-xs text-slate-600 mt-0.5">Bác sĩ: <b>${rec.ten_bac_si || "-"}</b> • Chẩn đoán: <b>${rec.ket_luan_chan_doan || "Đang khám"}</b></p>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="px-3 py-1 rounded-full text-xs font-bold ${st.cls}">${st.label}</span>
@@ -389,12 +480,12 @@ function renderMedicalRecordsFromMySql(records) {
                 <div id="record-detail-box-${idx}" class="hidden p-4 border-t border-slate-200 bg-white space-y-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
                         <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                            <b class="text-teal-800 block mb-1">🩺 Kết quả Khám sàng lọc (CHI_SO_SINH_HIEU):</b>
+                            <b class="text-teal-800 block mb-1">Kết quả Khám sàng lọc :</b>
                             Mạch: <b>${rec.mach || "-"}</b> l/p • Nhiệt độ: <b>${rec.nhiet_do || "-"}°C</b> • HA: <b>${rec.huyet_ap || "-"}</b> mmHg<br/>
                             Cân nặng: <b>${rec.can_nang || "-"}kg</b> • Chiều cao: <b>${rec.chieu_cao || "-"}cm</b>
                         </div>
                         <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                            <b class="text-teal-800 block mb-1">📋 Kết luận Chẩn đoán (HO_SO_KHAM_BENH):</b>
+                            <b class="text-teal-800 block mb-1">Kết luận Chẩn đoán :</b>
                             <p><b>Triệu chứng:</b> ${rec.trieu_chung_lam_sang || "-"}</p>
                             <p class="mt-0.5"><b>Kết luận:</b> ${rec.ket_luan_chan_doan || "-"}</p>
                             ${rec.loi_dan_bac_si ? `<p class="text-emerald-800 mt-1"><b>Lời dặn:</b> ${rec.loi_dan_bac_si}</p>` : ""}
@@ -452,10 +543,10 @@ function renderBookedAppointmentsList() {
                             ${item.chuyen_khoa}
                         </h4>
                         <p class="text-xs text-slate-600 mt-1">
-                            📅 Ngày hẹn: <b>${item.ngay_hen}</b> • 🕒 <b>${item.ca_kham}</b>
+                            Ngày hẹn: <b>${item.ngay_hen}</b> • 🕒 <b>${item.ca_kham}</b>
                         </p>
                         <p class="text-xs text-slate-500 mt-0.5">
-                            🩺 Triệu chứng: ${item.trieu_chung}
+                            Triệu chứng: ${item.trieu_chung}
                         </p>
                     </div>
 
@@ -474,7 +565,7 @@ function renderBookedAppointmentsList() {
                 ${isCanceled ? `
                     <div class="p-3 rounded-lg bg-red-100/70 border border-red-200 text-xs text-red-800">
                         <b>Lý do hủy lịch:</b> ${item.ly_do_huy || "Người bệnh chủ động hủy"}
-                        ${item.thoi_gian_huy ? `<span class="block text-[11px] text-red-600 mt-0.5">⏰ Thời gian hủy: ${item.thoi_gian_huy}</span>` : ''}
+                        ${item.thoi_gian_huy ? `<span class="block text-[11px] text-red-600 mt-0.5">Thời gian hủy: ${item.thoi_gian_huy}</span>` : ''}
                     </div>
                 ` : `
                     <div id="cancel-reason-box-${idx}" class="hidden pt-3 border-t border-slate-200 space-y-2.5">

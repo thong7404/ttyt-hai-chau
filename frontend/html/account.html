@@ -94,7 +94,7 @@
             <!-- Hộp thông báo trạng thái -->
             <div id="account-modal-alert" class="hidden mb-5 p-3.5 rounded-xl border text-xs sm:text-sm font-bold"></div>
 
-            <!-- 1. PANEL HỒ SƠ CÁ NHÂN, VNeID & BHYT (ĐÃ BỎ CHỌN ẢNH ĐẠI DIỆN) -->
+            <!-- 1. PANEL HỒ SƠ CÁ NHÂN, VNeID & BHYT -->
             <form id="panel-profile" onsubmit="handleUpdateProfile(event)" class="space-y-5 text-sm">
                 <div class="border-b border-slate-100 pb-3 flex flex-wrap items-center justify-between gap-2">
                     <div>
@@ -205,11 +205,43 @@
                 </div>
             </form>
 
-            <!-- 3. PANEL HỒ SƠ BỆNH ÁN ĐIỆN TỬ -->
+            <!-- 3. PANEL HỒ SƠ BỆNH ÁN ĐIỆN TỬ (CÓ TÌM KIẾM & LỌC THEO NGÀY) -->
             <div id="panel-records" class="hidden space-y-4 text-sm">
-                <div class="border-b border-slate-100 pb-3">
-                    <h3 class="font-bold text-lg text-teal-900">Hồ Sơ Bệnh Án Điện Tử</h3>
+                <div class="border-b border-slate-100 pb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-lg text-teal-900">Hồ Sơ Bệnh Án Điện Tử</h3>
+                        <p class="text-xs text-slate-500">Tra cứu theo mã hồ sơ, chuyên khoa, bác sĩ, chẩn đoán hoặc lọc theo ngày khám</p>
+                    </div>
+                    <button type="button" onclick="clearPatientRecordFilters()"
+                            class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 transition">
+                        <span class="material-symbols-outlined text-sm">filter_alt_off</span>
+                        <span>Đặt lại bộ lọc</span>
+                    </button>
                 </div>
+
+                <!-- Thanh công cụ Tìm kiếm & Lọc theo ngày -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 p-3.5 rounded-xl bg-sky-50/60 border border-sky-200/80 text-xs">
+                    <div class="sm:col-span-5">
+                        <label class="font-bold text-slate-700 block mb-1">Tìm kiếm hồ sơ bệnh án</label>
+                        <input id="rec-filter-keyword" type="text" oninput="filterPatientMedicalRecords()"
+                               placeholder="Nhập mã HS (#HS009), khoa, bác sĩ, chẩn đoán..."
+                               class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white text-xs"/>
+                    </div>
+                    <div class="sm:col-span-4">
+                        <label class="font-bold text-slate-700 block mb-1">Lọc theo Ngày khám</label>
+                        <input id="rec-filter-date" type="date" onchange="filterPatientMedicalRecords()"
+                               class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white text-xs font-semibold"/>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="font-bold text-slate-700 block mb-1">Sắp xếp theo Ngày</label>
+                        <select id="rec-filter-sort" onchange="filterPatientMedicalRecords()"
+                                class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs font-bold text-teal-700">
+                            <option value="DESC">Mới nhất → Cũ nhất</option>
+                            <option value="ASC">Từ đầu tới cuối (Cũ → Mới)</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div id="records-list-container" class="space-y-3"></div>
             </div>
 

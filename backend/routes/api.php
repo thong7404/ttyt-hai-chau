@@ -6,6 +6,9 @@ use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\AdminApiController;
 use App\Http\Controllers\Api\StaffApiController;
 use App\Http\Controllers\Api\DoctorApiController;
+use App\Http\Controllers\Api\AccountantApiController;
+use App\Http\Controllers\Api\PharmacistApiController;
+use App\Http\Controllers\Api\NotificationApiController;
 
 // 1. Nhóm Route Xác thực (Đăng nhập, Đăng ký OTP, Hồ sơ bệnh nhân, Đặt lịch & Lịch sử AI)
 Route::controller(AuthApiController::class)->group(function () {
@@ -44,10 +47,9 @@ $adminRoutes = function () {
 
     Route::post('/save-cls-service', 'saveClsService');
     Route::delete('/delete-cls-service/{id}', 'deleteClsService');
-
 };
 
-// Nhóm Route Cổng Nghiệp Vụ Nhân Viên Y Tế (Staff)
+// 3. Nhóm Route Cổng Nghiệp Vụ Nhân Viên Y Tế (Staff)
 $staffRoutes = function () {
     Route::get('/dashboard-data', 'getDashboardData');
     Route::post('/receive-patient', 'receivePatient');
@@ -55,13 +57,41 @@ $staffRoutes = function () {
     Route::post('/upload-cls-result', 'uploadClsResult');
 };
 
-// Nhóm Route Phân hệ Bác Sĩ (Doctor)
+// 4. Nhóm Route Phân hệ Bác Sĩ (Doctor)
 $doctorRoutes = function () {
     Route::get('/dashboard-data', 'getDashboardData');
     Route::post('/order-cls', 'orderClsServices');
     Route::post('/complete-exam', 'completeExamination');
     Route::get('/patient-history/{maBenhNhan}', 'getPatientHistory');
 };
+
+// 5. Nhóm Route Phân hệ Kế Toán - Thu Ngân Viện Phí (Accountant)
+$accountantRoutes = function () {
+    Route::get('/dashboard-data', 'getDashboardData');
+    Route::post('/collect-cls', 'collectClsPayment');
+    Route::post('/collect-invoice', 'collectInvoicePayment');
+};
+
+// 6. Nhóm Route Phân hệ Dược Sĩ - Cấp Phát Thuốc BHYT (Pharmacist)
+$pharmacistRoutes = function () {
+    Route::get('/dashboard-data', 'getDashboardData');
+    Route::post('/dispense', 'dispensePrescription');
+    Route::post('/save-medicine', 'saveMedicineStock');
+};
+
+// Nhóm Route Hệ Thống Thông Báo & Gửi Gmail (Nhắc lịch hẹn trước 1 ngày / Ưu đãi)
+Route::prefix('notifications')->controller(NotificationApiController::class)->group(function () {
+    Route::get('/user/{maNguoiDung}', 'getUserNotifications');
+    Route::post('/scan-reminders', 'scanAndSendAppointmentReminders');
+    Route::post('/send', 'sendCustomOrPromoNotification');
+});
+
+Route::prefix('pharmacist')->controller(PharmacistApiController::class)->group($pharmacistRoutes);
+Route::prefix('v1/pharmacist')->controller(PharmacistApiController::class)->group($pharmacistRoutes);
+
+Route::prefix('accountant')->controller(AccountantApiController::class)->group($accountantRoutes);
+Route::prefix('v1/accountant')->controller(AccountantApiController::class)->group($accountantRoutes);
+
 Route::prefix('doctor')->controller(DoctorApiController::class)->group($doctorRoutes);
 Route::prefix('v1/doctor')->controller(DoctorApiController::class)->group($doctorRoutes);
 

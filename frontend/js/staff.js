@@ -34,6 +34,27 @@ function getInitials(name) {
     return clean.substring(0, 2).toUpperCase();
 }
 
+/**
+ * Lấy ngày hiện tại chuẩn YYYY-MM-DD
+ */
+function getTodayYmdStaff() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+/**
+ * Tính số ngày còn lại tính đến ngày hẹn
+ */
+function calcDaysUntilAppointment(ngayHenYmd) {
+    const todayYmd = getTodayYmdStaff();
+    const d1 = new Date(todayYmd + "T00:00:00");
+    const d2 = new Date(ngayHenYmd + "T00:00:00");
+    return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+}
+
 function extractVitalsDateYmd(hs) {
     const raw = hs.thoi_gian_tiep_nhan || hs.thoi_gian_do || "";
     return String(raw).substring(0, 10);
@@ -73,6 +94,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (dropEmailEl && user.email) dropEmailEl.textContent = user.email;
         if (dropDeptEl) dropDeptEl.textContent = `Mã NV: #${maNv} • ${tenKhoa}`;
     }
+
+    document.getElementById("vitals-calling-banner")?.remove();
+    document.getElementById("cls-calling-banner")?.remove();
+    document.querySelectorAll('button[onclick*="reAnnounceCurrent"]').forEach(btn => btn.remove());
 
     ensureUnifiedVitalsLayout();
     ensureUnifiedClsLayout();
@@ -180,7 +205,7 @@ function showReceptionSuccessModal(info, onClose = null) {
                     </tr>
                     <tr class="bg-amber-50/70">
                         <th class="py-2.5 px-3.5 font-semibold text-amber-900">Trạng thái tiếp theo</th>
-                        <td class="py-2.5 px-3.5 font-bold text-amber-800">⏳ Chờ khám sàng lọc & đo sinh hiệu (P101)</td>
+                        <td class="py-2.5 px-3.5 font-bold text-amber-800">Chờ khám sàng lọc & đo sinh hiệu (P101)</td>
                     </tr>
                 </tbody>
             </table>
@@ -274,11 +299,15 @@ function showClsSuccessModal(info, onClose = null) {
     ensureStaffConfirmModalDOM();
     staffModalCloseCallback = onClose;
 
+    const isAllDone = info.all_cls_completed !== false;
+
     document.getElementById("scm-header").className = "bg-gradient-to-r from-sky-600 to-teal-600 text-white px-6 py-5 text-center relative";
     document.getElementById("scm-icon-wrap").className = "w-14 h-14 rounded-full bg-white text-sky-600 flex items-center justify-center mx-auto mb-2.5 shadow-md";
     document.getElementById("scm-icon").textContent = "biotech";
     document.getElementById("scm-title").textContent = "Đã Lưu Kết Quả Cận Lâm Sàng";
-    document.getElementById("scm-subtitle").textContent = "Kết quả & hình ảnh CLS đã được chuyển về Phòng Bác sĩ";
+    document.getElementById("scm-subtitle").textContent = isAllDone
+        ? "Đã hoàn tất 100% chỉ định CLS và chuyển về Phòng Bác sĩ"
+        : `Hồ sơ #${info.ma_ho_so_kham} vẫn còn ${info.pending_cls_count} dịch vụ CLS cần nhập tiếp`;
 
     document.getElementById("scm-body").innerHTML = `
         <div class="overflow-hidden rounded-xl border border-slate-200">
@@ -308,10 +337,12 @@ function showClsSuccessModal(info, onClose = null) {
                         <th class="py-2.5 px-3.5 font-semibold text-slate-600">Hình ảnh đính kèm</th>
                         <td class="py-2.5 px-3.5 font-bold text-emerald-700">${info.so_luong_anh || 0} ảnh kết quả CLS</td>
                     </tr>
-                    <tr class="bg-emerald-50/70">
-                        <th class="py-2.5 px-3.5 font-semibold text-emerald-900">Chuyển về phòng</th>
-                        <td class="py-2.5 px-3.5 font-bold text-emerald-800">
-                            Phòng ${info.phong_bac_si || "P102"} (${info.ten_phong_bac_si || "Phòng Bác sĩ đọc kết quả"})
+                    <tr class="${isAllDone ? 'bg-emerald-50/70' : 'bg-amber-50/70'}">
+                        <th class="py-2.5 px-3.5 font-semibold ${isAllDone ? 'text-emerald-900' : 'text-amber-900'}">Trạng thái hồ sơ</th>
+                        <td class="py-2.5 px-3.5 font-bold ${isAllDone ? 'text-emerald-800' : 'text-amber-800'}">
+                            ${isAllDone
+                                ? `Đã chuyển về Phòng ${info.phong_bac_si || "P102"} (${info.ten_phong_bac_si || "Bác sĩ đọc KQ"})`
+                                : `Còn ${info.pending_cls_count} dịch vụ CLS chưa nhập kết quả (Chưa chuyển qua Bác sĩ)`}
                         </td>
                     </tr>
                 </tbody>
@@ -353,13 +384,15 @@ function showStaffNoticeModal(title, message, isError = false, onClose = null) {
 // CHUẨN HÓA GIAO DIỆN BẢNG (TABLE) CHO SINH HIỆU & CẬN LÂM SÀNG
 // =========================================================================
 function ensureUnifiedVitalsLayout() {
+    document.getElementById("vitals-calling-banner")?.remove();
+
     const queueSubview = document.getElementById("vitals-subview-queue");
     if (queueSubview && !document.getElementById("vitals-table-tbody")) {
         queueSubview.className = "hospital-card rounded-2xl p-6 space-y-4";
         queueSubview.innerHTML = `
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <div>
-                    <h3 class="font-heading font-bold text-base text-teal-950">📋 Bảng Danh Sách Bệnh Nhân Đo Chỉ Số Sinh Hiệu</h3>
+                    <h3 class="font-heading font-bold text-base text-teal-950">Bảng Danh Sách Bệnh Nhân Đo Chỉ Số Sinh Hiệu</h3>
                     <p class="text-xs text-slate-500">Tra cứu theo tên, mã hồ sơ, lọc theo chuyên khoa, trạng thái đo, ngày tiếp nhận và sắp xếp thứ tự ngày</p>
                 </div>
                 <button type="button" onclick="clearVitalsFilters()"
@@ -389,8 +422,8 @@ function ensureUnifiedVitalsLayout() {
                     <label class="font-bold text-slate-700 block mb-1">Lọc theo Trạng thái</label>
                     <select id="vt-status-select" onchange="setVitalsStatusFilter(this.value)"
                             class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs font-semibold text-slate-700">
-                        <option value="ChoDo">⏳ Đang chờ đo sinh hiệu</option>
-                        <option value="DaDo">✅ Đã đo sinh hiệu</option>
+                        <option value="ChoDo">Đang chờ đo sinh hiệu</option>
+                        <option value="DaDo">Đã đo sinh hiệu</option>
                         <option value="ALL">-- Tất cả đã tiếp nhận --</option>
                     </select>
                 </div>
@@ -440,13 +473,15 @@ function ensureUnifiedVitalsLayout() {
 }
 
 function ensureUnifiedClsLayout() {
+    document.getElementById("cls-calling-banner")?.remove();
+
     const clsQueueSubview = document.getElementById("cls-subview-queue");
     if (clsQueueSubview && !document.getElementById("cls-table-tbody")) {
         clsQueueSubview.className = "hospital-card rounded-2xl p-6 space-y-4";
         clsQueueSubview.innerHTML = `
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <div>
-                    <h3 class="font-heading font-bold text-base text-teal-950">🔬 Bảng Danh Sách Chỉ Định Cận Lâm Sàng</h3>
+                    <h3 class="font-heading font-bold text-base text-teal-950">Bảng Danh Sách Chỉ Định Cận Lâm Sàng</h3>
                     <p class="text-xs text-slate-500">Tra cứu theo tên, mã chỉ định, lọc theo loại dịch vụ CLS, trạng thái thực hiện, ngày và sắp xếp thứ tự</p>
                 </div>
                 <button type="button" onclick="clearClsFilters()"
@@ -476,9 +511,9 @@ function ensureUnifiedClsLayout() {
                     <label class="font-bold text-slate-700 block mb-1">Lọc theo Trạng thái</label>
                     <select id="cls-status-select" onchange="setClsStatusFilter(this.value)"
                             class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs font-semibold text-slate-700">
-                        <option value="ChoLam">⏳ Đang chờ làm CLS</option>
-                        <option value="DaCoKQ">✅ Đã có kết quả</option>
-                        <option value="ChuaNop">💳 Chờ đóng phí (P104)</option>
+                        <option value="ChoLam">Đang chờ làm CLS</option>
+                        <option value="DaCoKQ">Đã có kết quả</option>
+                        <option value="ChuaNop">Chờ đóng phí (P104)</option>
                         <option value="ALL">-- Tất cả chỉ định --</option>
                     </select>
                 </div>
@@ -581,7 +616,7 @@ function openStaffMenu(menuKey) {
             const allVitals = getAllVitalsRecords();
             const firstWaiting = allVitals.find(r => r.trang_thai_do === "ChoDo") || allVitals[0];
             if (firstWaiting) {
-                populateVitalsFormByRecord(firstWaiting, false);
+                populateVitalsFormByRecord(firstWaiting);
             }
         }
     } else if (menuKey === "cls" || menuKey === "cls-paid" || menuKey === "cls-unpaid") {
@@ -607,7 +642,7 @@ function openStaffMenu(menuKey) {
                 c => c.trang_thai_nop_tien === "DaNop" && c.trang_thai_thuc_hien !== "DaCoKetQua"
             ) || allCls.find(c => c.trang_thai_nop_tien === "DaNop") || allCls[0];
             if (firstPaidWaiting) {
-                populateClsFormByRecord(firstPaidWaiting, false);
+                populateClsFormByRecord(firstPaidWaiting);
             }
         }
     }
@@ -641,16 +676,6 @@ function switchStaffTab(tabName) {
 function switchReceptionSubTab(subTab) {
     if (subTab === "lookup") openStaffMenu("reception-lookup");
     else openStaffMenu("reception-form");
-}
-
-function announcePatientCall(text) {
-    if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "vi-VN";
-        utterance.rate = 0.95;
-        window.speechSynthesis.speak(utterance);
-    }
 }
 
 function getAllDoctorsList() {
@@ -758,12 +783,12 @@ function onChangeReceptionRoom(preferredDoctorId = null) {
     }
 
     if (deptDoctors.length === 0) {
-        docSelect.innerHTML = `<option value="ANY">👨‍⚕️ Bác sĩ phân công theo ca trực</option>`;
+        docSelect.innerHTML = `<option value="ANY">Bác sĩ phân công theo ca trực</option>`;
     } else {
         docSelect.innerHTML =
             deptDoctors.map(d => `
                 <option value="${d.ma_nhan_vien}">
-                    👨‍⚕️ ${d.ho_ten} (${d.ten_khoa || 'Bác sĩ khám'})
+                    ${d.ho_ten} (${d.ten_khoa || 'Bác sĩ khám'})
                 </option>
             `).join("") +
             `<option value="ANY">-- Bác sĩ bất kỳ trong khoa --</option>`;
@@ -825,7 +850,7 @@ function renderLookupDoctorOptions() {
     });
 
     docSelect.innerHTML = `<option value="ALL">-- Tất cả bác sĩ --</option>` +
-        Array.from(doctorNames).map(name => `<option value="${name}">👨‍⚕️ ${name}</option>`).join("");
+        Array.from(doctorNames).map(name => `<option value="${name}">${name}</option>`).join("");
 
     if (currentDocVal !== "ALL" && doctorNames.has(currentDocVal)) {
         docSelect.value = currentDocVal;
@@ -840,7 +865,7 @@ function onLookupDeptFilterChange() {
 }
 
 // =========================================================================
-// 2. QUÉT BHYT 2 MẶT & TRA CỨU LỊCH HẸN
+// 2. QUÉT BHYT 2 MẶT & TRA CỨU LỊCH HẸN (CÓ KIỂM TRA "CHƯA TỚI NGÀY")
 // =========================================================================
 function handleSelectBhytSide(event, side) {
     const file = event.target.files[0];
@@ -912,6 +937,8 @@ async function scanBhytWithAi() {
 
 function renderReceptionBookingList(bookings) {
     const container = document.getElementById("reception-booking-list");
+    if (!container) return;
+
     if (!bookings || bookings.length === 0) {
         container.innerHTML = `
             <div class="p-4 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
@@ -921,25 +948,42 @@ function renderReceptionBookingList(bookings) {
         return;
     }
 
-    container.innerHTML = bookings.map((b) => `
-        <div class="p-3 rounded-xl bg-white hover:bg-teal-50/60 border border-slate-200 flex items-center justify-between gap-2 transition">
-            <div>
-                <div class="flex items-center gap-1.5">
-                    <span class="px-2 py-0.5 rounded bg-teal-600/10 text-teal-700 font-bold text-[10px]">Mã BN: #${b.ma_benh_nhan}</span>
-                    <span class="text-xs font-bold text-slate-800">${b.ho_ten}</span>
+    const todayYmd = getTodayYmdStaff();
+
+    container.innerHTML = bookings.map((b) => {
+        const appDate = String(b.ngay_hen_kham || "").substring(0, 10);
+        const isFuture = appDate > todayYmd;
+
+        return `
+            <div class="p-3 rounded-xl bg-white hover:bg-teal-50/60 border ${isFuture ? 'border-amber-200 bg-amber-50/20' : 'border-slate-200'} flex items-center justify-between gap-2 transition">
+                <div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="px-2 py-0.5 rounded bg-teal-600/10 text-teal-700 font-bold text-[10px]">Mã BN: #${b.ma_benh_nhan}</span>
+                        <span class="text-xs font-bold text-slate-800">${b.ho_ten}</span>
+                        ${isFuture ? `<span class="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-[10px]">Chưa tới ngày</span>` : ""}
+                    </div>
+                    <p class="text-[11px] text-emerald-700 font-semibold mt-0.5">
+                        ${b.ten_khoa || "Chuyên khoa"} • ${b.ten_bac_si || "BS trực"}
+                    </p>
+                    <p class="text-[11px] text-slate-500">
+                        ${appDate} (${b.khung_gio_hen})
+                    </p>
                 </div>
-                <p class="text-[11px] text-emerald-700 font-semibold mt-0.5">
-                    🏥 ${b.ten_khoa || "Chuyên khoa"} • 👨‍⚕️ ${b.ten_bac_si || "BS trực"}
-                </p>
-                <p class="text-[11px] text-slate-500">
-                    📅 ${b.ngay_hen_kham} (${b.khung_gio_hen})
-                </p>
+                ${isFuture ? `
+                    <button type="button" onclick="fillReceptionByAppointmentId('${b.ma_lich_hen}')"
+                            class="px-2.5 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-500 text-amber-900 hover:text-white border border-amber-300 font-bold text-[11px] shrink-0 transition"
+                            title="Bệnh nhân đến trước ngày hẹn - Bấm để xác nhận khám sớm">
+                        Chưa tới ngày
+                    </button>
+                ` : `
+                    <button type="button" onclick="fillReceptionByAppointmentId('${b.ma_lich_hen}')"
+                            class="px-2.5 py-1.5 rounded-lg bg-teal-600 text-white font-bold text-[11px] shrink-0 hover:bg-teal-700 shadow-2xs transition">
+                        Tiếp nhận
+                    </button>
+                `}
             </div>
-            <button type="button" onclick="fillReceptionByAppointmentId('${b.ma_lich_hen}')" class="px-2.5 py-1.5 rounded-lg bg-teal-600 text-white font-bold text-[11px] shrink-0 hover:bg-teal-700 shadow-2xs">
-                Tiếp nhận
-            </button>
-        </div>
-    `).join("");
+        `;
+    }).join("");
 }
 
 function filterBookedAppointmentsTable() {
@@ -954,6 +998,7 @@ function filterBookedAppointmentsTable() {
     const sortOrder = document.getElementById("lookup-sort-date")?.value || "ASC";
 
     const allBookings = cachedDashboardData.lich_hen_cho || [];
+    const todayYmd = getTodayYmdStaff();
 
     const filtered = allBookings.filter(b => {
         const matchKeyword = !keyword ||
@@ -994,6 +1039,40 @@ function filterBookedAppointmentsTable() {
     tbody.innerHTML = filtered.map(b => {
         const isWaiting = b.trang_thai_hen === "ChoTiepNhan";
         const isCanceled = b.trang_thai_hen === "DaHuy";
+        const appDate = String(b.ngay_hen_kham || "").substring(0, 10);
+        const isFuture = isWaiting && (appDate > todayYmd);
+
+        let statusBadgeHtml = "";
+        if (isCanceled) {
+            statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-700">Đã hủy</span>`;
+        } else if (!isWaiting) {
+            statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Đã tiếp nhận</span>`;
+        } else if (isFuture) {
+            statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-200 whitespace-nowrap">📅 Chưa tới ngày</span>`;
+        } else {
+            statusBadgeHtml = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 whitespace-nowrap">Chờ tiếp nhận</span>`;
+        }
+
+        let actionHtml = "";
+        if (!isWaiting) {
+            actionHtml = `<span class="text-slate-400 font-semibold">${isCanceled ? 'Đã hủy' : 'Hoàn tất'}</span>`;
+        } else if (isFuture) {
+            actionHtml = `
+                <button type="button" onclick="fillReceptionByAppointmentId('${b.ma_lich_hen}')"
+                        class="px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-500 text-amber-900 hover:text-white border border-amber-300 font-bold text-xs transition whitespace-nowrap"
+                        title="Bệnh nhân tới sớm trước ngày hẹn - Bấm để xác nhận khám trước ngày đặt lịch">
+                    Chưa tới ngày
+                </button>
+            `;
+        } else {
+            actionHtml = `
+                <button type="button" onclick="fillReceptionByAppointmentId('${b.ma_lich_hen}')"
+                        class="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition whitespace-nowrap">
+                    Chọn cấp số
+                </button>
+            `;
+        }
+
         return `
             <tr class="hover:bg-slate-50">
                 <td class="p-3 font-bold text-teal-700">
@@ -1006,22 +1085,10 @@ function filterBookedAppointmentsTable() {
                 <td class="p-3">${b.so_the_bhyt || "<span class='text-slate-400'>Chưa có</span>"}</td>
                 <td class="p-3 font-semibold text-emerald-700">${b.ten_khoa || "-"}</td>
                 <td class="p-3 font-bold text-sky-800">${b.ten_bac_si || "BS phân công"}</td>
-                <td class="p-3"><b>${b.ngay_hen_kham}</b><br/><span class="text-[11px] text-slate-500">${b.khung_gio_hen}</span></td>
+                <td class="p-3"><b>${appDate}</b><br/><span class="text-[11px] text-slate-500">${b.khung_gio_hen}</span></td>
                 <td class="p-3 max-w-[180px] truncate" title="${b.trieu_chung_ban_dau || ''}">${b.trieu_chung_ban_dau || "-"}</td>
-                <td class="p-3">
-                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                        isWaiting ? 'bg-amber-100 text-amber-800' : (isCanceled ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800')
-                    }">
-                        ${isWaiting ? 'Chờ tiếp nhận' : (isCanceled ? 'Đã hủy' : 'Đã tiếp nhận')}
-                    </span>
-                </td>
-                <td class="p-3 text-right">
-                    ${isWaiting ? `
-                        <button type="button" onclick="fillReceptionByAppointmentId('${b.ma_lich_hen}')" class="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition">
-                            Chọn cấp số
-                        </button>
-                    ` : `<span class="text-slate-400 font-semibold">${isCanceled ? 'Đã hủy' : 'Hoàn tất'}</span>`}
-                </td>
+                <td class="p-3">${statusBadgeHtml}</td>
+                <td class="p-3 text-right">${actionHtml}</td>
             </tr>
         `;
     }).join("");
@@ -1046,10 +1113,23 @@ function clearLookupFilters() {
     filterBookedAppointmentsTable();
 }
 
-function fillReceptionByAppointmentId(maLichHen) {
+/**
+ * Điền thông tin lịch hẹn vào Phiếu tiếp nhận.
+ * Nếu chưa tới ngày hẹn (ngay_hen_kham > hôm nay) thì hiện Hộp thoại xác nhận khám trước ngày đã đặt lịch!
+ */
+function fillReceptionByAppointmentId(maLichHen, forceEarlyConfirm = false) {
     if (!cachedDashboardData) return;
     const b = (cachedDashboardData.lich_hen_cho || []).find(item => String(item.ma_lich_hen) === String(maLichHen));
     if (!b) return;
+
+    const todayYmd = getTodayYmdStaff();
+    const appDate = String(b.ngay_hen_kham || "").substring(0, 10);
+
+    // Nếu lịch hẹn chưa tới ngày và chưa xác nhận khám sớm -> Hiện hộp thoại xác nhận
+    if (appDate > todayYmd && !forceEarlyConfirm) {
+        showEarlyAppointmentConfirmModal(b);
+        return;
+    }
 
     openStaffMenu("reception-form");
 
@@ -1073,6 +1153,101 @@ function fillReceptionByAppointmentId(maLichHen) {
         roomSelect.value = b.ma_phong;
     }
     onChangeReceptionRoom(b.ma_bac_si || null);
+}
+
+/**
+ * Hộp thoại xác nhận khi bệnh nhân đến khám trước ngày đã đặt lịch
+ */
+function showEarlyAppointmentConfirmModal(b) {
+    const todayYmd = getTodayYmdStaff();
+    const appDate = String(b.ngay_hen_kham || "").substring(0, 10);
+    const diffDays = calcDaysUntilAppointment(appDate);
+
+    let modal = document.getElementById("early-appointment-confirm-modal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "early-appointment-confirm-modal";
+        modal.className = "fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-sm hidden items-center justify-center p-4";
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-amber-200 animate-[fadeIn_0.18s_ease-out]">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-5 text-center relative">
+                <button type="button" onclick="closeEarlyAppointmentConfirmModal()"
+                        class="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition">
+                    <span class="material-symbols-outlined text-lg">close</span>
+                </button>
+                <div class="w-14 h-14 rounded-full bg-white text-amber-600 flex items-center justify-center mx-auto mb-2 shadow-md">
+                    <span class="material-symbols-outlined text-3xl">event_upcoming</span>
+                </div>
+                <h3 class="font-heading font-extrabold text-lg">Xác Nhận Khám Trước Ngày Đã Đặt Lịch</h3>
+                <p class="text-xs text-amber-50 mt-0.5">Bệnh nhân đến sớm hơn ngày hẹn trên hệ thống (${diffDays} ngày)</p>
+            </div>
+
+            <div class="p-6 space-y-4 text-xs sm:text-sm">
+                <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 leading-relaxed">
+                    ⚠️ Bệnh nhân <b class="uppercase">${b.ho_ten || "-"}</b> (Mã BN: <b>#${b.ma_benh_nhan}</b>) đặt lịch hẹn vào ngày
+                    <b class="text-rose-600">${appDate}</b> (${b.khung_gio_hen}), nhưng hôm nay là ngày <b>${todayYmd}</b>.
+                </div>
+
+                <div class="overflow-hidden rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <tbody class="divide-y divide-slate-200">
+                            <tr>
+                                <th class="py-2 px-3 bg-slate-50 font-semibold text-slate-600 w-2/5">Mã lịch hẹn</th>
+                                <td class="py-2 px-3 font-bold text-teal-700">#${b.ma_lich_hen}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 px-3 bg-slate-50 font-semibold text-slate-600">Chuyên khoa đăng ký</th>
+                                <td class="py-2 px-3 font-bold text-emerald-700">${b.ten_khoa || "-"}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 px-3 bg-slate-50 font-semibold text-slate-600">Bác sĩ hẹn khám</th>
+                                <td class="py-2 px-3 font-bold text-sky-800">${b.ten_bac_si || "Bác sĩ chuyên khoa"}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 px-3 bg-slate-50 font-semibold text-slate-600">Ngày hẹn đã đặt</th>
+                                <td class="py-2 px-3 font-extrabold text-rose-600">${appDate} (Sớm trước ${diffDays} ngày)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="text-xs text-slate-600 text-center font-medium">
+                    Bạn có xác nhận tiếp nhận và cấp số thứ tự khám trước ngày hẹn cho bệnh nhân này ngay hôm nay không?
+                </p>
+
+                <div class="flex items-center gap-2.5 pt-1">
+                    <button type="button" onclick="closeEarlyAppointmentConfirmModal()"
+                            class="w-2/5 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm transition">
+                        Đóng lại
+                    </button>
+                    <button type="button" onclick="confirmProceedEarlyAppointment('${b.ma_lich_hen}')"
+                            class="w-3/5 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs sm:text-sm shadow-md flex items-center justify-center gap-1.5 transition">
+                        <span class="material-symbols-outlined text-base">check_circle</span>
+                        <span>Xác nhận khám trước ngày hẹn</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+}
+
+function closeEarlyAppointmentConfirmModal() {
+    const modal = document.getElementById("early-appointment-confirm-modal");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
+}
+
+function confirmProceedEarlyAppointment(maLichHen) {
+    closeEarlyAppointmentConfirmModal();
+    fillReceptionByAppointmentId(maLichHen, true);
 }
 
 function resetReceptionForm() {
@@ -1147,7 +1322,7 @@ async function submitReceivePatient(event) {
 }
 
 // =========================================================================
-// 3. KHÁM SÀNG LỌC & ĐO CHỈ SỐ SINH HIỆU (HIỂN THỊ DẠNG BẢNG TABLE + BỘ LỌC)
+// 3. KHÁM SÀNG LỌC & ĐO CHỈ SỐ SINH HIỆU
 // =========================================================================
 function renderVitalsDeptFilterOptions(departments, vitalsList) {
     const select = document.getElementById("vt-dept-filter");
@@ -1283,7 +1458,7 @@ function renderVitalsListsAndTable() {
                 </td>
                 <td class="p-3">
                     <div class="font-bold text-emerald-700">Phòng ${hs.so_phong || "P102"} (${hs.ten_khoa || "Khoa Khám Bệnh"})</div>
-                    <div class="text-[11px] font-bold text-sky-800 mt-0.5">👨‍⚕️ ${hs.ten_bac_si || "Bác sĩ chuyên khoa"}</div>
+                    <div class="text-[11px] font-bold text-sky-800 mt-0.5">${hs.ten_bac_si || "Bác sĩ chuyên khoa"}</div>
                 </td>
                 <td class="p-3 text-[11px] leading-relaxed">
                     ${isWaiting ? `
@@ -1304,18 +1479,18 @@ function renderVitalsListsAndTable() {
                     <span class="px-2.5 py-1 rounded-full text-[11px] font-bold inline-block whitespace-nowrap ${
                         isWaiting ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
                     }">
-                        ${isWaiting ? '⏳ Đang chờ đo' : '✅ Đã đo sinh hiệu'}
+                        ${isWaiting ? 'Đang chờ đo' : 'Đã đo sinh hiệu'}
                     </span>
                 </td>
                 <td class="p-3 text-right">
-                    <button type="button" onclick="openVitalsFormForPatient('${hs.ma_ho_so_kham}', ${isWaiting})"
+                    <button type="button" onclick="openVitalsFormForPatient('${hs.ma_ho_so_kham}')"
                             class="px-3 py-1.5 rounded-lg ${
                                 isWaiting
                                     ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-2xs'
                                     : 'bg-slate-100 hover:bg-teal-600 text-teal-700 hover:text-white border border-teal-300'
                             } font-bold text-xs inline-flex items-center gap-1 transition whitespace-nowrap">
-                        <span class="material-symbols-outlined text-sm">${isWaiting ? 'volume_up' : 'edit_note'}</span>
-                        <span>${isWaiting ? 'Gọi & Đo' : 'Xem / Sửa'}</span>
+                        <span class="material-symbols-outlined text-sm">${isWaiting ? 'vital_signs' : 'edit_note'}</span>
+                        <span>${isWaiting ? 'Nhập sinh hiệu' : 'Xem / Sửa'}</span>
                     </button>
                 </td>
             </tr>
@@ -1323,17 +1498,17 @@ function renderVitalsListsAndTable() {
     }).join("");
 }
 
-function openVitalsFormForPatient(maHoSo, shouldAnnounce = true) {
+function openVitalsFormForPatient(maHoSo) {
     const allVitals = getAllVitalsRecords();
     const hs = allVitals.find(item => String(item.ma_ho_so_kham) === String(maHoSo));
     if (!hs) return;
 
     currentVitalsPatient = hs;
     openStaffMenu("vitals-form");
-    populateVitalsFormByRecord(hs, shouldAnnounce);
+    populateVitalsFormByRecord(hs);
 }
 
-function populateVitalsFormByRecord(hs, shouldAnnounce = false) {
+function populateVitalsFormByRecord(hs) {
     currentVitalsPatient = hs;
 
     const isWaiting = hs.trang_thai_do === "ChoDo";
@@ -1346,7 +1521,7 @@ function populateVitalsFormByRecord(hs, shouldAnnounce = false) {
         badgeEl.className = isWaiting
             ? "px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold"
             : "px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold";
-        badgeEl.textContent = isWaiting ? "⏳ Đang chờ đo" : "✅ Đã đo";
+        badgeEl.textContent = isWaiting ? "Đang chờ đo" : "Đã đo";
     }
 
     document.getElementById("vt-card-dob-gender").textContent =
@@ -1356,7 +1531,7 @@ function populateVitalsFormByRecord(hs, shouldAnnounce = false) {
     document.getElementById("vt-card-room-dept").textContent =
         `Phòng ${hs.so_phong || "P102"} - ${hs.ten_khoa || "Khoa Khám Bệnh"}`;
     document.getElementById("vt-card-doctor").textContent =
-        `👨‍⚕️ Bác sĩ khám: ${hs.ten_bac_si || "Bác sĩ chuyên khoa"}`;
+        `Bác sĩ khám: ${hs.ten_bac_si || "Bác sĩ chuyên khoa"}`;
     document.getElementById("vt-card-symptom").textContent = hs.trieu_chung_lam_sang || "Khám lâm sàng";
     document.getElementById("vt-card-allergy").textContent = hs.tien_su_di_ung_benh_nen || "Không có";
 
@@ -1374,24 +1549,10 @@ function populateVitalsFormByRecord(hs, shouldAnnounce = false) {
 
     document.getElementById("vitals-selected-patient-label").textContent =
         `Đang nhập sinh hiệu cho: ${hs.ho_ten} (Hồ sơ #${hs.ma_ho_so_kham} • STT #${hs.so_thu_tu_kham} • Chuyển tới Phòng ${hs.so_phong || "P102"} - ${hs.ten_bac_si || ""})`;
-
-    if (shouldAnnounce) {
-        reAnnounceCurrentVitalsPatient();
-    }
 }
 
 function reAnnounceCurrentVitalsPatient() {
-    if (!currentVitalsPatient) {
-        showStaffNoticeModal("Chưa Chọn Bệnh Nhân", "Vui lòng chọn một bệnh nhân từ danh sách trước khi phát loa gọi!", true);
-        return;
-    }
-    const hs = currentVitalsPatient;
-    const banner = document.getElementById("vitals-calling-banner");
-    const callText = `Xin mời bệnh nhân ${hs.ho_ten}, số thứ tự ${hs.so_thu_tu_kham}, vào bàn khám sàng lọc và đo chỉ số sinh hiệu tại phòng P101`;
-    document.getElementById("vitals-calling-text").textContent =
-        `🔊 Mời STT #${hs.so_thu_tu_kham} - ${hs.ho_ten} (Hồ sơ #${hs.ma_ho_so_kham} • Mã BN: #${hs.ma_benh_nhan}) vào bàn đo sinh hiệu!`;
-    if (banner) banner.classList.remove("hidden");
-    announcePatientCall(callText);
+    // Đã tắt thanh thông báo gọi loa theo yêu cầu
 }
 
 async function generateAiVisitSummary() {
@@ -1465,7 +1626,6 @@ async function submitVitalSigns(event) {
             return;
         }
 
-        document.getElementById("vitals-calling-banner").classList.add("hidden");
         await loadStaffDashboard();
 
         showVitalsSuccessModal(
@@ -1634,8 +1794,8 @@ function renderClsQueuesByPayment(ordersParam = null) {
                     <span class="text-[10px] font-mono text-slate-500 normal-case">VNeID: ${cd.vneid || "-"}</span>
                 </td>
                 <td class="p-3">
-                    <div class="font-bold text-indigo-900">🔬 ${cd.ten_dich_vu_cls || "-"}</div>
-                    ${ordDate ? `<div class="text-[11px] text-slate-500 mt-0.5">📅 Ngày: <b>${ordDate}</b></div>` : ""}
+                    <div class="font-bold text-indigo-900">${cd.ten_dich_vu_cls || "-"}</div>
+                    ${ordDate ? `<div class="text-[11px] text-slate-500 mt-0.5">Ngày: <b>${ordDate}</b></div>` : ""}
                 </td>
                 <td class="p-3">
                     <div class="font-semibold text-emerald-700">Phòng ${cd.phong_bac_si || "P102"}</div>
@@ -1644,13 +1804,13 @@ function renderClsQueuesByPayment(ordersParam = null) {
                 <td class="p-3">
                     <div class="font-bold text-slate-900">${Number(cd.don_gia_cls || 0).toLocaleString("vi-VN")}đ</div>
                     <span class="text-[10px] font-bold ${isUnpaid ? 'text-amber-700' : 'text-emerald-700'}">
-                        ${isUnpaid ? '⏳ Chờ thu tại P104' : '💳 Đã thu tiền'}
+                        ${isUnpaid ? 'Chờ thu tại P104' : 'Đã thu tiền'}
                     </span>
                 </td>
                 <td class="p-3 max-w-[220px]">
                     ${isDone ? `
-                        <div class="text-slate-800 truncate" title="${cd.ket_qua_cls || ''}">📋 ${cd.ket_qua_cls || "Đã có kết quả"}</div>
-                        <div class="text-[11px] font-bold text-sky-700 mt-0.5">🖼️ ${imgCount} ảnh đính kèm</div>
+                        <div class="text-slate-800 truncate" title="${cd.ket_qua_cls || ''}">${cd.ket_qua_cls || "Đã có kết quả"}</div>
+                        <div class="text-[11px] font-bold text-sky-700 mt-0.5">${imgCount} ảnh đính kèm</div>
                     ` : `<span class="text-slate-400 italic">Chưa cập nhật kết quả</span>`}
                 </td>
                 <td class="p-3">
@@ -1659,21 +1819,21 @@ function renderClsQueuesByPayment(ordersParam = null) {
                             ? 'bg-amber-100 text-amber-800'
                             : (isDone ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800')
                     }">
-                        ${isUnpaid ? '💳 Chờ đóng phí' : (isDone ? '✅ Đã có kết quả' : '⏳ Chờ làm CLS')}
+                        ${isUnpaid ? '💳 Chờ đóng phí' : (isDone ? 'Đã có kết quả' : 'Chờ làm CLS')}
                     </span>
                 </td>
                 <td class="p-3 text-right">
                     ${isUnpaid ? `
                         <span class="text-[11px] font-semibold text-amber-700">Chờ Kế toán thu</span>
                     ` : `
-                        <button type="button" onclick="openClsFormForOrder('${cd.ma_chi_dinh_cls}', ${!isDone})"
+                        <button type="button" onclick="openClsFormForOrder('${cd.ma_chi_dinh_cls}')"
                                 class="px-3 py-1.5 rounded-lg ${
                                     !isDone
                                         ? 'bg-sky-600 hover:bg-sky-700 text-white shadow-2xs'
                                         : 'bg-slate-100 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-300'
                                 } font-bold text-xs inline-flex items-center gap-1 transition whitespace-nowrap">
-                            <span class="material-symbols-outlined text-sm">${!isDone ? 'volume_up' : 'edit_note'}</span>
-                            <span>${!isDone ? 'Gọi & Nhập KQ' : 'Xem / Sửa KQ'}</span>
+                            <span class="material-symbols-outlined text-sm">${!isDone ? 'biotech' : 'edit_note'}</span>
+                            <span>${!isDone ? 'Nhập kết quả' : 'Xem / Sửa KQ'}</span>
                         </button>
                     `}
                 </td>
@@ -1682,7 +1842,7 @@ function renderClsQueuesByPayment(ordersParam = null) {
     }).join("");
 }
 
-function openClsFormForOrder(maChiDinhCls, shouldAnnounce = true) {
+function openClsFormForOrder(maChiDinhCls) {
     if (!cachedDashboardData) return;
     const cd = (cachedDashboardData.hang_doi_cls || []).find(
         item => String(item.ma_chi_dinh_cls) === String(maChiDinhCls)
@@ -1691,14 +1851,14 @@ function openClsFormForOrder(maChiDinhCls, shouldAnnounce = true) {
 
     currentClsOrder = cd;
     openStaffMenu("cls-form");
-    populateClsFormByRecord(cd, shouldAnnounce);
+    populateClsFormByRecord(cd);
 }
 
 function callAndSelectClsOrder(maChiDinhCls) {
-    openClsFormForOrder(maChiDinhCls, true);
+    openClsFormForOrder(maChiDinhCls);
 }
 
-function populateClsFormByRecord(cd, shouldAnnounce = false) {
+function populateClsFormByRecord(cd) {
     currentClsOrder = cd;
     selectedClsImages = [];
     renderClsImagesPreviewGrid();
@@ -1714,7 +1874,7 @@ function populateClsFormByRecord(cd, shouldAnnounce = false) {
         badgeEl.className = isDone
             ? "px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold"
             : "px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold";
-        badgeEl.textContent = isDone ? "✅ Đã có kết quả" : "⏳ Chờ thực hiện";
+        badgeEl.textContent = isDone ? "Đã có kết quả" : "Chờ thực hiện";
     }
 
     document.getElementById("cls-card-service").textContent = cd.ten_dich_vu_cls || "Dịch vụ Cận lâm sàng";
@@ -1724,32 +1884,18 @@ function populateClsFormByRecord(cd, shouldAnnounce = false) {
     document.getElementById("cls-card-price").textContent =
         `${Number(cd.don_gia_cls || 0).toLocaleString("vi-VN")}đ`;
     document.getElementById("cls-card-payment").textContent =
-        cd.trang_thai_nop_tien === "DaNop" ? "💳 Đã thu tại P104" : "⏳ Chờ đóng phí";
+        cd.trang_thai_nop_tien === "DaNop" ? "Đã thu tại P104" : "Chờ đóng phí";
 
     document.getElementById("cls-ma-chi-dinh").value = cd.ma_chi_dinh_cls;
     document.getElementById("cls-ket-qua-text").value = cd.ket_qua_cls || "";
     document.getElementById("cls-ai-note").value = cd.ai_phan_tich_cls || "";
 
     document.getElementById("cls-selected-order-label").textContent =
-        `Đang thực hiện (#${cd.ma_chi_dinh_cls}): ${cd.ten_dich_vu_cls} • Bệnh nhân: ${cd.ho_ten} • Xong sẽ đẩy về Phòng ${cd.phong_bac_si || "P102"}`;
-
-    if (shouldAnnounce) {
-        reAnnounceCurrentClsPatient();
-    }
+        `Đang thực hiện (#${cd.ma_chi_dinh_cls}): ${cd.ten_dich_vu_cls} • Bệnh nhân: ${cd.ho_ten} • Xong đủ các dịch vụ CLS sẽ đẩy về Phòng ${cd.phong_bac_si || "P102"}`;
 }
 
 function reAnnounceCurrentClsPatient() {
-    if (!currentClsOrder) {
-        showStaffNoticeModal("Chưa Chọn Chỉ Định CLS", "Vui lòng chọn một bệnh nhân từ danh sách Cận lâm sàng trước khi phát loa!", true);
-        return;
-    }
-    const cd = currentClsOrder;
-    const banner = document.getElementById("cls-calling-banner");
-    const callText = `Xin mời bệnh nhân ${cd.ho_ten}, vào phòng Cận lâm sàng P201 để thực hiện ${cd.ten_dich_vu_cls}`;
-    document.getElementById("cls-calling-text").textContent =
-        `🔊 Mời bệnh nhân ${cd.ho_ten} (Hồ sơ #${cd.ma_ho_so_kham} • Mã BN: #${cd.ma_benh_nhan}) vào thực hiện: ${cd.ten_dich_vu_cls}`;
-    if (banner) banner.classList.remove("hidden");
-    announcePatientCall(callText);
+    // Đã tắt thanh thông báo gọi loa theo yêu cầu
 }
 
 function handleSelectMultipleClsImages(event) {
@@ -1838,8 +1984,9 @@ async function submitClsResult(event) {
         renderClsImagesPreviewGrid();
         document.getElementById("staff-cls-form").reset();
         document.getElementById("cls-ma-chi-dinh").value = "";
-        document.getElementById("cls-calling-banner").classList.add("hidden");
         await loadStaffDashboard();
+
+        const pendingCount = Number(data.pending_cls_count || 0);
 
         showClsSuccessModal(
             {
@@ -1851,7 +1998,9 @@ async function submitClsResult(event) {
                 ket_qua_cls: payload.ket_qua_cls,
                 so_luong_anh: uploadedImgCount,
                 phong_bac_si: orderSnapshot.phong_bac_si || "P102",
-                ten_phong_bac_si: orderSnapshot.ten_phong_bac_si || "Phòng Bác sĩ chuyên khoa"
+                ten_phong_bac_si: orderSnapshot.ten_phong_bac_si || "Phòng Bác sĩ chuyên khoa",
+                pending_cls_count: pendingCount,
+                all_cls_completed: pendingCount === 0
             },
             () => {
                 openStaffMenu("cls-paid");

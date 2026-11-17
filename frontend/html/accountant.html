@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Cổng Nghiệp Vụ Kế Toán & Thu Ngân Viện Phí (P104) - TTYT Phường Hải Châu</title>
+    <link rel="icon" type="image/jpeg" href="../img/logo3.jpg"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="../js/api-config.js"></script>
+    <link rel="stylesheet" href="../css/index.css"/>
+    <style>
+        body.hospital-workspace-bg {
+            background-color: #eaf4f7;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.10) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(13, 148, 136, 0.10) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(2, 132, 199, 0.08) 0px, transparent 50%),
+                linear-gradient(180deg, #e6f3f7 0%, #eef7f9 45%, #e8f3f5 100%);
+            background-attachment: fixed;
+        }
+
+        .acc-nav-dropdown {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all 0.18s ease-out;
+        }
+        .group:hover .acc-nav-dropdown,
+        .acc-nav-dropdown.is-open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .hospital-card {
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid #cbe4ec;
+            box-shadow: 0 6px 20px -4px rgba(3, 105, 161, 0.06);
+        }
+    </style>
+</head>
+<body class="hospital-workspace-bg flex flex-col min-h-screen text-slate-700">
+
+    <!-- THANH TOPBAR THÔNG TIN BỆNH VIỆN -->
+    <div class="bg-white/90 border-b border-sky-200/80 text-[11px] py-1.5 px-4 lg:px-8 text-slate-600">
+        <div class="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-4">
+                <span class="inline-flex items-center gap-1 font-bold text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
+                    <span class="material-symbols-outlined text-xs">emergency</span>
+                    Trực Cấp cứu 24/7: (0236) 3822 292
+                </span>
+                <span class="hidden sm:inline-flex items-center gap-1 font-semibold text-teal-800">
+                    <span class="material-symbols-outlined text-sm text-teal-600">location_on</span>
+                    Trung tâm Y tế Phường Hải Châu, TP. Đà Nẵng • Quầy Thu Ngân Viện Phí P104
+                </span>
+            </div>
+            <div class="flex items-center gap-4 font-semibold text-slate-500">
+                <span class="inline-flex items-center gap-1 text-emerald-700">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    MySQL Trực Tuyến (`ttyt_haichau_db`)
+                </span>
+                <span class="hidden md:inline">✉️ ttythaichau@danang.gov.vn</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- THANH HEADER MENU NGANG -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-sky-200/90 sticky top-0 z-50 shadow-xs">
+        <div class="max-w-[1440px] mx-auto px-4 lg:px-8 h-16 flex items-center justify-between gap-3">
+
+            <a href="accountant.html" class="flex items-center gap-3 shrink-0">
+                <img src="../img/logo3.jpg" alt="TTYT Phường Hải Châu" class="w-11 h-11 rounded-xl object-contain bg-white p-0.5 border border-teal-200 shadow-2xs"/>
+                <div>
+                    <span class="block font-heading font-extrabold text-sm sm:text-base text-teal-900 tracking-tight leading-tight whitespace-nowrap">
+                        TTYT PHƯỜNG HẢI CHÂU
+                    </span>
+                    <span class="block text-[10px] font-bold text-amber-600 uppercase tracking-wider whitespace-nowrap">
+                        TP. ĐÀ NẴNG • KẾ TOÁN & THU NGÂN P104
+                    </span>
+                </div>
+            </a>
+
+            <nav class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <button type="button" id="acc-nav-cls" onclick="switchAccountantView('cls')"
+                        class="px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm text-white bg-teal-600 shadow-xs flex items-center gap-1.5 whitespace-nowrap transition">
+                    <span class="material-symbols-outlined text-lg">biotech</span>
+                    <span>Thu phí Cận lâm sàng</span>
+                    <span id="badge-acc-cls" class="px-1.5 py-0.2 rounded-full bg-white/25 text-white text-[10px] font-extrabold">0</span>
+                </button>
+
+                <button type="button" id="acc-nav-exam" onclick="switchAccountantView('exam')"
+                        class="px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm text-slate-700 hover:bg-teal-50 hover:text-teal-700 flex items-center gap-1.5 whitespace-nowrap transition">
+                    <span class="material-symbols-outlined text-lg text-rose-600">receipt_long</span>
+                    <span>Thu tiền Khám & Thuốc</span>
+                    <span id="badge-acc-exam" class="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-extrabold">0</span>
+                </button>
+
+                <button type="button" id="acc-nav-ledger" onclick="switchAccountantView('ledger')"
+                        class="px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm text-slate-700 hover:bg-teal-50 hover:text-teal-700 flex items-center gap-1.5 whitespace-nowrap transition">
+                    <span class="material-symbols-outlined text-lg text-sky-600">account_balance_wallet</span>
+                    <span>Sổ hóa đơn & Quỹ BHYT</span>
+                    <span id="badge-acc-ledger" class="px-1.5 py-0.2 rounded-full bg-sky-600 text-white text-[10px] font-extrabold">0</span>
+                </button>
+            </nav>
+
+            <div class="flex items-center gap-2.5 shrink-0">
+                <button type="button" onclick="loadAccountantDashboard()"
+                        class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-600 text-sky-800 hover:text-white border border-sky-200 font-bold text-xs flex items-center gap-1.5 whitespace-nowrap transition">
+                    <span class="material-symbols-outlined text-base">sync</span>
+                    <span class="hidden xl:inline">Đồng bộ</span>
+                </button>
+
+                <div class="relative group py-1">
+                    <button type="button" class="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full bg-teal-50/90 hover:bg-teal-100/80 border border-teal-200 transition">
+                        <div id="acc-sidebar-initials" class="w-8 h-8 rounded-full bg-amber-600 text-white font-extrabold text-xs flex items-center justify-center shadow-2xs shrink-0">
+                            KT
+                        </div>
+                        <div class="text-left hidden sm:block max-w-[175px]">
+                            <div id="acc-sidebar-name" class="font-extrabold text-xs text-teal-950 truncate leading-tight">
+                                CN. Lê Thị Thu Ngân
+                            </div>
+                            <div id="acc-header-sub" class="text-[10px] font-semibold text-teal-700 truncate leading-tight">
+                                Kế toán viện phí • P104
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined text-base text-teal-700 transition-transform group-hover:rotate-180">expand_more</span>
+                    </button>
+
+                    <div class="acc-nav-dropdown absolute right-0 top-full w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 z-50 space-y-2.5 text-xs">
+                        <div class="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200">
+                            <div id="acc-dropdown-name" class="font-extrabold text-slate-900 text-xs">CN. Lê Thị Thu Ngân</div>
+                            <div id="acc-sidebar-email" class="text-[11px] text-slate-500 truncate mt-0.5">ketoan@ttythaichau.vn</div>
+                            <span id="acc-dropdown-dept" class="inline-block mt-1.5 px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold">
+                                Quầy Thu Ngân Viện Phí P104
+                            </span>
+                        </div>
+
+                        <div class="space-y-1 text-[11px] font-semibold text-slate-600 px-1">
+                            <div class="flex items-center justify-between py-1 border-b border-slate-100">
+                                <span>Trạng thái ca trực:</span>
+                                <span class="text-emerald-600 font-bold">● Đang trực thu ngân</span>
+                            </div>
+                            <div class="flex items-center justify-between py-1">
+                                <span>STK Bệnh viện:</span>
+                                <span class="text-teal-700 font-bold">VCB 0041000888999</span>
+                            </div>
+                        </div>
+
+                        <button type="button" onclick="logoutAccountant()"
+                                class="w-full py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                            <span class="material-symbols-outlined text-base">logout</span>
+                            <span>Đăng xuất tài khoản</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- KHÔNG GIAN LÀM VIỆC CỦA KẾ TOÁN (ĐÃ XÓA BANNER GỌI LOA) -->
+    <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+        <!-- 4 Thẻ KPI Tài chính Viện phí -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="hospital-card p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-500 uppercase">Chờ thu phí Cận lâm sàng</span>
+                    <div id="acc-stat-unpaid-cls" class="font-heading text-2xl font-extrabold text-amber-600 mt-1">0 chỉ định</div>
+                    <span class="text-[11px] text-amber-700 font-semibold">Thu xong đẩy sang Phòng P201</span>
+                </div>
+                <div class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-2xl">biotech</span>
+                </div>
+            </div>
+
+            <div class="hospital-card p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-500 uppercase">Chờ thu Khám & Đơn thuốc</span>
+                    <div id="acc-stat-unpaid-inv" class="font-heading text-2xl font-extrabold text-rose-600 mt-1">0 hóa đơn</div>
+                    <span class="text-[11px] text-rose-700 font-semibold">Thu xong mở khóa Quầy Dược P105</span>
+                </div>
+                <div class="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-2xl">prescriptions</span>
+                </div>
+            </div>
+
+            <div class="hospital-card p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-500 uppercase">Quỹ BHYT Chi Trả (80%)</span>
+                    <div id="acc-stat-bhyt-paid" class="font-heading text-2xl font-extrabold text-teal-700 mt-1">0đ</div>
+                    <span class="text-[11px] text-emerald-700 font-semibold">Bảo hiểm Y tế thanh toán</span>
+                </div>
+                <div class="w-11 h-11 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-2xl">health_and_safety</span>
+                </div>
+            </div>
+
+            <div class="hospital-card p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-500 uppercase">Thực Thu Bệnh Nhân Đồng Chi Trả</span>
+                    <div id="acc-stat-patient-paid" class="font-heading text-2xl font-extrabold text-emerald-700 mt-1">0đ</div>
+                    <span class="text-[11px] text-slate-500 font-semibold">Tổng tiền mặt / VietQR đã thu</span>
+                </div>
+                <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-2xl">paid</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thanh tiêu đề trang hiện tại -->
+        <div class="hospital-card rounded-2xl px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-teal-600"></span>
+                <h2 id="current-acc-workspace-title" class="font-heading font-extrabold text-sm sm:text-base text-teal-950 uppercase tracking-tight">
+                    THU PHÍ DỊCH VỤ CẬN LÂM SÀNG (ĐỢT 1)
+                </h2>
+            </div>
+            <span class="text-xs font-bold text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+                STK Bệnh viện: 0041000888999 - Vietcombank (TTYT Phường Hải Châu)
+            </span>
+        </div>
+
+        <!-- VIEW 1: THU PHÍ DỊCH VỤ CẬN LÂM SÀNG (ĐỢT 1) -->
+        <section id="acc-view-cls" class="hospital-card rounded-2xl p-6 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="font-heading text-base font-extrabold text-teal-950">Bảng Danh Sách Thu Phí Dịch Vụ Cận Lâm Sàng (Đợt 1)</h3>
+                    
+                </div>
+                <button type="button" onclick="clearAccClsFilters()"
+                        class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition">
+                    <span class="material-symbols-outlined text-sm">filter_alt_off</span>
+                    <span>Đặt lại bộ lọc</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 p-3.5 rounded-xl bg-sky-50/60 border border-sky-200/80 text-xs">
+                <div class="lg:col-span-4">
+                    <label class="font-bold text-slate-700 block mb-1">Tìm kiếm bệnh nhân / dịch vụ</label>
+                    <input id="acc-cls-search" type="text" oninput="renderAccountantClsTable()"
+                           placeholder="Tên BN, Mã HS, Mã BN, VNeID, Dịch vụ CLS..."
+                           class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white text-xs"/>
+                </div>
+
+                <div class="lg:col-span-3">
+                    <label class="font-bold text-slate-700 block mb-1">Lọc theo Trạng thái nộp phí</label>
+                    <select id="acc-cls-status-filter" onchange="renderAccountantClsTable()"
+                            class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs font-semibold text-slate-700">
+                        <option value="ALL">-- Tất cả chỉ định CLS --</option>
+                        <option value="ChuaNop">Chờ thu phí CLS</option>
+                        <option value="DaNop">Đã thu phí (Đã chuyển P201)</option>
+                    </select>
+                </div>
+
+                <div class="lg:col-span-3">
+                    <label class="font-bold text-slate-700 block mb-1">Lọc theo Ngày khám</label>
+                    <input id="acc-cls-date-filter" type="date" onchange="renderAccountantClsTable()"
+                           class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs"/>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label class="font-bold text-slate-700 block mb-1">Sắp xếp theo Ngày</label>
+                    <select id="acc-cls-sort" onchange="renderAccountantClsTable()"
+                            class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs font-bold text-teal-700">
+                        <option value="ASC">Từ đầu tới cuối (Cũ → Mới)</option>
+                        <option value="DESC">Từ cuối về đầu (Mới → Cũ)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                            <th class="p-3.5">Mã HS / STT</th>
+                            <th class="p-3.5">Họ tên Bệnh nhân</th>
+                            <th class="p-3.5">Thẻ BHYT</th>
+                            <th class="p-3.5">Dịch vụ Cận lâm sàng chỉ định</th>
+                            <th class="p-3.5">Đơn giá gốc</th>
+                            <th class="p-3.5">BHYT trả (80%)</th>
+                            <th class="p-3.5">BN cần nộp</th>
+                            <th class="p-3.5">Trạng thái</th>
+                            <th class="p-3.5 text-right">Thao tác Thu ngân</th>
+                        </tr>
+                    </thead>
+                    <tbody id="acc-cls-tbody" class="divide-y divide-slate-200"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- VIEW 2: THU VIỆN PHÍ KHÁM & ĐƠN THUỐC (ĐỢT 2) -->
+        <section id="acc-view-exam" class="hidden space-y-4">
+            <div class="hospital-card rounded-2xl p-6 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                    <div>
+                        <h3 class="font-heading text-base font-extrabold text-teal-950">Thu Viện Phí Khám Lâm Sàng & Đơn Thuốc Ngoại Trú (Đợt 2)</h3>
+                        
+                    </div>
+                    <button type="button" onclick="clearAccExamFilters()"
+                            class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition">
+                        <span class="material-symbols-outlined text-sm">filter_alt_off</span>
+                        <span>Đặt lại bộ lọc</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 p-3.5 rounded-xl bg-sky-50/60 border border-sky-200/80 text-xs">
+                    <div class="lg:col-span-5">
+                        <label class="font-bold text-slate-700 block mb-1">Tìm kiếm hóa đơn / bệnh nhân</label>
+                        <input id="acc-inv-search" type="text" oninput="renderAccountantExamInvoices()"
+                               placeholder="Tìm mã hóa đơn (#HD...), tên bệnh nhân, mã HS, VNeID..."
+                               class="w-full h-9 px-3 rounded-lg border-slate-300 bg-white text-xs"/>
+                    </div>
+
+                    <div class="lg:col-span-4">
+                        <label class="font-bold text-slate-700 block mb-1">Lọc theo Trạng thái thu</label>
+                        <select id="acc-inv-status-filter" onchange="renderAccountantExamInvoices()"
+                                class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs font-semibold text-slate-700">
+                            <option value="ALL">-- Tất cả hóa đơn viện phí --</option>
+                            <option value="ChuaThu">Chờ thu viện phí</option>
+                            <option value="DaThu">Đã thu viện phí</option>
+                        </select>
+                    </div>
+
+                    <div class="lg:col-span-3">
+                        <label class="font-bold text-slate-700 block mb-1">Lọc theo Ngày</label>
+                        <input id="acc-inv-date-filter" type="date" onchange="renderAccountantExamInvoices()"
+                               class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs"/>
+                    </div>
+                </div>
+            </div>
+
+            <div id="acc-exam-invoices-list" class="space-y-3.5"></div>
+        </section>
+
+        <!-- VIEW 3: SỔ HÓA ĐƠN TỔNG HỢP & ĐỐI SOÁT QUỸ BHYT -->
+        <section id="acc-view-ledger" class="hidden hospital-card rounded-2xl p-6 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="font-heading text-base font-extrabold text-teal-950">Sổ Quản Lý Hóa Đơn Viện Phí & Quyết Toán BHYT</h3>
+                    <p class="text-xs text-slate-500">Toàn bộ hóa đơn Đợt 1 (CLS) và Đợt 2 (Khám & Thuốc) lưu trong bảng `HOA_DON_VIEN_PHI`</p>
+                </div>
+                <button type="button" onclick="exportInvoicesCsv()"
+                        class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition">
+                    <span class="material-symbols-outlined text-base">download</span>
+                    <span>Xuất Báo Cáo Doanh Thu (Excel/CSV)</span>
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                            <th class="p-3.5">Mã Hóa Đơn</th>
+                            <th class="p-3.5">Bệnh nhân / Hồ sơ</th>
+                            <th class="p-3.5">Phương thức & STK Viện</th>
+                            <th class="p-3.5">Tổng chi phí</th>
+                            <th class="p-3.5">BHYT chi trả</th>
+                            <th class="p-3.5">Bệnh nhân trả</th>
+                            <th class="p-3.5">Thời gian thu</th>
+                            <th class="p-3.5">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="acc-ledger-tbody" class="divide-y divide-slate-200"></tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="../js/accountant.js"></script>
+</body>
+</html>
