@@ -114,6 +114,8 @@ async function submitLoginForm(event) {
             QuanTri: "admin.html",
             NVYT: "staff.html",
             BacSi: "doctor.html",
+            KeToan: "accountant.html",
+            DuocSi: "pharmacist.html",
             BenhNhan: "index.html"
         };
         window.location.href = redirectMap[data.user.vai_tro] || "index.html";

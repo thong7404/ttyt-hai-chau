@@ -153,10 +153,36 @@ class DoctorApiController extends Controller
                     ->select('cd.*', 'dm.ten_dich_vu_cls', 'dm.don_gia_cls', 'pcls.so_phong as phong_cls')
                     ->get();
 
+                $pendingClsCount = 0;
+                $unpaidClsCount = 0;
+
                 foreach ($rec->cls_orders as $cls) {
                     $cls->images = DB::table('ANH_KET_QUA_CLS')
                         ->where('ma_chi_dinh_cls', $cls->ma_chi_dinh_cls)
                         ->get();
+
+                    if ($cls->trang_thai_nop_tien !== 'DaNop') {
+                        $unpaidClsCount++;
+                    }
+                    if ($cls->trang_thai_thuc_hien !== 'DaCoKetQua' || trim((string) ($cls->ket_qua_cls ?? '')) === '') {
+                        $pendingClsCount++;
+                    }
+                }
+
+                $rec->pending_cls_count = $pendingClsCount;
+                $rec->unpaid_cls_count = $unpaidClsCount;
+
+                // Nếu hồ sơ vẫn còn dịch vụ CLS chưa cập nhật kết quả thì giữ ở trạng thái đang xử lý CLS (không đưa vào hàng đợi chờ Bác sĩ đọc)
+                if ($pendingClsCount > 0 && $rec->trang_thai_hang_doi !== 'HoanTat') {
+                    $correctStatus = ($unpaidClsCount > 0) ? 'ChoThuTienCLS' : 'ChoLamCLS';
+                    if ($rec->trang_thai_hang_doi !== $correctStatus) {
+                        $rec->trang_thai_hang_doi = $correctStatus;
+                        DB::table('HO_SO_KHAM_BENH')
+                            ->where('ma_ho_so_kham', $rec->ma_ho_so_kham)
+                            ->update($this->filterValidColumns('HO_SO_KHAM_BENH', [
+                                'trang_thai_hang_doi' => $correctStatus
+                            ]));
+                    }
                 }
 
                 $donThuoc = DB::table('DON_THUOC')->where('ma_ho_so_kham', $rec->ma_ho_so_kham)->first();
@@ -274,6 +300,24 @@ class DoctorApiController extends Controller
 
             if (!$hoSo) {
                 return response()->json(['status' => 'error', 'message' => 'Không tìm thấy hồ sơ khám bệnh!'], 404);
+            }
+
+            // CHẶN HOÀN TẤT KHÁM NẾU CÒN BẤT KỲ DỊCH VỤ CẬN LÂM SÀNG NÀO CHƯA CẬP NHẬT ĐỦ KẾT QUẢ
+            $pendingClsCount = DB::table('CHI_DINH_CAN_LAM_SANG')
+                ->where('ma_ho_so_kham', $maHoSo)
+                ->where(function ($q) {
+                    $q->where('trang_thai_thuc_hien', '!=', 'DaCoKetQua')
+                      ->orWhereNull('ket_qua_cls')
+                      ->orWhereRaw("TRIM(ket_qua_cls) = ''");
+                })
+                ->count();
+
+            if ($pendingClsCount > 0) {
+                DB::rollBack();
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => "Không thể hoàn tất khám! Hồ sơ #{$maHoSo} vẫn còn {$pendingClsCount} dịch vụ Cận lâm sàng chưa cập nhật kết quả từ Phòng P201."
+                ], 400);
             }
 
             DB::table('HO_SO_KHAM_BENH')

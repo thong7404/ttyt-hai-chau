@@ -1188,3 +1188,263 @@ function filterDoctorsByDept(deptCode) {
         else card.classList.add("hidden");
     });
 }
+
+// =========================================================================
+// BỘ ĐIỀU KHIỂN SLIDER 3 ẢNH BANNER (ANH1.PNG, ANH2.PNG, ANH3.PNG) TỰ ĐỘNG CHUYỂN
+// =========================================================================
+let currentHeroSlideIndex = 0;
+let heroSlideInterval = null;
+const HERO_SLIDE_DELAY_MS = 4000; // Tự động chuyển ảnh sau mỗi 4 giây
+
+document.addEventListener("DOMContentLoaded", () => {
+    initHeroBannerSlider();
+});
+
+function initHeroBannerSlider() {
+    const slides = document.querySelectorAll("#hero-banner-slider .hero-slide");
+    if (!slides || slides.length === 0) return;
+
+    showHeroBannerSlide(0);
+    startHeroBannerAutoPlay();
+
+    // Tạm dừng chuyển ảnh khi người dùng rê chuột vào xem banner, chạy tiếp khi rời chuột
+    const sliderBox = document.getElementById("hero-banner-slider")?.parentElement;
+    if (sliderBox) {
+        sliderBox.addEventListener("mouseenter", stopHeroBannerAutoPlay);
+        sliderBox.addEventListener("mouseleave", startHeroBannerAutoPlay);
+    }
+}
+
+function showHeroBannerSlide(index) {
+    const slides = document.querySelectorAll("#hero-banner-slider .hero-slide");
+    const dots = document.querySelectorAll(".hero-slide-dot");
+    if (!slides || slides.length === 0) return;
+
+    currentHeroSlideIndex = (index + slides.length) % slides.length;
+
+    slides.forEach((slide, idx) => {
+        if (idx === currentHeroSlideIndex) {
+            slide.classList.remove("opacity-0", "pointer-events-none", "z-0");
+            slide.classList.add("opacity-100", "z-10");
+        } else {
+            slide.classList.remove("opacity-100", "z-10");
+            slide.classList.add("opacity-0", "pointer-events-none", "z-0");
+        }
+    });
+
+    dots.forEach((dot, idx) => {
+        if (idx === currentHeroSlideIndex) {
+            dot.className = "hero-slide-dot w-7 h-2.5 rounded-full bg-white shadow transition-all";
+        } else {
+            dot.className = "hero-slide-dot w-2.5 h-2.5 rounded-full bg-white/50 hover:bg-white/80 transition-all";
+        }
+    });
+}
+
+function nextHeroBannerSlide() {
+    showHeroBannerSlide(currentHeroSlideIndex + 1);
+    restartHeroBannerAutoPlay();
+}
+
+function prevHeroBannerSlide() {
+    showHeroBannerSlide(currentHeroSlideIndex - 1);
+    restartHeroBannerAutoPlay();
+}
+
+function goToHeroBannerSlide(index) {
+    showHeroBannerSlide(index);
+    restartHeroBannerAutoPlay();
+}
+
+function startHeroBannerAutoPlay() {
+    stopHeroBannerAutoPlay();
+    heroSlideInterval = setInterval(() => {
+        showHeroBannerSlide(currentHeroSlideIndex + 1);
+    }, HERO_SLIDE_DELAY_MS);
+}
+
+function stopHeroBannerAutoPlay() {
+    if (heroSlideInterval) {
+        clearInterval(heroSlideInterval);
+        heroSlideInterval = null;
+    }
+}
+
+function restartHeroBannerAutoPlay() {
+    stopHeroBannerAutoPlay();
+    startHeroBannerAutoPlay();
+}
+
+// =========================================================================
+// HỆ THỐNG CHUÔNG THÔNG BÁO (THONG_BAO) & GỬI GMAIL TỰ ĐỘNG (NHẮC HẸN / ƯU ĐÃI)
+// =========================================================================
+const NOTIFICATION_API_BASE = "http://127.0.0.1:8000/api/notifications";
+
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        initUserNotificationBell();
+    }, 500);
+});
+
+function initUserNotificationBell() {
+    const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
+    if (!user || !user.ma_nguoi_dung) return;
+
+    const userMenuBox = document.getElementById("header-user-menu");
+    if (userMenuBox && !document.getElementById("header-notif-wrapper")) {
+        const notifWrapper = document.createElement("div");
+        notifWrapper.id = "header-notif-wrapper";
+        notifWrapper.className = "relative inline-block mr-2";
+        notifWrapper.innerHTML = `
+            <button type="button" onclick="toggleNotificationDropdown()"
+                    class="w-10 h-10 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 flex items-center justify-center relative transition"
+                    title="Thông báo & Nhắc lịch hẹn qua Gmail">
+                <span class="material-symbols-outlined text-xl">notifications</span>
+                <span id="header-notif-badge"
+                      class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white font-extrabold text-[10px] flex items-center justify-center shadow">
+                    0
+                </span>
+            </button>
+
+            <div id="header-notif-dropdown"
+                 class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-teal-200 overflow-hidden z-50 text-xs">
+                <div class="bg-gradient-to-r from-teal-600 to-sky-600 text-white px-4 py-3 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-sm">🔔 Thông Báo & Gmail</h4>
+                        <p class="text-[10px] text-teal-100">Nhắc lịch hẹn khám trước 1 ngày & Ưu đãi</p>
+                    </div>
+                    <span class="px-2 py-0.5 rounded bg-white/20 text-[10px] font-bold">Đồng bộ Gmail</span>
+                </div>
+
+                <!-- Thanh công cụ gửi Gmail nhắc hẹn & ưu đãi -->
+                <div class="p-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-1.5">
+                    <button type="button" onclick="triggerScanAppointmentReminders()"
+                            class="flex-1 py-1.5 px-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition">
+                        <span class="material-symbols-outlined text-xs">alarm</span>
+                        <span>Quét nhắc hẹn (1 ngày)</span>
+                    </button>
+                    <button type="button" onclick="sendSamplePromoEmailToMe()"
+                            class="flex-1 py-1.5 px-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition">
+                        <span class="material-symbols-outlined text-xs">redeem</span>
+                        <span>Nhận Gmail Ưu đãi</span>
+                    </button>
+                </div>
+
+                <div id="header-notif-list" class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                    <div class="p-6 text-center text-slate-400">Đang tải thông báo...</div>
+                </div>
+            </div>
+        `;
+        userMenuBox.parentElement.insertBefore(notifWrapper, userMenuBox);
+    }
+
+    loadUserNotifications();
+}
+
+function toggleNotificationDropdown() {
+    const drop = document.getElementById("header-notif-dropdown");
+    if (!drop) return;
+    drop.classList.toggle("hidden");
+    if (!drop.classList.contains("hidden")) {
+        loadUserNotifications();
+    }
+}
+
+async function loadUserNotifications() {
+    const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
+    if (!user || !user.ma_nguoi_dung) return;
+
+    try {
+        const res = await fetch(`${NOTIFICATION_API_BASE}/user/${encodeURIComponent(user.ma_nguoi_dung)}`, {
+            headers: { "Accept": "application/json" }
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== "success") return;
+
+        const badge = document.getElementById("header-notif-badge");
+        const listBox = document.getElementById("header-notif-list");
+        const list = data.notifications || [];
+
+        if (badge) {
+            if (list.length > 0) {
+                badge.textContent = list.length;
+                badge.classList.remove("hidden");
+            } else {
+                badge.classList.add("hidden");
+            }
+        }
+
+        if (!listBox) return;
+        if (list.length === 0) {
+            listBox.innerHTML = `
+                <div class="p-6 text-center text-slate-400">
+                    Hiện chưa có thông báo nào.
+                </div>
+            `;
+            return;
+        }
+
+        listBox.innerHTML = list.map(n => {
+            const isPromo = n.loai_thong_bao === "UuDai";
+            return `
+                <div class="p-3.5 hover:bg-teal-50/50 transition bg-white">
+                    <div class="flex items-start justify-between gap-2">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isPromo ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'
+                        }">
+                            ${isPromo ? '🎁 Ưu đãi y tế' : '⏰ Nhắc lịch hẹn'}
+                        </span>
+                        <span class="text-[10px] text-slate-400">${n.ngay_tao || ""}</span>
+                    </div>
+                    <h5 class="font-bold text-teal-950 mt-1">${n.tieu_de}</h5>
+                    <p class="text-[11px] text-slate-600 mt-1 whitespace-pre-line leading-relaxed">${n.noi_dung}</p>
+                    <div class="mt-1.5 text-[10px] text-emerald-700 font-semibold">
+                        ✉️ Đã đồng bộ qua Gmail người dùng
+                    </div>
+                </div>
+            `;
+        }).join("");
+    } catch (e) {
+        console.error("Lỗi tải thông báo:", e);
+    }
+}
+
+async function triggerScanAppointmentReminders() {
+    try {
+        const res = await fetch(`${NOTIFICATION_API_BASE}/scan-reminders`, {
+            method: "POST",
+            headers: { "Accept": "application/json" }
+        });
+        const data = await res.json();
+        await loadUserNotifications();
+        alert(`✅ ${data.message} (Số lịch hẹn vừa nhắc: ${data.sent_count || 0})`);
+    } catch (e) {
+        alert("⚠️ Không kết nối được tới Server Laravel!");
+    }
+}
+
+async function sendSamplePromoEmailToMe() {
+    const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
+    if (!user) return;
+
+    try {
+        const res = await fetch(`${NOTIFICATION_API_BASE}/send`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify({
+                id_nguoi_dung: user.ma_nguoi_dung,
+                loai_thong_bao: "UuDai",
+                tieu_de: "Ưu đãi 30% Gói Khám Sức Khỏe Tổng Quát & Tầm Soát Định Kỳ",
+                noi_dung: "Trung tâm Y tế Phường Hải Châu dành tặng Quý bệnh nhân chương trình ưu đãi đặc biệt trong tháng:\n"
+                    + "• Giảm 30% chi phí Gói khám sức khỏe tổng quát & Xét nghiệm sinh hóa máu.\n"
+                    + "• Miễn phí 100% khám sàng lọc Tăng huyết áp & Đái tháo đường cho người trên 50 tuổi.\n"
+                    + "• Hỗ trợ đặt lịch hẹn ưu tiên trực tuyến không cần chờ số tại Quầy P101."
+            })
+        });
+        const data = await res.json();
+        await loadUserNotifications();
+        alert(`🎁 ${data.message}`);
+    } catch (e) {
+        alert("⚠️ Không kết nối được tới Server Laravel!");
+    }
+}

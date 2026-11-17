@@ -9,101 +9,152 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link rel="stylesheet" href="../css/index.css"/>
 </head>
-<body class="flex flex-col min-h-screen text-slate-700">
+<body class="flex flex-col min-h-screen text-slate-700 bg-slate-50/50">
 
     <!-- ========================================================================= -->
-    <!-- 1 & 2. HEADER ĐƯỢC NẠP TỪ FILE RIÊNG: frontend/html/header.html           -->
+    <!-- 1. THANH MENU HEADER (NẠP TỪ FILE frontend/html/header.html)              -->
     <!-- ========================================================================= -->
-    <div id="app-header" class="sticky top-0 z-40"></div>
+    <div id="app-header" class="sticky top-0 z-40 shadow-xs"></div>
 
     <!-- ========================================================================= -->
-    <!-- 3. HERO BANNER & FORM ĐẶT LỊCH (CĂN THẲNG HÀNG 2 CỘT + CHỌN BÁC SĨ)       -->
+    <!-- 2. SLIDER 3 ẢNH FULL CHIỀU NGANG (KHÔNG VIỀN CẮT NGANG GÂY CẤN)           -->
     <!-- ========================================================================= -->
-    <section class="hero-bg-banner text-white py-10 lg:py-12 px-6 shadow-sm mb-10"
-             style="background: linear-gradient(125deg, #1d8a8e 0%, #249ea3 50%, #42b3a8 100%);">
+    <section class="w-full bg-white relative overflow-hidden select-none group">
+        <div id="hero-banner-slider" class="grid grid-cols-1 w-full bg-white relative">
+
+            <!-- Slide 1: anh1.png -->
+            <div class="hero-slide col-start-1 row-start-1 w-full h-full flex items-center justify-center bg-white transition-opacity duration-700 ease-in-out opacity-100 z-10">
+                <a href="#booking-box" class="block w-full">
+                    <img src="../img/anh1.png" alt="Banner 1 - Đồng hành chăm sóc sức khỏe gia đình bạn"
+                         class="w-full h-auto block"/>
+                </a>
+            </div>
+
+            <!-- Slide 2: anh2.png -->
+            <div class="hero-slide col-start-1 row-start-1 w-full h-full flex items-center justify-center bg-white transition-opacity duration-700 ease-in-out opacity-0 pointer-events-none z-0">
+                <a href="#booking-box" class="block w-full">
+                    <img src="../img/anh2.png" alt="Banner 2 - Hành trình phụng sự sức khỏe của bạn"
+                         class="w-full h-auto block"/>
+                </a>
+            </div>
+
+            <!-- Slide 3: anh3.png -->
+            <div class="hero-slide col-start-1 row-start-1 w-full h-full flex items-center justify-center bg-white transition-opacity duration-700 ease-in-out opacity-0 pointer-events-none z-0">
+                <a href="#booking-box" class="block w-full">
+                    <img src="../img/anh3.png" alt="Banner 3 - Trung tâm Y tế Phường Hải Châu vì sức khỏe nhân dân"
+                         class="w-full h-auto block"/>
+                </a>
+            </div>
+
+        </div>
+
+        <!-- Nút mũi tên Trái / Phải chuyển ảnh -->
+        <button type="button" onclick="prevHeroBannerSlide()"
+                class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-slate-900/35 hover:bg-teal-600 text-white flex items-center justify-center absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition shadow-md">
+            <span class="material-symbols-outlined text-2xl">chevron_left</span>
+        </button>
+
+        <button type="button" onclick="nextHeroBannerSlide()"
+                class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-slate-900/35 hover:bg-teal-600 text-white flex items-center justify-center absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition shadow-md">
+            <span class="material-symbols-outlined text-2xl">chevron_right</span>
+        </button>
+
+        <!-- 3 Chấm tròn chỉ báo Slide -->
+        <div class="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-slate-900/30 backdrop-blur-xs px-3.5 py-1.5 rounded-full border border-white/30">
+            <button type="button" onclick="goToHeroBannerSlide(0)" class="hero-slide-dot w-7 h-2 rounded-full bg-white transition-all"></button>
+            <button type="button" onclick="goToHeroBannerSlide(1)" class="hero-slide-dot w-2 h-2 rounded-full bg-white/55 hover:bg-white/85 transition-all"></button>
+            <button type="button" onclick="goToHeroBannerSlide(2)" class="hero-slide-dot w-2 h-2 rounded-full bg-white/55 hover:bg-white/85 transition-all"></button>
+        </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- 3. KHU VỰC ĐĂNG KÝ LỊCH HẸN KHÁM (NỀN PASTEL DỊU NHẸ, CHUYỂN TIẾP MƯỢT)   -->
+    <!-- ========================================================================= -->
+    <section class="bg-gradient-to-b from-white via-sky-50/85 to-teal-50/60 border-b border-teal-100/80 pt-8 pb-12 px-6 mb-8">
         <div class="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
 
-            <!-- CỘT BÊN TRÁI (7/12): LOGO3.JPG + THÔNG TIN CỔNG ĐĂNG KÝ KHÁM BỆNH -->
-            <div class="lg:col-span-7 text-white space-y-5 self-start">
+            <!-- CỘT BÊN TRÁI (7/12): ĐƯỜNG DÂY NÓNG DỊU NHẸ + HƯỚNG DẪN ĐẶT LỊCH -->
+            <div class="lg:col-span-7 space-y-5 self-start">
 
-                <!-- Khung Logo3.jpg + Tên Trung tâm Y tế -->
-                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-5 rounded-3xl bg-white/15 backdrop-blur-md border-2 border-white/30 shadow-xl">
+                <!-- Thanh Đường dây nóng & Giờ khám nằm gọn trên 1 hàng với màu Pastel dịu mắt -->
+                <div class="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm font-bold">
+                    <a href="tel:02363822292"
+                       class="inline-flex items-center gap-2 bg-teal-50/90 hover:bg-teal-100/80 text-teal-800 px-3.5 py-2 rounded-full border border-teal-200/90 shadow-2xs transition">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span class="material-symbols-outlined text-base text-teal-600">phone_in_talk</span>
+                        <span>Đường dây nóng 24/7: <b class="text-teal-950">(0236) 3822 292</b></span>
+                    </a>
+                    <div class="inline-flex items-center gap-2 bg-sky-50/90 text-sky-900 px-3.5 py-2 rounded-full border border-sky-200/90 shadow-2xs">
+                        <span class="material-symbols-outlined text-base text-sky-600">schedule</span>
+                        <span>Giờ khám: <b>Sáng (07:00 - 11:30)</b> • <b>Chiều/Tối (13:30 - 19:00)</b></span>
+                    </div>
+                </div>
+
+                <!-- Khung Logo3.jpg + Tên Trung tâm Y tế (Nền trắng thanh lịch) -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-5 rounded-3xl bg-white/95 border border-sky-200/90 shadow-md">
                     <img src="../img/logo3.jpg" alt="Logo TTYT Phường Hải Châu"
-                         class="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-2xl object-contain bg-white p-2 shadow-lg border-2 border-teal-200 shrink-0"/>
+                         class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-contain bg-sky-50/50 p-2 border border-teal-100 shrink-0"/>
                     <div class="space-y-1.5">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/25 text-emerald-100 border border-emerald-300/40 text-xs font-extrabold uppercase tracking-wider">
-                            <span class="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-extrabold uppercase tracking-wider">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             Cổng Đăng Ký Khám Bệnh Chính Thức
                         </span>
-                        <h2 class="font-heading font-extrabold text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight leading-tight drop-shadow-sm">
-                            TRUNG TÂM Y TẾ<br/>PHƯỜNG HẢI CHÂU
+                        <h2 class="font-heading font-extrabold text-xl sm:text-2xl text-teal-950 tracking-tight leading-tight">
+                            TRUNG TÂM Y TẾ PHƯỜNG HẢI CHÂU
                         </h2>
-                        <p class="text-xs sm:text-sm text-teal-100 font-semibold">
+                        <p class="text-xs sm:text-sm text-teal-700 font-semibold">
                             Sở Y Tế TP. Đà Nẵng • Tiếp nhận Khám BHYT & Dịch vụ
                         </p>
                     </div>
                 </div>
 
                 <!-- Tiêu đề chính -->
-                <div class="space-y-3">
-                    <h1 class="font-heading text-3xl sm:text-4xl lg:text-[44px] font-extrabold leading-[1.18] tracking-tight text-white drop-shadow">
+                <div class="space-y-2.5">
+                    <h1 class="font-heading text-2xl sm:text-3xl font-extrabold leading-tight tracking-tight text-slate-800">
                         Đặt Lịch Hẹn Khám Bệnh & Lấy Số Thứ Tự BHYT Trực Tuyến
                     </h1>
-                    <p class="text-sm sm:text-base text-teal-50/95 leading-relaxed max-w-2xl font-medium">
-                        Đăng ký trước tại nhà để <b>nhận ngay số thứ tự ưu tiên</b>, chủ động chọn <b>Chuyên khoa, Bác sĩ khám & Khung giờ hẹn</b>, không phải xếp hàng chờ đợi lâu tại quầy tiếp đón.
+                    <p class="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl">
+                        Đăng ký trước tại nhà để <b class="text-teal-800">nhận ngay số thứ tự ưu tiên</b>, chủ động chọn <b class="text-teal-800">Chuyên khoa, Bác sĩ khám & Khung giờ hẹn</b>, không phải xếp hàng chờ đợi lâu tại quầy tiếp đón.
                     </p>
                 </div>
 
-                <!-- 3 Bước đi khám -->
+                <!-- 3 Bước đi khám (Thẻ sáng dịu nhẹ) -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                    <div class="p-4 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/25 shadow-md">
-                        <div class="flex items-center gap-1.5 text-emerald-300 font-extrabold text-xs uppercase mb-1">
-                            <span class="material-symbols-outlined text-xl">calendar_add_on</span>
+                    <div class="p-4 rounded-2xl bg-white/95 border border-teal-100 shadow-xs">
+                        <div class="flex items-center gap-1.5 text-teal-600 font-extrabold text-xs uppercase mb-1">
+                            <span class="material-symbols-outlined text-lg">calendar_add_on</span>
                             <span>Bước 1: Đặt lịch</span>
                         </div>
-                        <p class="font-extrabold text-sm sm:text-base text-white">Điền phiếu bên cạnh</p>
-                        <p class="text-xs text-teal-100 mt-1">Chọn Chuyên khoa, Bác sĩ, ngày giờ hẹn và xác nhận đặt lịch.</p>
+                        <p class="font-bold text-sm text-slate-800">Điền phiếu bên cạnh</p>
+                        <p class="text-xs text-slate-500 mt-1">Chọn Chuyên khoa, Bác sĩ, ngày giờ hẹn và xác nhận đặt lịch.</p>
                     </div>
 
-                    <div class="p-4 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/25 shadow-md">
-                        <div class="flex items-center gap-1.5 text-amber-300 font-extrabold text-xs uppercase mb-1">
-                            <span class="material-symbols-outlined text-xl">badge</span>
+                    <div class="p-4 rounded-2xl bg-white/95 border border-sky-100 shadow-xs">
+                        <div class="flex items-center gap-1.5 text-sky-600 font-extrabold text-xs uppercase mb-1">
+                            <span class="material-symbols-outlined text-lg">badge</span>
                             <span>Bước 2: Tiếp đón</span>
                         </div>
-                        <p class="font-extrabold text-sm sm:text-base text-white">Đến Quầy P101</p>
-                        <p class="text-xs text-teal-100 mt-1">Đưa CCCD/VNeID hoặc thẻ BHYT và thực hiện khám sàng lọc.</p>
+                        <p class="font-bold text-sm text-slate-800">Đến Quầy P101</p>
+                        <p class="text-xs text-slate-500 mt-1">Đưa CCCD/VNeID hoặc thẻ BHYT và thực hiện khám sàng lọc.</p>
                     </div>
 
-                    <div class="p-4 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/25 shadow-md">
-                        <div class="flex items-center gap-1.5 text-sky-300 font-extrabold text-xs uppercase mb-1">
-                            <span class="material-symbols-outlined text-xl">stethoscope</span>
+                    <div class="p-4 rounded-2xl bg-white/95 border border-emerald-100 shadow-xs">
+                        <div class="flex items-center gap-1.5 text-emerald-600 font-extrabold text-xs uppercase mb-1">
+                            <span class="material-symbols-outlined text-lg">stethoscope</span>
                             <span>Bước 3: Vào khám</span>
                         </div>
-                        <p class="font-extrabold text-sm sm:text-base text-white">Khám & Nhận thuốc</p>
-                        <p class="text-xs text-teal-100 mt-1">Vào thẳng phòng Bác sĩ đã chọn, nộp viện phí & lĩnh thuốc.</p>
-                    </div>
-                </div>
-
-                <!-- Thanh Giờ khám & Tổng đài -->
-                <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm font-bold text-teal-50">
-                    <div class="flex items-center gap-2 bg-teal-950/50 px-4 py-2.5 rounded-xl border border-white/20">
-                        <span class="material-symbols-outlined text-lg text-emerald-300">schedule</span>
-                        <span>Giờ khám: <b>Sáng (07:00 - 11:30)</b> • <b>Chiều/Tối (13:30 - 19:00)</b></span>
-                    </div>
-                    <div class="flex items-center gap-2 bg-rose-600/90 px-4 py-2.5 rounded-xl border border-rose-300/40 shadow-sm">
-                        <span class="material-symbols-outlined text-lg text-white">emergency</span>
-                        <span>Cấp cứu 24/7: <b class="text-white">(0236) 3822 292</b></span>
+                        <p class="font-bold text-sm text-slate-800">Khám & Nhận thuốc</p>
+                        <p class="text-xs text-slate-500 mt-1">Vào thẳng phòng Bác sĩ đã chọn, nộp viện phí & lĩnh thuốc.</p>
                     </div>
                 </div>
 
             </div>
 
-            <!-- CỘT BÊN PHẢI (5/12): FORM ĐẶT LỊCH KHÁM (CÓ CHỌN KHOA -> CHỌN BÁC SĨ) -->
-            <div id="booking-box" class="lg:col-span-5 bg-white text-slate-700 rounded-3xl p-6 shadow-2xl border-2 border-sky-200 border-t-[6px] border-t-teal-600 self-start reveal-right">
+            <!-- CỘT BÊN PHẢI (5/12): FORM ĐĂNG KÝ LỊCH HẸN KHÁM BỆNH -->
+            <div id="booking-box" class="lg:col-span-5 bg-white text-slate-700 rounded-3xl p-6 shadow-xl border border-teal-200/80 border-t-4 border-t-teal-600 self-start reveal-right">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3.5 mb-4">
                     <div>
-                        <h2 class="font-heading font-bold text-lg text-teal-800">📅 Đăng Ký Lịch Hẹn Khám</h2>
-                        <p class="text-xs text-slate-500">Thanh toán tại Quầy Kế toán P104 sau khi khám xong</p>
+                        <h2 class="font-heading font-bold text-lg text-teal-800">Đăng Ký Lịch Hẹn Khám</h2>
                     </div>
                     <span class="px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-bold border border-teal-200">Ưu tiên số</span>
                 </div>
@@ -458,7 +509,7 @@
                 </div>
                 <div class="shrink-0">
                     <a href="tel:02363822292" class="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-teal-700 font-bold text-sm hover:bg-teal-50 transition shadow-sm">
-                        <span class="material-symbols-outlined text-rose-600 text-xl">call</span>
+                        <span class="material-symbols-outlined text-teal-600 text-xl">call</span>
                         <span>0236 3822 292</span>
                     </a>
                 </div>
@@ -704,7 +755,7 @@
                             </tr>
                             <tr class="bg-slate-50">
                                 <th class="py-2.5 px-3.5 font-semibold text-slate-600">Quầy tiếp nhận</th>
-                                <td class="py-2.5 px-3.5 font-semibold text-teal-800">Phòng P101 (Tiếp đón & Khám sàng lọc)</td>
+                                <td id="bsm-trieu-chung-room" class="py-2.5 px-3.5 font-semibold text-teal-800">Phòng P101 (Tiếp đón & Khám sàng lọc)</td>
                             </tr>
                         </tbody>
                     </table>

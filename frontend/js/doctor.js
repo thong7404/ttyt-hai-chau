@@ -34,9 +34,6 @@ function getInitials(name) {
     return clean.substring(0, 2).toUpperCase();
 }
 
-/**
- * Kiểm tra hồ sơ khám có thuộc về Bác sĩ đang đăng nhập hay không
- */
 function isRecordBelongToLoggedDoctor(rec, user) {
     if (!user) return true;
 
@@ -55,15 +52,55 @@ function isRecordBelongToLoggedDoctor(rec, user) {
     return false;
 }
 
-/**
- * Lấy ngày YYYY-MM-DD của hồ sơ khám
- */
 function extractRecordDateYmd(rec) {
     const raw = rec.thoi_gian_tiep_nhan || rec.thoi_gian_do || rec.thoi_gian_hoan_tat || "";
     return String(raw).substring(0, 10);
 }
 
+/**
+ * Đếm số lượng dịch vụ CLS chưa có kết quả của 1 hồ sơ khám
+ */
+function getPendingClsOrders(rec) {
+    if (!rec || !Array.isArray(rec.cls_orders)) return [];
+    return rec.cls_orders.filter(
+        c => c.trang_thai_thuc_hien !== "DaCoKetQua" || !c.ket_qua_cls || String(c.ket_qua_cls).trim() === ""
+    );
+}
+
+/**
+ * Tự động gỡ bỏ ô Mã bệnh ICD-10 khỏi giao diện Bác sĩ và căn chỉnh lại bố cục
+ */
+function removeIcd10FieldFromDOM() {
+    const icdInput = document.getElementById("exam-icd10");
+    if (icdInput) {
+        const icdCol = icdInput.parentElement;
+        const rowGrid = icdCol ? icdCol.parentElement : null;
+        if (icdCol) {
+            icdCol.remove();
+        }
+        const symptomInput = document.getElementById("exam-clinical-symptoms");
+        if (symptomInput && symptomInput.parentElement && rowGrid) {
+            symptomInput.parentElement.className = "sm:col-span-12";
+        }
+    }
+
+    // Xóa cụm "(ICD-10)" khỏi tiêu đề nếu có
+    document.querySelectorAll("h3, p").forEach(el => {
+        if (el.textContent && el.textContent.includes("(ICD-10)")) {
+            el.textContent = el.textContent.replace(/\s*\(ICD-10\)/g, "");
+        }
+        if (el.textContent && el.textContent.includes("và chẩn đoán ICD-10")) {
+            el.textContent = el.textContent.replace("và chẩn đoán ICD-10", "và kết luận chẩn đoán");
+        }
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+    // Xóa thanh gọi loa màu xanh và xóa ô Mã bệnh ICD-10 trên giao diện Bác sĩ
+    document.getElementById("doc-calling-banner")?.remove();
+    document.querySelectorAll('button[onclick*="reCallCurrentDoctorPatient"]').forEach(btn => btn.remove());
+    removeIcd10FieldFromDOM();
+
     const user = getCurrentUser();
     if (user) {
         const nameEl = document.getElementById("doc-sidebar-name");
@@ -84,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (subEl) subEl.textContent = `Mã BS: #${maNv} • ${tenKhoa}`;
         if (deptEl) deptEl.textContent = `Mã BS: #${maNv} • ${tenKhoa}`;
         if (activeFilterBadge && user.ho_ten) {
-            activeFilterBadge.textContent = `👨‍⚕️ Bác sĩ phụ trách: ${user.ho_ten}`;
+            activeFilterBadge.textContent = `Bác sĩ phụ trách: ${user.ho_ten}`;
         }
     }
 
@@ -100,12 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDoctorDashboard();
 });
 
-/**
- * Tự động chuyển đổi khung #doc-subview-queue sang dạng Bảng danh sách (Table) + Bộ lọc theo ngày
- * kể cả khi trình duyệt còn lưu cache HTML cũ
- */
 function ensureDoctorTableQueueLayout() {
-    // Tự động xóa hàng 4 nút chọn trạng thái phía trên nếu còn trong DOM
     const oldWaitingBtn = document.getElementById("qtab-waiting");
     if (oldWaitingBtn && oldWaitingBtn.parentElement) {
         oldWaitingBtn.parentElement.remove();
@@ -118,7 +150,7 @@ function ensureDoctorTableQueueLayout() {
     queueSubview.innerHTML = `
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
-                <h3 class="font-heading font-bold text-base text-teal-950">📋 Bảng Danh Sách Bệnh Nhân Khám Bệnh</h3>
+                <h3 class="font-heading font-bold text-base text-teal-950">Bảng Danh Sách Bệnh Nhân Khám Bệnh</h3>
                 <p class="text-xs text-slate-500">Tra cứu theo tên, mã hồ sơ, lọc theo trạng thái khám, lọc theo ngày tiếp nhận và sắp xếp thứ tự ngày</p>
             </div>
             <button type="button" onclick="clearDoctorQueueFilters()"
@@ -140,9 +172,9 @@ function ensureDoctorTableQueueLayout() {
                 <label class="font-bold text-slate-700 block mb-1">Lọc theo Trạng thái</label>
                 <select id="doc-queue-status-select" onchange="setDoctorQueueFilter(this.value)"
                         class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs font-semibold text-slate-700">
-                    <option value="WAITING">🩺 Chờ Bác sĩ khám / Đọc KQ CLS</option>
-                    <option value="PROCESSING">🔬 Đang chờ đo SH / Làm CLS</option>
-                    <option value="DONE">✅ Đã hoàn tất khám</option>
+                    <option value="WAITING">Chờ Bác sĩ khám / Đọc KQ CLS</option>
+                    <option value="PROCESSING">Đang chờ đo SH / Làm CLS</option>
+                    <option value="DONE">Đã hoàn tất khám</option>
                     <option value="ALL">-- Tất cả hồ sơ của tôi --</option>
                 </select>
             </div>
@@ -191,21 +223,9 @@ function logoutDoctor() {
     window.location.href = "login.html";
 }
 
-function speakPatientCall(text) {
-    if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "vi-VN";
-        utterance.rate = 0.95;
-        window.speechSynthesis.speak(utterance);
-    }
-}
-
-/**
- * Điều hướng thống nhất trên thanh Menu ngang của Bác sĩ
- */
 function openDoctorMenu(menuKey) {
     ensureDoctorTableQueueLayout();
+    removeIcd10FieldFromDOM();
 
     const examSection = document.getElementById("doc-view-exam");
     const aiSection = document.getElementById("doc-view-ai");
@@ -237,9 +257,9 @@ function openDoctorMenu(menuKey) {
 
         if (!currentSelectedRecord && cachedDoctorData) {
             const records = cachedDoctorData.queue_records || [];
-            const firstWaiting = records.find(r => isWaitingForDoctorStatus(r.trang_thai_hang_doi)) || records[0];
+            const firstWaiting = records.find(r => isWaitingForDoctorStatus(r.trang_thai_hang_doi, r)) || records[0];
             if (firstWaiting) {
-                populateDoctorExamForm(firstWaiting, false);
+                populateDoctorExamForm(firstWaiting);
             }
         }
     } else if (menuKey === "ai") {
@@ -277,9 +297,6 @@ function switchDoctorView(viewName) {
     else openDoctorMenu(viewName);
 }
 
-// =========================================================================
-// HỘP THOẠI XÁC NHẬN DÀNH CHO BÁC SĨ
-// =========================================================================
 function ensureDoctorConfirmModalDOM() {
     if (document.getElementById("doctor-confirm-modal")) return;
     const modal = document.createElement("div");
@@ -348,12 +365,15 @@ function closeDoctorConfirmModal() {
     }
 }
 
-function isWaitingForDoctorStatus(status) {
+function isWaitingForDoctorStatus(status, rec = null) {
+    if (rec && getPendingClsOrders(rec).length > 0) {
+        return false;
+    }
     return ["ChoBSKham", "ChoKhamBS", "ChoBSDocCLS"].includes(status);
 }
 
 // =========================================================================
-// 1. TẢI DỮ LIỆU PHÒNG KHÁM BÁC SĨ TỪ MYSQL (CHỈ LẤY HỒ SƠ CỦA BÁC SĨ ĐÓ)
+// 1. TẢI DỮ LIỆU PHÒNG KHÁM BÁC SĨ TỪ MYSQL
 // =========================================================================
 async function loadDoctorDashboard() {
     const user = getCurrentUser();
@@ -367,16 +387,25 @@ async function loadDoctorDashboard() {
         if (!res.ok || data.status !== "success") return;
 
         ensureDoctorTableQueueLayout();
+        removeIcd10FieldFromDOM();
 
         const rawRecords = data.queue_records || [];
-        const myRecords = user
+        const myRecords = (user
             ? rawRecords.filter(r => isRecordBelongToLoggedDoctor(r, user))
-            : rawRecords;
+            : rawRecords
+        ).map(r => {
+            const pendingCls = getPendingClsOrders(r);
+            if (pendingCls.length > 0 && r.trang_thai_hang_doi !== "HoanTat") {
+                const hasUnpaid = pendingCls.some(c => c.trang_thai_nop_tien !== "DaNop");
+                r.trang_thai_hang_doi = hasUnpaid ? "ChoThuTienCLS" : "ChoLamCLS";
+            }
+            return r;
+        });
 
         data.queue_records = myRecords;
         cachedDoctorData = data;
 
-        const waitingList = myRecords.filter(r => isWaitingForDoctorStatus(r.trang_thai_hang_doi));
+        const waitingList = myRecords.filter(r => isWaitingForDoctorStatus(r.trang_thai_hang_doi, r));
         const processingList = myRecords.filter(r => ["ChoSinhHieu", "ChoThuTienCLS", "ChoLamCLS"].includes(r.trang_thai_hang_doi));
         const doneList = myRecords.filter(r => r.trang_thai_hang_doi === "HoanTat");
 
@@ -400,7 +429,7 @@ async function loadDoctorDashboard() {
         if (currentSelectedRecord) {
             const updatedRec = myRecords.find(r => String(r.ma_ho_so_kham) === String(currentSelectedRecord.ma_ho_so_kham));
             if (updatedRec) {
-                populateDoctorExamForm(updatedRec, false);
+                populateDoctorExamForm(updatedRec);
             } else {
                 currentSelectedRecord = null;
             }
@@ -429,9 +458,6 @@ function clearDoctorQueueFilters() {
     setDoctorQueueFilter("WAITING");
 }
 
-/**
- * Hiển thị Trang 1.1 dưới dạng BẢNG DANH SÁCH (Table) + Lọc theo Ngày khám & Sắp xếp theo Ngày
- */
 function renderDoctorQueueList() {
     if (!cachedDoctorData) return;
     ensureDoctorTableQueueLayout();
@@ -446,7 +472,7 @@ function renderDoctorQueueList() {
     const allRecords = cachedDoctorData.queue_records || [];
 
     const filtered = allRecords.filter(r => {
-        if (doctorQueueFilter === "WAITING" && !isWaitingForDoctorStatus(r.trang_thai_hang_doi)) return false;
+        if (doctorQueueFilter === "WAITING" && !isWaitingForDoctorStatus(r.trang_thai_hang_doi, r)) return false;
         if (doctorQueueFilter === "PROCESSING" && !["ChoSinhHieu", "ChoThuTienCLS", "ChoLamCLS"].includes(r.trang_thai_hang_doi)) return false;
         if (doctorQueueFilter === "DONE" && r.trang_thai_hang_doi !== "HoanTat") return false;
 
@@ -490,17 +516,25 @@ function renderDoctorQueueList() {
     }
 
     const statusBadgeMap = {
-        ChoBSDocCLS: { text: "🔬 Đã có KQ CLS • Chờ đọc", cls: "bg-purple-100 text-purple-800" },
-        ChoBSKham: { text: "🩺 Đã đo SH • Chờ BS khám", cls: "bg-teal-100 text-teal-800" },
-        ChoKhamBS: { text: "🩺 Đã đo SH • Chờ BS khám", cls: "bg-teal-100 text-teal-800" },
-        ChoThuTienCLS: { text: "💳 Chờ thu phí CLS", cls: "bg-amber-100 text-amber-800" },
-        ChoLamCLS: { text: "🧪 Đang làm CLS (P201)", cls: "bg-indigo-100 text-indigo-800" },
-        ChoSinhHieu: { text: "⏳ Chờ đo sinh hiệu", cls: "bg-slate-100 text-slate-700" },
-        HoanTat: { text: "✅ Đã hoàn tất khám", cls: "bg-emerald-100 text-emerald-800" }
+        ChoBSDocCLS: { text: "Đã đủ KQ CLS • Chờ đọc", cls: "bg-purple-100 text-purple-800" },
+        ChoBSKham: { text: "Đã đo SH • Chờ BS khám", cls: "bg-teal-100 text-teal-800" },
+        ChoKhamBS: { text: "Đã đo SH • Chờ BS khám", cls: "bg-teal-100 text-teal-800" },
+        ChoThuTienCLS: { text: "Chờ thu phí CLS", cls: "bg-amber-100 text-amber-800" },
+        ChoLamCLS: { text: "Đang làm CLS (P201)", cls: "bg-indigo-100 text-indigo-800" },
+        ChoSinhHieu: { text: "Chờ đo sinh hiệu", cls: "bg-slate-100 text-slate-700" },
+        HoanTat: { text: "Đã hoàn tất khám", cls: "bg-emerald-100 text-emerald-800" }
     };
 
     tbody.innerHTML = filtered.map(r => {
-        const st = statusBadgeMap[r.trang_thai_hang_doi] || { text: r.trang_thai_hang_doi, cls: "bg-slate-100 text-slate-700" };
+        const pendingCls = getPendingClsOrders(r);
+        let st = statusBadgeMap[r.trang_thai_hang_doi] || { text: r.trang_thai_hang_doi, cls: "bg-slate-100 text-slate-700" };
+        if (pendingCls.length > 0 && r.trang_thai_hang_doi !== "HoanTat") {
+            st = {
+                text: `Đang chờ ${pendingCls.length}/${(r.cls_orders || []).length} KQ CLS`,
+                cls: "bg-amber-100 text-amber-800"
+            };
+        }
+
         const isDone = r.trang_thai_hang_doi === "HoanTat";
         const recDate = extractRecordDateYmd(r) || "-";
         const recTime = r.thoi_gian_tiep_nhan && String(r.thoi_gian_tiep_nhan).length > 10
@@ -541,9 +575,9 @@ function renderDoctorQueueList() {
                 </td>
                 <td class="p-3 max-w-[220px]">
                     <div class="text-slate-800 truncate" title="${r.trieu_chung_lam_sang || ''}">
-                        🩺 ${r.trieu_chung_lam_sang || "-"}
+                        ${r.trieu_chung_lam_sang || "-"}
                     </div>
-                    ${r.ket_luan_chan_doan ? `<div class="text-[11px] font-bold text-emerald-700 truncate mt-0.5" title="${r.ket_luan_chan_doan}">🎯 ${r.ket_luan_chan_doan}</div>` : ""}
+                    ${r.ket_luan_chan_doan ? `<div class="text-[11px] font-bold text-emerald-700 truncate mt-0.5" title="${r.ket_luan_chan_doan}">${r.ket_luan_chan_doan}</div>` : ""}
                 </td>
                 <td class="p-3">
                     <span class="px-2.5 py-1 rounded-full text-[11px] font-bold inline-block whitespace-nowrap ${st.cls}">
@@ -551,10 +585,10 @@ function renderDoctorQueueList() {
                     </span>
                 </td>
                 <td class="p-3 text-right">
-                    <button type="button" onclick="selectPatientRecordForExam('${r.ma_ho_so_kham}', ${!isDone})"
+                    <button type="button" onclick="selectPatientRecordForExam('${r.ma_ho_so_kham}')"
                             class="px-3 py-1.5 rounded-lg ${isDone ? 'bg-slate-100 hover:bg-teal-600 text-teal-700 hover:text-white border border-teal-300' : 'bg-teal-600 hover:bg-teal-700 text-white'} font-bold text-xs inline-flex items-center gap-1 transition whitespace-nowrap">
-                        <span class="material-symbols-outlined text-sm">${isDone ? 'edit_note' : 'volume_up'}</span>
-                        <span>${isDone ? 'Xem / Sửa' : 'Gọi & Khám'}</span>
+                        <span class="material-symbols-outlined text-sm">${isDone ? 'edit_note' : 'stethoscope'}</span>
+                        <span>${isDone ? 'Xem / Sửa' : 'Khám bệnh'}</span>
                     </button>
                 </td>
             </tr>
@@ -563,24 +597,21 @@ function renderDoctorQueueList() {
 }
 
 // =========================================================================
-// 2. CHUYỂN SANG TRANG KHÁM BỆNH (TRANG 1.2) & NẠP THÔNG TIN BỆNH NHÂN
+// 2. CHUYỂN SANG TRANG KHÁM BỆNH & KIỂM TRA CHẶN HOÀN TẤT NẾU THIẾU KQ CLS
 // =========================================================================
-function selectPatientRecordForExam(maHoSoKham, shouldCallSpeaker = false) {
+function selectPatientRecordForExam(maHoSoKham) {
     if (!cachedDoctorData) return;
     const rec = (cachedDoctorData.queue_records || []).find(r => String(r.ma_ho_so_kham) === String(maHoSoKham));
     if (!rec) return;
 
     currentSelectedRecord = rec;
     openDoctorMenu("exam-form");
-    populateDoctorExamForm(rec, shouldCallSpeaker);
+    populateDoctorExamForm(rec);
 }
 
-function populateDoctorExamForm(rec, shouldCallSpeaker = false) {
+function populateDoctorExamForm(rec) {
     currentSelectedRecord = rec;
-
-    if (shouldCallSpeaker) {
-        reCallCurrentDoctorPatient();
-    }
+    removeIcd10FieldFromDOM();
 
     document.getElementById("exam-badge-ba").textContent = `Hồ sơ khám #${rec.ma_ho_so_kham} • STT #${rec.so_thu_tu_kham}`;
     document.getElementById("exam-badge-room").textContent = `Phòng ${rec.so_phong || "P102"} - ${rec.ten_khoa || ""}`;
@@ -605,13 +636,29 @@ function populateDoctorExamForm(rec, shouldCallSpeaker = false) {
         rec.tom_tat_benh_su_ai || `Triệu chứng ban đầu: ${rec.trieu_chung_lam_sang || "Khám lâm sàng"}`;
 
     document.getElementById("exam-clinical-symptoms").value = rec.trieu_chung_lam_sang || "";
-    const icdEl = document.getElementById("exam-icd10");
-    if (icdEl) icdEl.value = "J02";
-    document.getElementById("exam-final-diagnosis").value = rec.ket_luan_chan_doan || "";
+    // Làm sạch mã [ICD] cũ nếu có trong dữ liệu mẫu để hiển thị chẩn đoán thuần túy
+    const cleanDiag = String(rec.ket_luan_chan_doan || "").replace(/^\[[A-Za-z0-9.]+\]\s*/, "");
+    document.getElementById("exam-final-diagnosis").value = cleanDiag;
+
     document.getElementById("exam-doctor-advice").value =
         rec.loi_dan_bac_si || "Uống thuốc đúng liều sau ăn no, uống nhiều nước ấm, tái khám nếu triệu chứng không giảm.";
 
     renderExistingClsResultsForRecord(rec.cls_orders || []);
+
+    // Khóa nút Hoàn tất khám nếu còn dịch vụ CLS chưa cập nhật kết quả
+    const pendingClsList = getPendingClsOrders(rec);
+    const submitBtn = document.querySelector('#doc-complete-exam-form button[type="submit"]');
+    if (submitBtn) {
+        if (pendingClsList.length > 0) {
+            submitBtn.disabled = true;
+            submitBtn.className = "w-full py-3.5 rounded-xl bg-amber-500 text-white font-extrabold text-sm shadow flex items-center justify-center gap-2 cursor-not-allowed";
+            submitBtn.innerHTML = `<span class="material-symbols-outlined text-xl">hourglass_top</span><span>CHƯA THỂ HOÀN TẤT KHÁM • CÒN ${pendingClsList.length} DỊCH VỤ CLS CHƯA CẬP NHẬT KẾT QUẢ TỪ P201</span>`;
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.className = "w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm shadow-lg flex items-center justify-center gap-2 transition";
+            submitBtn.innerHTML = `<span class="material-symbols-outlined text-xl">verified</span><span>HOÀN TẤT KHÁM BỆNH • LƯU BỆNH ÁN & CHUYỂN ĐƠN THUỐC SANG KẾ TOÁN / DƯỢC</span>`;
+        }
+    }
 
     const presContainer = document.getElementById("prescription-rows-container");
     presContainer.innerHTML = "";
@@ -635,17 +682,7 @@ function populateDoctorExamForm(rec, shouldCallSpeaker = false) {
 }
 
 function reCallCurrentDoctorPatient() {
-    if (!currentSelectedRecord) {
-        showDoctorNoticeModal("Chưa Chọn Bệnh Nhân", "Vui lòng chọn một bệnh nhân từ Danh sách chờ khám trước khi phát loa!", true);
-        return;
-    }
-    const rec = currentSelectedRecord;
-    const banner = document.getElementById("doc-calling-banner");
-    const callText = `Xin mời bệnh nhân ${rec.ten_benh_nhan}, số thứ tự ${rec.so_thu_tu_kham}, vào phòng khám ${rec.so_phong || "P102"}`;
-    document.getElementById("doc-calling-text").textContent =
-        `🔊 Đang gọi: STT #${rec.so_thu_tu_kham} - ${rec.ten_benh_nhan} (Mã BN: #${rec.ma_benh_nhan}) vào Phòng ${rec.so_phong || "P102"} (${rec.ten_phong || ""})`;
-    if (banner) banner.classList.remove("hidden");
-    speakPatientCall(callText);
+    // Đã tắt thanh thông báo gọi loa theo yêu cầu
 }
 
 // =========================================================================
@@ -677,7 +714,7 @@ function renderExistingClsResultsForRecord(clsOrders) {
     }
 
     container.innerHTML = clsOrders.map(c => {
-        const isDone = c.trang_thai_thuc_hien === "DaCoKetQua";
+        const isDone = c.trang_thai_thuc_hien === "DaCoKetQua" && c.ket_qua_cls && String(c.ket_qua_cls).trim() !== "";
         const isPaid = c.trang_thai_nop_tien === "DaNop";
 
         const imgsHtml = (c.images && c.images.length > 0)
@@ -694,13 +731,13 @@ function renderExistingClsResultsForRecord(clsOrders) {
         return `
             <div class="p-3.5 rounded-xl border ${isDone ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200'} text-xs space-y-1.5">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span class="font-bold text-indigo-950 text-sm">🔬 ${c.ten_dich_vu_cls} (#${c.ma_chi_dinh_cls})</span>
+                    <span class="font-bold text-indigo-950 text-sm">${c.ten_dich_vu_cls} (#${c.ma_chi_dinh_cls})</span>
                     <div class="flex items-center gap-1.5">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-200 text-amber-900'}">
-                            ${isPaid ? '💳 Đã nộp phí' : '⏳ Chờ Kế toán thu phí'}
+                            ${isPaid ? 'Đã nộp phí' : 'Chờ Kế toán thu phí'}
                         </span>
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isDone ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'}">
-                            ${isDone ? '✅ Đã có kết quả' : '⏳ Chờ Phòng P201 thực hiện'}
+                            ${isDone ? 'Đã có kết quả' : 'Chờ Phòng P201 thực hiện'}
                         </span>
                     </div>
                 </div>
@@ -760,7 +797,7 @@ async function submitDoctorOrderCls() {
 }
 
 // =========================================================================
-// 4. KÊ ĐƠN THUỐC ĐIỆN TỬ & HOÀN TẤT BỆNH ÁN
+// 4. KÊ ĐƠN THUỐC ĐIỆN TỬ & HOÀN TẤT BỆNH ÁN (KHÔNG DÙNG MÃ ICD-10)
 // =========================================================================
 function addPrescriptionRow(selectedMedId = null, quantity = 10, dosage = "Ngày uống 2 lần, mỗi lần 1 viên (Sáng - Tối sau ăn)") {
     if (!cachedDoctorData) return;
@@ -807,6 +844,16 @@ async function submitCompleteExamination(event) {
         return;
     }
 
+    const pendingCls = getPendingClsOrders(currentSelectedRecord);
+    if (pendingCls.length > 0) {
+        showDoctorNoticeModal(
+            "Chưa Đủ Kết Quả Cận Lâm Sàng",
+            `Hồ sơ #${currentSelectedRecord.ma_ho_so_kham} vẫn còn ${pendingCls.length} dịch vụ Cận lâm sàng chưa cập nhật kết quả (${pendingCls.map(c => c.ten_dich_vu_cls).join(", ")}). Vui lòng đợi Phòng P201 cập nhật đủ kết quả trước khi hoàn tất khám!`,
+            true
+        );
+        return;
+    }
+
     const medRows = Array.from(document.querySelectorAll(".prescription-item-row"));
     const medicines = medRows.map(r => ({
         ma_thuoc: r.querySelector(".pres-med-id").value.trim(),
@@ -815,10 +862,7 @@ async function submitCompleteExamination(event) {
     })).filter(m => m.ma_thuoc !== "");
 
     const user = getCurrentUser();
-    const icdEl = document.getElementById("exam-icd10");
-    const icdVal = icdEl ? icdEl.value.trim() : "";
-    const rawDiag = document.getElementById("exam-final-diagnosis").value.trim();
-    const finalDiag = (icdVal && !rawDiag.includes(icdVal)) ? `[${icdVal}] ${rawDiag}` : rawDiag;
+    const finalDiag = document.getElementById("exam-final-diagnosis").value.trim();
 
     const payload = {
         ma_ho_so_kham: currentSelectedRecord.ma_ho_so_kham,
@@ -842,7 +886,6 @@ async function submitCompleteExamination(event) {
             return;
         }
 
-        document.getElementById("doc-calling-banner").classList.add("hidden");
         await loadDoctorDashboard();
 
         showDoctorNoticeModal(
@@ -972,7 +1015,7 @@ function renderDoctorAllRecordsTable() {
 }
 
 function openRecordFromLookup(maHoSoKham) {
-    selectPatientRecordForExam(maHoSoKham, false);
+    selectPatientRecordForExam(maHoSoKham);
 }
 
 async function openPatientHistoryModal() {
