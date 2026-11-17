@@ -12,26 +12,47 @@ use Carbon\Carbon;
 class NotificationApiController extends Controller
 {
     /**
-     * Tự động khởi tạo bảng THONG_BAO (6 cột) nếu trong MySQL chưa có
+     * Tự động sinh mã khóa chính Chữ + Số tiếp theo (TB001, TB002, TB003...)
+     */
+    private function generateNextCode(string $table, string $pkCol, string $prefix, int $padLength = 3): string
+    {
+        $rows = DB::table($table)->pluck($pkCol);
+        $maxNum = 0;
+        foreach ($rows as $code) {
+            if (preg_match('/(\d+)$/', (string) $code, $matches)) {
+                $num = (int) $matches[1];
+                if ($num > $maxNum) {
+                    $maxNum = $num;
+                }
+            }
+        }
+        return $prefix . str_pad((string) ($maxNum + 1), $padLength, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Tự động khởi tạo bảng THONG_BAO với ma_thong_bao và ma_nguoi_dung nếu chưa có
      */
     private function ensureNotificationTableExists(): void
     {
         if (!Schema::hasTable('THONG_BAO')) {
             DB::statement("
                 CREATE TABLE IF NOT EXISTS THONG_BAO (
-                    id_thong_bao INT AUTO_INCREMENT PRIMARY KEY,
-                    id_nguoi_dung VARCHAR(20) NOT NULL,
+                    ma_thong_bao VARCHAR(20) PRIMARY KEY,
+                    ma_nguoi_dung VARCHAR(20) NOT NULL,
                     loai_thong_bao VARCHAR(50) DEFAULT 'NhacLichHen',
                     tieu_de VARCHAR(255) NOT NULL,
                     noi_dung TEXT NOT NULL,
-                    ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP
+                    ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT fk_thongbao_nguoidung
+                        FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung)
+                        ON DELETE CASCADE ON UPDATE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             ");
         }
     }
 
     /**
-     * Hàm dùng chung: Lưu thông báo vào bảng THONG_BAO và gửi về Gmail người dùng
+     * Hàm dùng chung: Lưu thông báo vào bảng THONG_BAO (ma_thong_bao, ma_nguoi_dung) và gửi về Gmail
      */
     private function createAndSendEmailNotification(
         string $maNguoiDung,
@@ -54,7 +75,6 @@ class NotificationApiController extends Controller
         $emailSent = false;
         $emailError = null;
 
-        // Gửi về Gmail nếu người dùng có địa chỉ email hợp lệ
         if (!empty($emailNguoiNhan) && filter_var($emailNguoiNhan, FILTER_VALIDATE_EMAIL)) {
             try {
                 $badgeTitle = $loaiThongBao === 'UuDai'
@@ -100,9 +120,11 @@ class NotificationApiController extends Controller
             }
         }
 
-        // Lưu đúng 5 trường vào bảng THONG_BAO (id_thong_bao tự tăng)
-        $idThongBao = DB::table('THONG_BAO')->insertGetId([
-            'id_nguoi_dung'  => $maNguoiDung,
+        $maThongBao = $this->generateNextCode('THONG_BAO', 'ma_thong_bao', 'TB', 3);
+
+        DB::table('THONG_BAO')->insert([
+            'ma_thong_bao'   => $maThongBao,
+            'ma_nguoi_dung'  => $maNguoiDung,
             'loai_thong_bao' => $loaiThongBao,
             'tieu_de'        => $tieuDe,
             'noi_dung'       => $noiDungText,
@@ -110,7 +132,7 @@ class NotificationApiController extends Controller
         ]);
 
         return [
-            'id_thong_bao' => $idThongBao,
+            'ma_thong_bao' => $maThongBao,
             'email_sent'   => $emailSent,
             'email'        => $emailNguoiNhan,
             'email_error'  => $emailError
@@ -124,12 +146,12 @@ class NotificationApiController extends Controller
     {
         $this->ensureNotificationTableExists();
 
-        // Tự động kiểm tra và tạo thông báo nhắc lịch hẹn trước 1 ngày
         $this->scanAndRemindTomorrowAppointments($maNguoiDung);
 
         $notifications = DB::table('THONG_BAO')
-            ->where('id_nguoi_dung', trim((string) $maNguoiDung))
-            ->orderByDesc('id_thong_bao')
+            ->where('ma_nguoi_dung', trim((string) $maNguoiDung))
+            ->orderByDesc('ngay_tao')
+            ->orderByDesc('ma_thong_bao')
             ->limit(50)
             ->get();
 
@@ -192,7 +214,7 @@ class NotificationApiController extends Controller
             $markerCode = "[#" . $app->ma_lich_hen . "]";
 
             $alreadyReminded = DB::table('THONG_BAO')
-                ->where('id_nguoi_dung', $app->ma_nguoi_dung)
+                ->where('ma_nguoi_dung', $app->ma_nguoi_dung)
                 ->where('loai_thong_bao', 'NhacLichHen')
                 ->where('tieu_de', 'like', '%' . $markerCode . '%')
                 ->exists();
@@ -237,7 +259,7 @@ class NotificationApiController extends Controller
     {
         $this->ensureNotificationTableExists();
 
-        $target = trim((string) ($request->id_nguoi_dung ?: 'ALL'));
+        $target = trim((string) ($request->ma_nguoi_dung ?? $request->id_nguoi_dung ?? 'ALL'));
         $loaiThongBao = trim((string) ($request->loai_thong_bao ?: 'UuDai'));
         $tieuDe = trim((string) $request->tieu_de);
         $noiDung = trim((string) $request->noi_dung);
@@ -249,7 +271,7 @@ class NotificationApiController extends Controller
             ], 400);
         }
 
-        $usersQuery = DB::table('NGUOI_DUNG')->where('trang_thai', 1);
+        $usersQuery = DB::table('NGUOI_DUNG');
         if ($target !== 'ALL') {
             $usersQuery->where('ma_nguoi_dung', $target);
         } else {
