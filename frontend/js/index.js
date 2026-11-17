@@ -7,6 +7,8 @@ const INDEX_API = {
     FASTAPI_CHAT_URL: "http://127.0.0.1:8001/api/ai/triage-chat"
 };
 
+const NOTIFICATION_API_BASE = "http://127.0.0.1:8000/api/notifications";
+
 let symptomImageFiles = [];
 let chatSessions = [];
 let activeSessionId = null;
@@ -197,6 +199,7 @@ function onChangeBookingDepartment() {
  * Khởi chạy toàn bộ chức năng khi trang index.html tải xong
  */
 document.addEventListener("DOMContentLoaded", async () => {
+    initHeroBannerSlider();
     await loadHeaderAndFooterHtml();
     initBookingDateMin();
     await loadDepartmentsAndDoctorsFromMySql();
@@ -208,6 +211,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const menu = document.getElementById("user-profile-menu");
         if (wrapper && menu && !wrapper.contains(e.target)) {
             menu.classList.add("hidden");
+        }
+
+        const notifWrapper = document.getElementById("header-notif-wrapper");
+        const notifDropdown = document.getElementById("header-notif-dropdown");
+        if (notifWrapper && notifDropdown && !notifWrapper.contains(e.target)) {
+            notifDropdown.classList.add("hidden");
         }
     });
 });
@@ -233,7 +242,7 @@ function initScrollAnimations() {
 }
 
 // =========================================================================
-// 1. HIỂN THỊ AVATAR + TÊN NGƯỜI DÙNG TRÊN HEADER
+// 1. HIỂN THỊ AVATAR + TÊN NGƯỜI DÙNG + CHUÔNG THÔNG BÁO TRÊN HEADER
 // =========================================================================
 function renderHeaderAuthStatus() {
     const user = getCurrentUser();
@@ -267,9 +276,13 @@ function renderHeaderAuthStatus() {
 
         if (bkName && !bkName.value) bkName.value = user.ho_ten || "";
         if (bkPhone && !bkPhone.value) bkPhone.value = user.so_dien_thoai || "";
+
+        // Khởi tạo Chuông thông báo ngay cạnh vùng tài khoản khi đã đăng nhập
+        initUserNotificationBell();
     } else {
         if (guestZone) guestZone.classList.remove("hidden");
         if (userDropdownWrapper) userDropdownWrapper.classList.add("hidden");
+        document.getElementById("header-notif-wrapper")?.remove();
         if (bkName) bkName.value = "";
         if (bkPhone) bkPhone.value = "";
     }
@@ -480,6 +493,9 @@ async function confirmAiBookingDirectly(cardId) {
             btnConfirm.innerHTML = `<span class="material-symbols-outlined text-sm">verified</span> Đã lưu Lịch hẹn #${result.ma_lich_hen}`;
         }
 
+        // Đồng bộ lại thông báo nhắc lịch hẹn sau khi đặt lịch
+        loadUserNotifications();
+
         showBookingSuccessModal({
             ma_lich_hen: result.ma_lich_hen,
             ho_ten: hoTen,
@@ -556,6 +572,9 @@ async function handleQuickBooking(event) {
             alert("⚠️ " + (result.message || "Không thể đặt lịch khám!"));
             return;
         }
+
+        // Cập nhật chuông thông báo & nhắc lịch qua Gmail nếu hẹn vào hôm nay/ngày mai
+        loadUserNotifications();
 
         showBookingSuccessModal({
             ma_lich_hen: result.ma_lich_hen,
@@ -1190,15 +1209,11 @@ function filterDoctorsByDept(deptCode) {
 }
 
 // =========================================================================
-// BỘ ĐIỀU KHIỂN SLIDER 3 ẢNH BANNER (ANH1.PNG, ANH2.PNG, ANH3.PNG) TỰ ĐỘNG CHUYỂN
+// 6. BỘ ĐIỀU KHIỂN SLIDER 3 ẢNH BANNER (ANH1.PNG, ANH2.PNG, ANH3.PNG) TỰ ĐỘNG CHUYỂN
 // =========================================================================
 let currentHeroSlideIndex = 0;
 let heroSlideInterval = null;
 const HERO_SLIDE_DELAY_MS = 4000; // Tự động chuyển ảnh sau mỗi 4 giây
-
-document.addEventListener("DOMContentLoaded", () => {
-    initHeroBannerSlider();
-});
 
 function initHeroBannerSlider() {
     const slides = document.querySelectorAll("#hero-banner-slider .hero-slide");
@@ -1207,7 +1222,6 @@ function initHeroBannerSlider() {
     showHeroBannerSlide(0);
     startHeroBannerAutoPlay();
 
-    // Tạm dừng chuyển ảnh khi người dùng rê chuột vào xem banner, chạy tiếp khi rời chuột
     const sliderBox = document.getElementById("hero-banner-slider")?.parentElement;
     if (sliderBox) {
         sliderBox.addEventListener("mouseenter", stopHeroBannerAutoPlay);
@@ -1276,28 +1290,25 @@ function restartHeroBannerAutoPlay() {
 }
 
 // =========================================================================
-// HỆ THỐNG CHUÔNG THÔNG BÁO (THONG_BAO) & GỬI GMAIL TỰ ĐỘNG (NHẮC HẸN / ƯU ĐÃI)
+// 7. HỆ THỐNG CHUÔNG THÔNG BÁO (THONG_BAO: ma_thong_bao, ma_nguoi_dung) & GỬI GMAIL
 // =========================================================================
-const NOTIFICATION_API_BASE = "http://127.0.0.1:8000/api/notifications";
-
-document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(() => {
-        initUserNotificationBell();
-    }, 500);
-});
-
 function initUserNotificationBell() {
-    const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
+    const user = getCurrentUser();
     if (!user || !user.ma_nguoi_dung) return;
 
-    const userMenuBox = document.getElementById("header-user-menu");
+    // Tìm khung tài khoản người dùng trên thanh Header (hỗ trợ cả header-user-dropdown-wrapper và header-user-menu)
+    const userMenuBox = document.getElementById("header-user-dropdown-wrapper") || document.getElementById("header-user-menu");
     if (userMenuBox && !document.getElementById("header-notif-wrapper")) {
+        if (userMenuBox.parentElement) {
+            userMenuBox.parentElement.classList.add("flex", "items-center", "gap-2");
+        }
+
         const notifWrapper = document.createElement("div");
         notifWrapper.id = "header-notif-wrapper";
-        notifWrapper.className = "relative inline-block mr-2";
+        notifWrapper.className = "relative inline-block";
         notifWrapper.innerHTML = `
-            <button type="button" onclick="toggleNotificationDropdown()"
-                    class="w-10 h-10 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 flex items-center justify-center relative transition"
+            <button type="button" onclick="toggleNotificationDropdown(event)"
+                    class="w-10 h-10 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 flex items-center justify-center relative transition shadow-2xs"
                     title="Thông báo & Nhắc lịch hẹn qua Gmail">
                 <span class="material-symbols-outlined text-xl">notifications</span>
                 <span id="header-notif-badge"
@@ -1313,7 +1324,7 @@ function initUserNotificationBell() {
                         <h4 class="font-bold text-sm">🔔 Thông Báo & Gmail</h4>
                         <p class="text-[10px] text-teal-100">Nhắc lịch hẹn khám trước 1 ngày & Ưu đãi</p>
                     </div>
-                    <span class="px-2 py-0.5 rounded bg-white/20 text-[10px] font-bold">Đồng bộ Gmail</span>
+                    <span class="px-2 py-0.5 rounded bg-white/20 text-[10px] font-bold">Bảng THONG_BAO</span>
                 </div>
 
                 <!-- Thanh công cụ gửi Gmail nhắc hẹn & ưu đãi -->
@@ -1341,7 +1352,8 @@ function initUserNotificationBell() {
     loadUserNotifications();
 }
 
-function toggleNotificationDropdown() {
+function toggleNotificationDropdown(event) {
+    if (event) event.stopPropagation();
     const drop = document.getElementById("header-notif-dropdown");
     if (!drop) return;
     drop.classList.toggle("hidden");
@@ -1351,7 +1363,7 @@ function toggleNotificationDropdown() {
 }
 
 async function loadUserNotifications() {
-    const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
+    const user = getCurrentUser();
     if (!user || !user.ma_nguoi_dung) return;
 
     try {
@@ -1386,20 +1398,21 @@ async function loadUserNotifications() {
 
         listBox.innerHTML = list.map(n => {
             const isPromo = n.loai_thong_bao === "UuDai";
+            const codeLabel = n.ma_thong_bao ? ` • #${n.ma_thong_bao}` : "";
             return `
                 <div class="p-3.5 hover:bg-teal-50/50 transition bg-white">
                     <div class="flex items-start justify-between gap-2">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
                             isPromo ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'
                         }">
-                            ${isPromo ? '🎁 Ưu đãi y tế' : '⏰ Nhắc lịch hẹn'}
+                            ${isPromo ? '🎁 Ưu đãi y tế' : '⏰ Nhắc lịch hẹn'}${codeLabel}
                         </span>
                         <span class="text-[10px] text-slate-400">${n.ngay_tao || ""}</span>
                     </div>
                     <h5 class="font-bold text-teal-950 mt-1">${n.tieu_de}</h5>
                     <p class="text-[11px] text-slate-600 mt-1 whitespace-pre-line leading-relaxed">${n.noi_dung}</p>
                     <div class="mt-1.5 text-[10px] text-emerald-700 font-semibold">
-                        ✉️ Đã đồng bộ qua Gmail người dùng
+                        ✉️ Đã đồng bộ qua Gmail người dùng (${user.email || "Gmail"})
                     </div>
                 </div>
             `;
@@ -1424,15 +1437,15 @@ async function triggerScanAppointmentReminders() {
 }
 
 async function sendSamplePromoEmailToMe() {
-    const user = typeof getCurrentUser === "function" ? getCurrentUser() : null;
-    if (!user) return;
+    const user = getCurrentUser();
+    if (!user || !user.ma_nguoi_dung) return;
 
     try {
         const res = await fetch(`${NOTIFICATION_API_BASE}/send`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({
-                id_nguoi_dung: user.ma_nguoi_dung,
+                ma_nguoi_dung: user.ma_nguoi_dung,
                 loai_thong_bao: "UuDai",
                 tieu_de: "Ưu đãi 30% Gói Khám Sức Khỏe Tổng Quát & Tầm Soát Định Kỳ",
                 noi_dung: "Trung tâm Y tế Phường Hải Châu dành tặng Quý bệnh nhân chương trình ưu đãi đặc biệt trong tháng:\n"

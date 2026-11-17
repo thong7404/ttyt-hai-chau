@@ -486,13 +486,13 @@ INSERT INTO TAI_LIEU_HUAN_LUYEN_AI (ma_tai_lieu, ma_nhan_vien, tieu_de_tai_lieu,
 (5, 1, 'Hướng dẫn nhận diện dấu hiệu Cấp cứu nội khoa & Chuyển tuyến', 'PhacDoDieuTri', '/storage/ai-docs/huong_dan_xu_tri_cap_cuu.pdf', 'Các dấu hiệu cảnh báo đỏ: Đau ngực dữ dội, khó thở SpO2 < 92%, sốt cao co giật, cơn tăng huyết áp khẩn cấp >= 180/110 mmHg.', 'tri_thuc_y_te_hai_chau', 'vec_doc_5_chunk_1', 'DaDongBoChromaDB', '2026-10-30 09:00:00');
 
 CREATE TABLE THONG_BAO (
-    id_thong_bao INT AUTO_INCREMENT PRIMARY KEY,
-    id_nguoi_dung VARCHAR(20) NOT NULL,
+    ma_thong_bao VARCHAR(20) PRIMARY KEY,
+    ma_nguoi_dung VARCHAR(20) NOT NULL,
     loai_thong_bao VARCHAR(50) DEFAULT 'NhacLichHen', 
     tieu_de VARCHAR(255) NOT NULL,
     noi_dung TEXT NOT NULL,
     ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_thongbao_nguoidung
-        FOREIGN KEY (id_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung)
+        FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
