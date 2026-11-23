@@ -12,20 +12,62 @@ const NOTIFICATION_API_BASE = "http://127.0.0.1:8000/api/notifications";
 let symptomImageFiles = [];
 let chatSessions = [];
 let activeSessionId = null;
+let cachedUserNotifications = [];
 
-// Danh sách Bác sĩ mặc định theo từng Chuyên khoa (sẽ được bổ sung/cập nhật thêm từ MySQL)
+// Danh sách Bác sĩ mặc định theo 12 Chuyên khoa (sẽ được bổ sung/cập nhật thêm từ MySQL)
 let doctorsByDeptMap = {
     "KH001": [
-        { ma_nhan_vien: "NV003", ho_ten: "BS.CKI Nguyễn Văn Hưng" }
+        { ma_nhan_vien: "NV26112003", ho_ten: "BS.CKI Nguyễn Văn Hưng" },
+        { ma_nhan_vien: "NV26112026", ho_ten: "BS.CKI Hoàng Thị Thu Thủy" },
+        { ma_nhan_vien: "NV26112027", ho_ten: "BS. Đinh Văn Phúc" }
     ],
     "KH002": [
-        { ma_nhan_vien: "NV004", ho_ten: "ThS.BS Lê Quang Đức" }
+        { ma_nhan_vien: "NV26112006", ho_ten: "ThS.BS Lê Quang Đức" },
+        { ma_nhan_vien: "NV26112028", ho_ten: "BS.CKI Nguyễn Thị Kiều Oanh" }
     ],
     "KH003": [
-        { ma_nhan_vien: "NV008", ho_ten: "BS.CKII Phan Thị Mỹ Duyên" }
+        { ma_nhan_vien: "NV26112008", ho_ten: "KTV. Phạm Ngọc Ánh" }
     ],
     "KH004": [
-        { ma_nhan_vien: "NV005", ho_ten: "BS.CKI Trần Ngọc Sơn" }
+        { ma_nhan_vien: "NV26112007", ho_ten: "BS.CKI Trần Ngọc Sơn" },
+        { ma_nhan_vien: "NV26112029", ho_ten: "BS. Võ Thanh Bình" }
+    ],
+    "KH005": [
+        { ma_nhan_vien: "NV26112030", ho_ten: "BS.CKI Phan Thị Mỹ Duyên" },
+        { ma_nhan_vien: "NV26112031", ho_ten: "BS. Lý Quốc Việt" }
+    ],
+    "KH006": [
+        { ma_nhan_vien: "NV26112032", ho_ten: "BS.CKII Trần Minh Quân" },
+        { ma_nhan_vien: "NV26112033", ho_ten: "BS.CKI Nguyễn Hữu Nghĩa" },
+        { ma_nhan_vien: "NV26112034", ho_ten: "BS. Phạm Quốc Thắng" }
+    ],
+    "KH007": [
+        { ma_nhan_vien: "NV26112035", ho_ten: "BS.CKI Lê Thị Thanh Hương" },
+        { ma_nhan_vien: "NV26112036", ho_ten: "BS. Nguyễn Thị Cẩm Vân" },
+        { ma_nhan_vien: "NV26112037", ho_ten: "BS. Trần Thị Diễm My" }
+    ],
+    "KH008": [
+        { ma_nhan_vien: "NV26112038", ho_ten: "BS.CKI Huỳnh Ngọc Anh" },
+        { ma_nhan_vien: "NV26112039", ho_ten: "BS. Đặng Thị Phương Thảo" },
+        { ma_nhan_vien: "NV26112040", ho_ten: "BS. Nguyễn Minh Khoa" }
+    ],
+    "KH009": [
+        { ma_nhan_vien: "NV26112041", ho_ten: "BS.CKI Trương Công Danh" },
+        { ma_nhan_vien: "NV26112042", ho_ten: "BS. Vũ Thị Khánh Linh" }
+    ],
+    "KH010": [
+        { ma_nhan_vien: "NV26112043", ho_ten: "BS.CKI Nguyễn Quang Vinh" },
+        { ma_nhan_vien: "NV26112044", ho_ten: "BS. Lê Thị Ngọc Hân" }
+    ],
+    "KH011": [
+        { ma_nhan_vien: "NV26112045", ho_ten: "BS.CKI Mai Thị Hồng Nhung" },
+        { ma_nhan_vien: "NV26112046", ho_ten: "BS. Cao Văn Toàn" }
+    ],
+    "KH012": [
+        { ma_nhan_vien: "NV26112047", ho_ten: "BS.CKI Nguyễn Tấn Phát" },
+        { ma_nhan_vien: "NV26112048", ho_ten: "BS. Trần Hoàng Long" },
+        { ma_nhan_vien: "NV26112049", ho_ten: "BS. Lê Anh Kiệt" },
+        { ma_nhan_vien: "NV26112050", ho_ten: "BS. Phạm Quốc Cường" }
     ]
 };
 
@@ -88,7 +130,7 @@ function getTodayDateStr() {
 }
 
 /**
- * 5. Hàm giới hạn ngày đặt lịch khám tối thiểu là ngày hôm nay
+ * 5. Hàm giới hạn ngày đặt lịch khám tối thiểu là ngày hôm nay & đồng bộ 3 ca chuẩn
  */
 function initBookingDateMin() {
     const todayStr = getTodayDateStr();
@@ -97,6 +139,19 @@ function initBookingDateMin() {
         bkDateEl.setAttribute("min", todayStr);
         if (!bkDateEl.value || bkDateEl.value < todayStr) {
             bkDateEl.value = todayStr;
+        }
+    }
+
+    const bkShiftEl = document.getElementById("bk-shift");
+    if (bkShiftEl) {
+        const currentShift = bkShiftEl.value;
+        bkShiftEl.innerHTML = `
+            <option value="Ca Sáng (07:00 - 11:30)">Ca Sáng (07:00 - 11:30)</option>
+            <option value="Ca Chiều (13:00 - 16:30)">Ca Chiều (13:00 - 16:30)</option>
+            <option value="Ca Đêm (16:30 - 07:00)">Ca Đêm / Trực Cấp cứu (16:30 - 07:00)</option>
+        `;
+        if (currentShift && Array.from(bkShiftEl.options).some(o => o.value === currentShift)) {
+            bkShiftEl.value = currentShift;
         }
     }
 }
@@ -118,7 +173,6 @@ async function loadDepartmentsAndDoctorsFromMySql() {
             u => (u.vai_tro === "BacSi" || u.chuc_vu === "BacSi") && u.trang_thai !== "DaKhoa"
         );
 
-        // Nếu trong MySQL có danh sách Bác sĩ, gom nhóm theo ma_khoa
         if (users.length > 0) {
             const newMap = {};
             users.forEach(u => {
@@ -129,18 +183,22 @@ async function loadDepartmentsAndDoctorsFromMySql() {
                     ho_ten: u.ho_ten
                 });
             });
-            // Gộp với map mặc định để khoa nào cũng có bác sĩ
             doctorsByDeptMap = { ...doctorsByDeptMap, ...newMap };
         }
 
-        // Cập nhật danh sách Chuyên khoa nếu có dữ liệu từ bảng KHOA
+        const defaultRoomMap = {
+            KH001: "P102", KH002: "P103", KH003: "P201", KH004: "P106",
+            KH005: "P107", KH006: "P108", KH007: "P109", KH008: "P110",
+            KH009: "P111", KH010: "P112", KH011: "P113", KH012: "P114"
+        };
+
         const deptSelect = document.getElementById("bk-department");
         if (deptSelect && depts.length > 0) {
             const currentVal = deptSelect.value;
             deptSelect.innerHTML = `<option value="">-- Chọn Khoa & Phòng --</option>` +
                 depts.map(d => {
                     const room = rooms.find(r => String(r.ma_khoa) === String(d.ma_khoa));
-                    const roomCode = room ? room.so_phong : (d.ma_khoa === "KH002" ? "P103" : (d.ma_khoa === "KH004" ? "P106" : (d.ma_khoa === "KH003" ? "P201" : "P102")));
+                    const roomCode = room ? room.so_phong : (defaultRoomMap[d.ma_khoa] || "P102");
                     const valueStr = `${d.ten_khoa} (${roomCode})`;
                     const priceStr = Number(d.gia_kham) > 0 ? ` - ${Number(d.gia_kham).toLocaleString("vi-VN")}đ` : "";
                     return `<option value="${valueStr}" data-ma-khoa="${d.ma_khoa}">${d.ten_khoa} (${roomCode}${priceStr})</option>`;
@@ -148,7 +206,7 @@ async function loadDepartmentsAndDoctorsFromMySql() {
             if (currentVal) deptSelect.value = currentVal;
         }
     } catch (e) {
-        // Nếu chưa bật cổng 8000 thì dùng danh sách 4 khoa & bác sĩ mặc định
+        // Nếu chưa bật cổng 8000 thì dùng danh sách 12 khoa & bác sĩ mặc định
     }
 }
 
@@ -170,12 +228,19 @@ function onChangeBookingDepartment() {
         return;
     }
 
-    // Xác định mã khoa từ data-ma-khoa hoặc tên khoa
     let maKhoa = selectedOpt ? selectedOpt.getAttribute("data-ma-khoa") : "";
     if (!maKhoa) {
         if (deptVal.includes("Tai") || deptVal.includes("P103")) maKhoa = "KH002";
+        else if (deptVal.includes("Hình") || deptVal.includes("CLS") || deptVal.includes("Cận Lâm Sàng") || deptVal.includes("P201")) maKhoa = "KH003";
         else if (deptVal.includes("Xương") || deptVal.includes("P106")) maKhoa = "KH004";
-        else if (deptVal.includes("Hình") || deptVal.includes("CLS") || deptVal.includes("P201")) maKhoa = "KH003";
+        else if (deptVal.includes("Cổ Truyền") || deptVal.includes("P107")) maKhoa = "KH005";
+        else if (deptVal.includes("Ngoại") || deptVal.includes("P108")) maKhoa = "KH006";
+        else if (deptVal.includes("Sản") || deptVal.includes("P109")) maKhoa = "KH007";
+        else if (deptVal.includes("Nhi") || deptVal.includes("P110")) maKhoa = "KH008";
+        else if (deptVal.includes("Răng") || deptVal.includes("P111")) maKhoa = "KH009";
+        else if (deptVal.includes("Mắt") || deptVal.includes("P112")) maKhoa = "KH010";
+        else if (deptVal.includes("Da Liễu") || deptVal.includes("Truyền Nhiễm") || deptVal.includes("P113")) maKhoa = "KH011";
+        else if (deptVal.includes("Cấp Cứu") || deptVal.includes("P114")) maKhoa = "KH012";
         else maKhoa = "KH001";
     }
 
@@ -187,10 +252,10 @@ function onChangeBookingDepartment() {
     doctorSelect.className = "w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-bold text-teal-900 bg-white focus:border-teal-500 focus:ring-teal-500";
 
     if (doctors.length === 0) {
-        doctorSelect.innerHTML = `<option value="ANY" data-ten-bs="Bác sĩ phân công theo ca trực">👨‍⚕️ Bác sĩ phân công theo ca trực</option>`;
+        doctorSelect.innerHTML = `<option value="ANY" data-ten-bs="Bác sĩ phân công theo ca trực">Bác sĩ phân công theo ca trực</option>`;
     } else {
         doctorSelect.innerHTML =
-            doctors.map(doc => `<option value="${doc.ma_nhan_vien}" data-ten-bs="${doc.ho_ten}">👨‍⚕️ ${doc.ho_ten}</option>`).join("") +
+            doctors.map(doc => `<option value="${doc.ma_nhan_vien}" data-ten-bs="${doc.ho_ten}">${doc.ho_ten}</option>`).join("") +
             `<option value="ANY" data-ten-bs="Bác sĩ bất kỳ trong khoa">-- Bác sĩ bất kỳ trong khoa --</option>`;
     }
 }
@@ -242,7 +307,7 @@ function initScrollAnimations() {
 }
 
 // =========================================================================
-// 1. HIỂN THỊ AVATAR + TÊN NGƯỜI DÙNG + CHUÔNG THÔNG BÁO TRÊN HEADER
+// 1. HIỂN THỊ AVATAR + TÊN NGƯỜI DÙNG + NÚT THÔNG BÁO TRÊN HEADER
 // =========================================================================
 function renderHeaderAuthStatus() {
     const user = getCurrentUser();
@@ -277,7 +342,6 @@ function renderHeaderAuthStatus() {
         if (bkName && !bkName.value) bkName.value = user.ho_ten || "";
         if (bkPhone && !bkPhone.value) bkPhone.value = user.so_dien_thoai || "";
 
-        // Khởi tạo Chuông thông báo ngay cạnh vùng tài khoản khi đã đăng nhập
         initUserNotificationBell();
     } else {
         if (guestZone) guestZone.classList.remove("hidden");
@@ -493,7 +557,6 @@ async function confirmAiBookingDirectly(cardId) {
             btnConfirm.innerHTML = `<span class="material-symbols-outlined text-sm">verified</span> Đã lưu Lịch hẹn #${result.ma_lich_hen}`;
         }
 
-        // Đồng bộ lại thông báo nhắc lịch hẹn sau khi đặt lịch
         loadUserNotifications();
 
         showBookingSuccessModal({
@@ -573,7 +636,6 @@ async function handleQuickBooking(event) {
             return;
         }
 
-        // Cập nhật chuông thông báo & nhắc lịch qua Gmail nếu hẹn vào hôm nay/ngày mai
         loadUserNotifications();
 
         showBookingSuccessModal({
@@ -843,21 +905,45 @@ function buildLocalMedicalTriageFallback(userMessage, hasImages = false) {
     }
 
     let dept = "Khoa Nội Tổng Quát (P102)";
-    let price = "45.000đ";
+    let price = "50.000đ";
     let analysis = "Triệu chứng nội khoa tổng quát, cần kiểm tra sinh hiệu (mạch, huyết áp, nhiệt độ) tại Phòng P101 và khám lâm sàng tại Phòng P102.";
 
-    if (msg.includes("tay") || msg.includes("chân") || msg.includes("khớp") || msg.includes("xương") || msg.includes("lưng") || msg.includes("gối") || msg.includes("cổ tay") || msg.includes("sưng") || msg.includes("tê bì") || msg.includes("gout")) {
+    if (msg.includes("cấp cứu") || msg.includes("ngất") || msg.includes("khó thở") || msg.includes("đau ngực dữ dội")) {
+        dept = "Khoa Cấp Cứu - Hồi Sức Tích Cực (P114)";
+        price = "70.000đ";
+        analysis = "Dấu hiệu cảnh báo cần xử trí khẩn cấp. Khuyến nghị đến ngay Phòng Cấp Cứu P114 (trực 24/7).";
+    } else if (msg.includes("tay") || msg.includes("chân") || msg.includes("khớp") || msg.includes("xương") || msg.includes("lưng") || msg.includes("gối") || msg.includes("cổ tay") || msg.includes("sưng") || msg.includes("tê bì") || msg.includes("gout")) {
         dept = "Khoa Cơ - Xương - Khớp (P106)";
-        price = "50.000đ";
+        price = "55.000đ";
         analysis = "Tình trạng sưng đau vùng cơ xương khớp / vận động. Bác sĩ khuyến nghị khám chuyên khoa Cơ - Xương - Khớp (Phòng P106) và có thể kết hợp chụp X-Quang kiểm tra tổn thương khớp.";
     } else if (msg.includes("họng") || msg.includes("ho") || msg.includes("tai") || msg.includes("mũi") || msg.includes("xoang") || msg.includes("amidan") || msg.includes("đờm") || msg.includes("sốt")) {
         dept = "Khoa Tai - Mũi - Họng (P103)";
-        price = "50.000đ";
+        price = "55.000đ";
         analysis = "Triệu chứng viêm đường hô hấp trên / Tai - Mũi - Họng. Bác sĩ khuyến nghị khám nội soi tại Phòng P103.";
-    } else if (msg.includes("siêu âm") || msg.includes("x-quang") || msg.includes("xét nghiệm") || msg.includes("chụp")) {
-        dept = "Khoa Chẩn Đoán Hình Ảnh (P201)";
-        price = "Theo dịch vụ CLS";
-        analysis = "Thực hiện kỹ thuật Cận lâm sàng & Chẩn đoán hình ảnh tại Phòng P201.";
+    } else if (msg.includes("răng") || msg.includes("nướu") || msg.includes("lợi")) {
+        dept = "Khoa Răng - Hàm - Mặt (P111)";
+        price = "55.000đ";
+        analysis = "Triệu chứng bệnh lý răng miệng, khuyến nghị khám tại Phòng Răng - Hàm - Mặt (P111).";
+    } else if (msg.includes("mắt") || msg.includes("nhìn mờ") || msg.includes("đỏ mắt")) {
+        dept = "Khoa Mắt (P112)";
+        price = "55.000đ";
+        analysis = "Triệu chứng nhãn khoa, khuyến nghị kiểm tra thị lực và khám tại Khoa Mắt (P112).";
+    } else if (msg.includes("thai") || msg.includes("phụ khoa") || msg.includes("kinh nguyệt")) {
+        dept = "Khoa Phụ Sản & KHHGĐ (P109)";
+        price = "55.000đ";
+        analysis = "Khuyến nghị khám chuyên khoa Phụ Sản & Siêu âm sản phụ khoa tại Phòng P109.";
+    } else if (msg.includes("trẻ em") || msg.includes("bé ") || msg.includes("em bé")) {
+        dept = "Khoa Nhi (P110)";
+        price = "50.000đ";
+        analysis = "Khuyến nghị đưa trẻ khám chuyên khoa Nhi tại Phòng P110.";
+    } else if (msg.includes("ngứa da") || msg.includes("mẩn đỏ") || msg.includes("nấm da") || msg.includes("dị ứng da")) {
+        dept = "Khoa Da Liễu & Truyền Nhiễm (P113)";
+        price = "50.000đ";
+        analysis = "Triệu chứng da liễu, khuyến nghị khám chuyên khoa Da Liễu & Truyền Nhiễm tại Phòng P113.";
+    } else if (msg.includes("siêu âm") || msg.includes("x-quang") || msg.includes("xét nghiệm") || msg.includes("chụp") || msg.includes("mri") || msg.includes("ct")) {
+        dept = "Khoa Cận Lâm Sàng (P201)";
+        price = "50.000đ + Phí dịch vụ CLS";
+        analysis = "Thực hiện kỹ thuật Xét nghiệm, Siêu âm, X-Quang, CT hoặc MRI tại khu Cận lâm sàng (P201–P206).";
     }
 
     const wantsBooking = ["đặt lịch", "đặt hẹn", "đăng ký khám", "đặt cho tôi", "lập phiếu"].some(k => msg.includes(k));
@@ -882,12 +968,15 @@ function buildLocalMedicalTriageFallback(userMessage, hasImages = false) {
     };
 }
 
+function escapeSafeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = String(str ?? "");
+    return div.innerHTML;
+}
+
 function formatAiMarkdownText(text) {
     if (!text) return "";
-    return String(text)
-        .replace(/&/g, "&")
-        .replace(/</g, "<")
-        .replace(/>/g, ">")
+    return escapeSafeHtml(text)
         .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-teal-900">$1</strong>')
         .replace(/\*(.*?)\*/g, '<em class="italic text-slate-600">$1</em>');
 }
@@ -1087,7 +1176,7 @@ function renderUserBubbleDOM(text, imgUrls = []) {
     }
     div.innerHTML = `
         ${imgsHtml}
-        <div class="bg-teal-600 text-white px-3.5 py-2.5 rounded-xl rounded-tr-none text-sm max-w-[85%] whitespace-pre-wrap shadow-sm">${text}</div>
+        <div class="bg-teal-600 text-white px-3.5 py-2.5 rounded-xl rounded-tr-none text-sm max-w-[85%] whitespace-pre-wrap shadow-sm">${escapeSafeHtml(text)}</div>
     `;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
@@ -1144,23 +1233,23 @@ function renderAiBubbleDOM(replyText, bookingSuggestion = null, cardIndex = Date
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[11px] font-semibold text-slate-600 block">Họ tên bệnh nhân *</label>
-                            <input id="ai-bk-name-${cardIndex}" type="text" value="${defaultName}" placeholder="Nhập họ tên..." class="w-full h-8 px-2 rounded border-slate-300 text-xs bg-white font-semibold"/>
+                            <input id="ai-bk-name-${cardIndex}" type="text" value="${escapeSafeHtml(defaultName)}" placeholder="Nhập họ tên..." class="w-full h-8 px-2 rounded border-slate-300 text-xs bg-white font-semibold"/>
                         </div>
                         <div>
                             <label class="text-[11px] font-semibold text-slate-600 block">Số điện thoại *</label>
-                            <input id="ai-bk-phone-${cardIndex}" type="tel" value="${defaultPhone}" placeholder="Nhập SĐT..." class="w-full h-8 px-2 rounded border-slate-300 text-xs bg-white font-semibold"/>
+                            <input id="ai-bk-phone-${cardIndex}" type="tel" value="${escapeSafeHtml(defaultPhone)}" placeholder="Nhập SĐT..." class="w-full h-8 px-2 rounded border-slate-300 text-xs bg-white font-semibold"/>
                         </div>
                     </div>
 
                     <div>
                         <label class="text-[11px] font-semibold text-slate-600 block">Chuyên khoa AI chỉ định</label>
-                        <input id="ai-bk-dept-${cardIndex}" type="text" value="${bookingSuggestion.chuyen_khoa}" readonly class="w-full h-8 px-2 rounded border-emerald-300 bg-emerald-100/60 text-emerald-900 font-bold text-xs"/>
+                        <input id="ai-bk-dept-${cardIndex}" type="text" value="${escapeSafeHtml(bookingSuggestion.chuyen_khoa)}" readonly class="w-full h-8 px-2 rounded border-emerald-300 bg-emerald-100/60 text-emerald-900 font-bold text-xs"/>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[11px] font-semibold text-slate-600 block">Ca khám</label>
-                            <input id="ai-bk-shift-${cardIndex}" type="text" value="${bookingSuggestion.ca_kham || 'Ca Sáng (07:00 - 11:30)'}" class="w-full h-8 px-2 rounded border-slate-300 text-xs bg-white"/>
+                            <input id="ai-bk-shift-${cardIndex}" type="text" value="${escapeSafeHtml(bookingSuggestion.ca_kham || "Ca Sáng (07:00 - 11:30)")}" class="w-full h-8 px-2 rounded border-slate-300 text-xs bg-white"/>
                         </div>
                         <div>
                             <label class="text-[11px] font-semibold text-slate-600 block">Ngày hẹn khám *</label>
@@ -1170,7 +1259,7 @@ function renderAiBubbleDOM(replyText, bookingSuggestion = null, cardIndex = Date
 
                     <div>
                         <label class="text-[11px] font-semibold text-slate-600 block">Tóm tắt triệu chứng gửi Bác sĩ</label>
-                        <input id="ai-bk-symptom-${cardIndex}" type="text" value="${bookingSuggestion.trieu_chung_tom_tat || ''}" class="w-full h-8 px-2 rounded border-slate-300 text-xs bg-white"/>
+                        <input id="ai-bk-symptom-${cardIndex}" type="text" value="${escapeSafeHtml(bookingSuggestion.trieu_chung_tom_tat || "")}" class="w-full h-8 px-2 rounded border-slate-300 text-xs bg-white"/>
                     </div>
                 </div>
 
@@ -1213,7 +1302,7 @@ function filterDoctorsByDept(deptCode) {
 // =========================================================================
 let currentHeroSlideIndex = 0;
 let heroSlideInterval = null;
-const HERO_SLIDE_DELAY_MS = 4000; // Tự động chuyển ảnh sau mỗi 4 giây
+const HERO_SLIDE_DELAY_MS = 4000;
 
 function initHeroBannerSlider() {
     const slides = document.querySelectorAll("#hero-banner-slider .hero-slide");
@@ -1290,13 +1379,35 @@ function restartHeroBannerAutoPlay() {
 }
 
 // =========================================================================
-// 7. HỆ THỐNG CHUÔNG THÔNG BÁO (THONG_BAO: ma_thong_bao, ma_nguoi_dung) & GỬI GMAIL
+// 7. HỆ THỐNG THÔNG BÁO RÚT GỌN & HỘP THOẠI XEM CHI TIẾT (THONG_BAO)
 // =========================================================================
+function formatRelativeNotificationTime(dateStr) {
+    if (!dateStr) return "";
+    const parsed = new Date(String(dateStr).replace(" ", "T"));
+    if (isNaN(parsed.getTime())) return String(dateStr).substring(0, 10);
+
+    const diffSec = Math.floor((Date.now() - parsed.getTime()) / 1000);
+    if (diffSec < 60) return "Vừa xong";
+
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} phút`;
+
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour} giờ`;
+
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 30) return `${diffDay} ngày`;
+
+    const d = String(parsed.getDate()).padStart(2, "0");
+    const m = String(parsed.getMonth() + 1).padStart(2, "0");
+    const y = parsed.getFullYear();
+    return `${d}/${m}/${y}`;
+}
+
 function initUserNotificationBell() {
     const user = getCurrentUser();
     if (!user || !user.ma_nguoi_dung) return;
 
-    // Tìm khung tài khoản người dùng trên thanh Header (hỗ trợ cả header-user-dropdown-wrapper và header-user-menu)
     const userMenuBox = document.getElementById("header-user-dropdown-wrapper") || document.getElementById("header-user-menu");
     if (userMenuBox && !document.getElementById("header-notif-wrapper")) {
         if (userMenuBox.parentElement) {
@@ -1308,47 +1419,31 @@ function initUserNotificationBell() {
         notifWrapper.className = "relative inline-block";
         notifWrapper.innerHTML = `
             <button type="button" onclick="toggleNotificationDropdown(event)"
-                    class="w-10 h-10 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 flex items-center justify-center relative transition shadow-2xs"
-                    title="Thông báo & Nhắc lịch hẹn qua Gmail">
-                <span class="material-symbols-outlined text-xl">notifications</span>
+                    class="h-10 px-3.5 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-bold text-xs flex items-center gap-1.5 relative transition shadow-2xs"
+                    title="Xem thông báo">
+                <span>Thông báo</span>
                 <span id="header-notif-badge"
-                      class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white font-extrabold text-[10px] flex items-center justify-center shadow">
+                      class="hidden min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white font-extrabold text-[10px] flex items-center justify-center">
                     0
                 </span>
             </button>
 
             <div id="header-notif-dropdown"
-                 class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-teal-200 overflow-hidden z-50 text-xs">
-                <div class="bg-gradient-to-r from-teal-600 to-sky-600 text-white px-4 py-3 flex items-center justify-between">
-                    <div>
-                        <h4 class="font-bold text-sm">🔔 Thông Báo & Gmail</h4>
-                        <p class="text-[10px] text-teal-100">Nhắc lịch hẹn khám trước 1 ngày & Ưu đãi</p>
-                    </div>
-                    <span class="px-2 py-0.5 rounded bg-white/20 text-[10px] font-bold">Bảng THONG_BAO</span>
+                 class="hidden absolute right-0 mt-2 w-80 sm:w-[360px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-white">
+                    <h4 class="font-heading font-extrabold text-base text-slate-900">Thông báo</h4>
+                    <span class="text-[11px] font-semibold text-slate-400">Bấm để xem chi tiết</span>
                 </div>
 
-                <!-- Thanh công cụ gửi Gmail nhắc hẹn & ưu đãi -->
-                <div class="p-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-1.5">
-                    <button type="button" onclick="triggerScanAppointmentReminders()"
-                            class="flex-1 py-1.5 px-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition">
-                        <span class="material-symbols-outlined text-xs">alarm</span>
-                        <span>Quét nhắc hẹn (1 ngày)</span>
-                    </button>
-                    <button type="button" onclick="sendSamplePromoEmailToMe()"
-                            class="flex-1 py-1.5 px-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition">
-                        <span class="material-symbols-outlined text-xs">redeem</span>
-                        <span>Nhận Gmail Ưu đãi</span>
-                    </button>
-                </div>
-
-                <div id="header-notif-list" class="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                    <div class="p-6 text-center text-slate-400">Đang tải thông báo...</div>
+                <div id="header-notif-list" class="max-h-[380px] overflow-y-auto p-1.5 space-y-0.5 bg-white">
+                    <div class="p-6 text-center text-xs text-slate-400">Đang tải thông báo...</div>
                 </div>
             </div>
         `;
         userMenuBox.parentElement.insertBefore(notifWrapper, userMenuBox);
     }
 
+    ensureNotificationDetailModalDOM();
     loadUserNotifications();
 }
 
@@ -1376,6 +1471,7 @@ async function loadUserNotifications() {
         const badge = document.getElementById("header-notif-badge");
         const listBox = document.getElementById("header-notif-list");
         const list = data.notifications || [];
+        cachedUserNotifications = list;
 
         if (badge) {
             if (list.length > 0) {
@@ -1389,32 +1485,31 @@ async function loadUserNotifications() {
         if (!listBox) return;
         if (list.length === 0) {
             listBox.innerHTML = `
-                <div class="p-6 text-center text-slate-400">
+                <div class="p-6 text-center text-xs text-slate-400">
                     Hiện chưa có thông báo nào.
                 </div>
             `;
             return;
         }
 
-        listBox.innerHTML = list.map(n => {
+        listBox.innerHTML = list.map((n, index) => {
             const isPromo = n.loai_thong_bao === "UuDai";
-            const codeLabel = n.ma_thong_bao ? ` • #${n.ma_thong_bao}` : "";
+            const prefix = isPromo ? "Ưu đãi y tế:" : "Nhắc lịch hẹn:";
+            const relTime = formatRelativeNotificationTime(n.ngay_tao);
+
             return `
-                <div class="p-3.5 hover:bg-teal-50/50 transition bg-white">
-                    <div class="flex items-start justify-between gap-2">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
-                            isPromo ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'
-                        }">
-                            ${isPromo ? '🎁 Ưu đãi y tế' : '⏰ Nhắc lịch hẹn'}${codeLabel}
-                        </span>
-                        <span class="text-[10px] text-slate-400">${n.ngay_tao || ""}</span>
+                <button type="button" onclick="openNotificationDetailModal(${index})"
+                        class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100/90 flex items-center gap-3 transition">
+                    <img src="../img/logo3.jpg" alt="TTYT Phường Hải Châu"
+                         class="w-12 h-12 rounded-full object-contain bg-white border border-slate-200 p-1 shrink-0"/>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[13px] text-slate-700 leading-snug line-clamp-2">
+                            <span class="font-bold text-slate-900">${prefix}</span>
+                            ${escapeSafeHtml(n.tieu_de)}
+                        </p>
+                        <span class="text-[11px] font-medium text-slate-500 mt-1 block">${relTime}</span>
                     </div>
-                    <h5 class="font-bold text-teal-950 mt-1">${n.tieu_de}</h5>
-                    <p class="text-[11px] text-slate-600 mt-1 whitespace-pre-line leading-relaxed">${n.noi_dung}</p>
-                    <div class="mt-1.5 text-[10px] text-emerald-700 font-semibold">
-                        ✉️ Đã đồng bộ qua Gmail người dùng (${user.email || "Gmail"})
-                    </div>
-                </div>
+                </button>
             `;
         }).join("");
     } catch (e) {
@@ -1422,42 +1517,100 @@ async function loadUserNotifications() {
     }
 }
 
-async function triggerScanAppointmentReminders() {
-    try {
-        const res = await fetch(`${NOTIFICATION_API_BASE}/scan-reminders`, {
-            method: "POST",
-            headers: { "Accept": "application/json" }
-        });
-        const data = await res.json();
-        await loadUserNotifications();
-        alert(`✅ ${data.message} (Số lịch hẹn vừa nhắc: ${data.sent_count || 0})`);
-    } catch (e) {
-        alert("⚠️ Không kết nối được tới Server Laravel!");
-    }
+function ensureNotificationDetailModalDOM() {
+    if (document.getElementById("user-notification-detail-modal")) return;
+
+    const modal = document.createElement("div");
+    modal.id = "user-notification-detail-modal";
+    modal.className = "fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4";
+    modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeNotificationDetailModal();
+    });
+
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 animate-[fadeIn_0.18s_ease-out]">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-2">
+                    <span id="ndm-type-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800">Thông báo</span>
+                    <span id="ndm-code" class="text-xs font-mono font-bold text-slate-500"></span>
+                </div>
+                <button type="button" onclick="closeNotificationDetailModal()"
+                        class="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-500 font-bold text-lg flex items-center justify-center transition">
+                    ×
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4 text-sm">
+                <div>
+                    <h3 id="ndm-title" class="font-heading font-extrabold text-base sm:text-lg text-slate-900 leading-snug"></h3>
+                    <p id="ndm-time" class="text-xs text-slate-500 mt-1"></p>
+                </div>
+
+                <div id="ndm-content"
+                     class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm whitespace-pre-line leading-relaxed">
+                </div>
+
+                <div id="ndm-email-note" class="text-xs font-semibold text-teal-700"></div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <a id="ndm-appointments-link" href="account.html?tab=appointments"
+                       class="hidden px-4 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-bold text-xs transition">
+                        Xem lịch đã đặt
+                    </a>
+                    <button type="button" onclick="closeNotificationDetailModal()"
+                            class="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition">
+                        Đóng lại
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
 }
 
-async function sendSamplePromoEmailToMe() {
-    const user = getCurrentUser();
-    if (!user || !user.ma_nguoi_dung) return;
+function openNotificationDetailModal(index) {
+    const item = cachedUserNotifications[index];
+    if (!item) return;
 
-    try {
-        const res = await fetch(`${NOTIFICATION_API_BASE}/send`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Accept": "application/json" },
-            body: JSON.stringify({
-                ma_nguoi_dung: user.ma_nguoi_dung,
-                loai_thong_bao: "UuDai",
-                tieu_de: "Ưu đãi 30% Gói Khám Sức Khỏe Tổng Quát & Tầm Soát Định Kỳ",
-                noi_dung: "Trung tâm Y tế Phường Hải Châu dành tặng Quý bệnh nhân chương trình ưu đãi đặc biệt trong tháng:\n"
-                    + "• Giảm 30% chi phí Gói khám sức khỏe tổng quát & Xét nghiệm sinh hóa máu.\n"
-                    + "• Miễn phí 100% khám sàng lọc Tăng huyết áp & Đái tháo đường cho người trên 50 tuổi.\n"
-                    + "• Hỗ trợ đặt lịch hẹn ưu tiên trực tuyến không cần chờ số tại Quầy P101."
-            })
-        });
-        const data = await res.json();
-        await loadUserNotifications();
-        alert(`🎁 ${data.message}`);
-    } catch (e) {
-        alert("⚠️ Không kết nối được tới Server Laravel!");
+    const drop = document.getElementById("header-notif-dropdown");
+    if (drop) drop.classList.add("hidden");
+
+    ensureNotificationDetailModalDOM();
+
+    const user = getCurrentUser();
+    const isPromo = item.loai_thong_bao === "UuDai";
+
+    const badgeEl = document.getElementById("ndm-type-badge");
+    badgeEl.textContent = isPromo ? "Ưu đãi y tế" : "Nhắc lịch hẹn";
+    badgeEl.className = isPromo
+        ? "px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800"
+        : "px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800";
+
+    document.getElementById("ndm-code").textContent = item.ma_thong_bao ? `#${item.ma_thong_bao}` : "";
+    document.getElementById("ndm-title").textContent = item.tieu_de || "Thông báo từ Trung tâm Y tế";
+    document.getElementById("ndm-time").textContent = item.ngay_tao
+        ? `Thời gian: ${item.ngay_tao} (${formatRelativeNotificationTime(item.ngay_tao)})`
+        : "";
+    document.getElementById("ndm-content").textContent = item.noi_dung || "";
+    document.getElementById("ndm-email-note").textContent = user && user.email
+        ? `Đã đồng bộ gửi về Gmail: ${user.email}`
+        : "Đã đồng bộ qua Gmail người dùng";
+
+    const appLink = document.getElementById("ndm-appointments-link");
+    if (appLink) {
+        if (!isPromo) appLink.classList.remove("hidden");
+        else appLink.classList.add("hidden");
+    }
+
+    const modal = document.getElementById("user-notification-detail-modal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+}
+
+function closeNotificationDetailModal() {
+    const modal = document.getElementById("user-notification-detail-modal");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
     }
 }

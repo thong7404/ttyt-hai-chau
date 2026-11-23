@@ -50,9 +50,9 @@ class AccountantApiController extends Controller
     }
 
     /**
-     * Tìm mã nhân viên Kế toán (VD: NV004) từ ma_nhan_vien hoặc ma_nguoi_dung
+     * Tìm mã nhân viên Kế toán (VD: NV26112004) từ ma_nhan_vien hoặc ma_nguoi_dung
      */
-    private function resolveMaNhanVien($idOrUserId, $default = 'NV004')
+    private function resolveMaNhanVien($idOrUserId, $default = 'NV26112004')
     {
         if (!$idOrUserId) {
             return DB::table('NHAN_VIEN')->where('chuc_vu', 'KeToan')->value('ma_nhan_vien')
@@ -145,13 +145,13 @@ class AccountantApiController extends Controller
     }
 
     /**
-     * 2. THU PHÍ DỊCH VỤ CẬN LÂM SÀNG (ĐỢT 1) -> ĐẨY SANG PHÒNG CLS P201
+     * 2. THU PHÍ DỊCH VỤ CẬN LÂM SÀNG (ĐỢT 1) -> ĐẨY SANG PHÒNG CLS
      */
     public function collectClsPayment(Request $request)
     {
         $maChiDinh = trim((string) ($request->ma_chi_dinh_cls ?? ''));
         $maHoSo = trim((string) ($request->ma_ho_so_kham ?? ''));
-        $maKeToanNv = $this->resolveMaNhanVien($request->ma_ke_toan, 'NV004');
+        $maKeToanNv = $this->resolveMaNhanVien($request->ma_ke_toan, 'NV26112004');
         $phuongThuc = trim((string) ($request->phuong_thuc_thanh_toan ?: 'ChuyenKhoan_VietQR'));
         $stkBenhVien = trim((string) ($request->stk_benh_vien ?: '0041000888999 - Vietcombank (TTYT Phường Hải Châu)'));
         $maGiaoDich = trim((string) ($request->ma_giao_dich_ngan_hang ?: ('VCB-FT' . date('YmdHis'))));
@@ -253,7 +253,7 @@ class AccountantApiController extends Controller
             return response()->json([
                 'status'     => 'success',
                 'ma_hoa_don' => $maHoaDon,
-                'message'    => "Đã xác nhận thu phí Cận lâm sàng (Mã hóa đơn: #{$maHoaDon}) và chuyển bệnh nhân sang Phòng Cận lâm sàng P201!"
+                'message'    => "Đã xác nhận thu phí Cận lâm sàng (Mã hóa đơn: #{$maHoaDon}) và chuyển bệnh nhân sang Phòng Cận lâm sàng!"
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -267,7 +267,7 @@ class AccountantApiController extends Controller
     public function collectInvoicePayment(Request $request)
     {
         $maHoaDon = trim((string) $request->ma_hoa_don);
-        $maKeToanNv = $this->resolveMaNhanVien($request->ma_ke_toan, 'NV004');
+        $maKeToanNv = $this->resolveMaNhanVien($request->ma_ke_toan, 'NV26112004');
         $phuongThuc = trim((string) ($request->phuong_thuc_thanh_toan ?: 'ChuyenKhoan_VietQR'));
         $stkBenhVien = trim((string) ($request->stk_benh_vien ?: '0041000888999 - Vietcombank (TTYT Phường Hải Châu)'));
         $maGiaoDich = trim((string) ($request->ma_giao_dich_ngan_hang ?: ('VCB-FT' . date('YmdHis'))));

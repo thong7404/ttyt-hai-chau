@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const subEl = document.getElementById("acc-header-sub");
         const deptEl = document.getElementById("acc-dropdown-dept");
 
-        const maNv = user.ma_nhan_vien || user.ma_nguoi_dung || "NV004";
+        const maNv = user.ma_nhan_vien || user.ma_nguoi_dung || "NV26112004";
         const tenKhoa = user.ten_khoa || "Phòng Tài Chính - Kế Toán";
 
         if (nameEl && user.ho_ten) nameEl.textContent = user.ho_ten;
@@ -199,7 +199,7 @@ function ensureInvoiceExportModalDOM() {
                         <h3 class="font-heading font-extrabold text-sm sm:text-base uppercase tracking-wide">
                             Đã Thu Tiền & Xuất Hóa Đơn Viện Phí Điện Tử
                         </h3>
-                        <p class="text-[11px] text-teal-100">Chứng từ thu ngân Quầy P104 </p>
+                        <p class="text-[11px] text-teal-100">Chứng từ thu ngân Quầy P104</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeInvoiceExportModal()"
@@ -246,6 +246,7 @@ function normalizeInvoiceForExport(inv) {
     const user = getCurrentUser();
     const cashierName = (user && user.ho_ten) ? user.ho_ten : "CN. Lê Thị Thu Ngân";
     const isCls = inv.loai_hoa_don === "Dot1_ThuTienCLS";
+    const resolvedRoom = inv.so_phong || (isCls ? "P201" : "P102");
 
     let items = Array.isArray(inv.items) && inv.items.length > 0 ? inv.items : [];
     if (items.length === 0) {
@@ -275,11 +276,11 @@ function normalizeInvoiceForExport(inv) {
         so_the_bhyt: inv.so_the_bhyt || "",
         stk_ngan_hang: inv.stk_ngan_hang || "Chưa cập nhật",
         ten_khoa: inv.ten_khoa || (isCls ? "Khoa Cận Lâm Sàng" : "Khoa Khám Bệnh"),
-        so_phong: inv.so_phong || (isCls ? "P201" : "P102"),
+        so_phong: resolvedRoom,
         ket_luan_chan_doan: cleanDiag,
         loai_hoa_don: inv.loai_hoa_don || "Dot2_ThuTienKhamVaThuoc",
         loai_hoa_don_label: isCls
-            ? "Đợt 1: Thu Phí Dịch Vụ Cận Lâm Sàng (Chuyển Phòng P201)"
+            ? `Đợt 1: Thu Phí Dịch Vụ Cận Lâm Sàng (Chuyển Phòng ${resolvedRoom})`
             : "Đợt 2: Thu Viện Phí Khám Lâm Sàng & Đơn Thuốc BHYT (Mở khóa Quầy Dược P105)",
         tong_tien_goc: Number(inv.tong_tien_goc || 0),
         tien_bhyt_chi_tra: Number(inv.tien_bhyt_chi_tra || 0),
@@ -371,7 +372,7 @@ function showAndExportHospitalInvoiceModal(rawInvoice) {
 
         <div>
             <div class="font-bold text-slate-700 uppercase text-[11px] mb-1.5">
-                Chi tiết hạng mục viện phí :
+                Chi tiết hạng mục viện phí:
             </div>
             <div class="overflow-hidden rounded-xl border border-slate-300">
                 <table class="w-full text-left border-collapse text-xs">
@@ -449,18 +450,23 @@ function openInvoiceExportByClsOrder(maChiDinhCls, maHoSoKham) {
     if (!cachedAccountantData) return;
     const invoices = cachedAccountantData.invoices || [];
 
+    const cls = (cachedAccountantData.cls_orders || []).find(
+        c => String(c.ma_chi_dinh_cls) === String(maChiDinhCls)
+    );
+
     let matchedInv = invoices.find(
         i => String(i.ma_ho_so_kham) === String(maHoSoKham) && i.loai_hoa_don === "Dot1_ThuTienCLS"
     ) || invoices.find(i => String(i.ma_ho_so_kham) === String(maHoSoKham));
 
     if (matchedInv) {
-        showAndExportHospitalInvoiceModal(matchedInv);
+        const invCopy = {
+            ...matchedInv,
+            so_phong: (cls && cls.phong_thuc_hien) ? cls.phong_thuc_hien : matchedInv.so_phong
+        };
+        showAndExportHospitalInvoiceModal(invCopy);
         return;
     }
 
-    const cls = (cachedAccountantData.cls_orders || []).find(
-        c => String(c.ma_chi_dinh_cls) === String(maChiDinhCls)
-    );
     if (!cls) return;
 
     const donGia = Number(cls.don_gia_cls || 0);
@@ -698,7 +704,7 @@ function calculateHospitalRevenueSummary() {
 }
 
 // =========================================================================
-// 2. VIEW 1: THU PHÍ CẬN LÂM SÀNG (ĐỢT 1) -> ĐẨY SANG PHÒNG CLS P201
+// 2. VIEW 1: THU PHÍ CẬN LÂM SÀNG (ĐỢT 1) -> ĐẨY SANG PHÒNG CLS (P201–P206)
 // =========================================================================
 function clearAccClsFilters() {
     const kwEl = document.getElementById("acc-cls-search");
@@ -762,6 +768,8 @@ function renderAccountantClsTable() {
         const donGia = Number(c.don_gia_cls || 0);
         const bhytTra = hasBhyt ? Math.round(donGia * 0.8) : 0;
         const bnTra = donGia - bhytTra;
+        const phongCls = c.phong_thuc_hien || "P201";
+        const safeName = String(c.ten_benh_nhan || "").replace(/'/g, "\\'");
 
         return `
             <tr class="${isPaid ? 'bg-slate-50/60' : 'bg-amber-50/30 hover:bg-amber-50/70'} transition">
@@ -780,19 +788,19 @@ function renderAccountantClsTable() {
                 </td>
                 <td class="p-3.5">
                     <b class="text-indigo-900">${c.ten_dich_vu_cls || "-"}</b><br/>
-                    <span class="text-[11px] text-slate-500">Thực hiện tại: Phòng ${c.phong_thuc_hien || "P201"}</span>
+                    <span class="text-[11px] text-slate-500">Thực hiện tại: Phòng ${phongCls}</span>
                 </td>
                 <td class="p-3.5 font-semibold">${donGia.toLocaleString("vi-VN")}đ</td>
                 <td class="p-3.5 font-bold text-teal-700">${bhytTra.toLocaleString("vi-VN")}đ</td>
                 <td class="p-3.5 font-extrabold text-rose-600 text-sm">${bnTra.toLocaleString("vi-VN")}đ</td>
                 <td class="p-3.5">
                     <span class="px-2.5 py-1 rounded-full text-[11px] font-bold inline-block whitespace-nowrap ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                        ${isPaid ? 'Đã thu • Đã chuyển P201' : 'Chờ thu phí CLS'}
+                        ${isPaid ? `Đã thu • Đã chuyển ${phongCls}` : 'Chờ thu phí CLS'}
                     </span>
                 </td>
                 <td class="p-3.5 text-right">
                     ${!isPaid ? `
-                        <button type="button" onclick="confirmCollectCls('${c.ma_chi_dinh_cls}', '${c.ma_ho_so_kham}', '${c.ten_benh_nhan}', ${bnTra})"
+                        <button type="button" onclick="confirmCollectCls('${c.ma_chi_dinh_cls}', '${c.ma_ho_so_kham}', '${safeName}', ${bnTra})"
                                 class="px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs inline-flex items-center gap-1 shadow-sm transition whitespace-nowrap">
                             <span class="material-symbols-outlined text-sm">check_circle</span>
                             <span>Xác nhận Thu tiền</span>
@@ -920,7 +928,7 @@ function renderAccountantExamInvoices() {
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="text-slate-500 border-b border-slate-200">
-                            <th class="pb-1.5">Hạng mục Viện phí / Thuốc </th>
+                            <th class="pb-1.5">Hạng mục Viện phí / Thuốc</th>
                             <th class="pb-1.5 text-center">Số lượng</th>
                             <th class="pb-1.5 text-right">Đơn giá</th>
                             <th class="pb-1.5 text-right">Thành tiền</th>
@@ -1787,23 +1795,23 @@ function ensureHospitalPaymentModalExists() {
 
             <div class="p-3.5 rounded-xl bg-teal-50/80 border border-teal-200 space-y-2">
                 <div>
-                    <label class="text-[11px] font-bold text-slate-700 block mb-1">STK Ngân hàng của Bệnh nhân (\`benh_nhan.stk_ngan_hang\`):</label>
+                    <label class="text-[11px] font-bold text-slate-700 block mb-1">STK Ngân hàng của Bệnh nhân:</label>
                     <input id="pay-modal-patient-stk" type="text" placeholder="VD: 987691004 - MB Bank"
                            class="w-full h-8 px-2.5 rounded-lg border-slate-300 bg-white font-bold text-slate-800 text-xs"/>
                 </div>
                 <div>
-                    <label class="text-[11px] font-bold text-slate-700 block mb-1">STK Bệnh viện nhận tiền (\`hoa_don_vien_phi.stk_benh_vien\`):</label>
+                    <label class="text-[11px] font-bold text-slate-700 block mb-1">STK Bệnh viện nhận tiền:</label>
                     <input id="pay-modal-hospital-stk" type="text" value="0041000888999 - Vietcombank (TTYT Phường Hải Châu)"
                            class="w-full h-8 px-2.5 rounded-lg border-slate-300 bg-white font-bold text-teal-700 text-xs"/>
                 </div>
                 <div class="flex items-center justify-between pt-1.5 border-t border-teal-200/80">
-                    <span class="text-slate-600 font-bold">Số tiền bệnh nhân trả (\`tien_benh_nhan_tra\`):</span>
+                    <span class="text-slate-600 font-bold">Số tiền bệnh nhân trả:</span>
                     <span id="pay-modal-amount" class="font-heading font-extrabold text-lg text-rose-600">0đ</span>
                 </div>
             </div>
 
             <div>
-                <label class="font-bold text-slate-700 block mb-1.5">Phương thức thanh toán (\`phuong_thuc_thanh_toan\`) *</label>
+                <label class="font-bold text-slate-700 block mb-1.5">Phương thức thanh toán *</label>
                 <div class="grid grid-cols-3 gap-2">
                     <label class="p-2.5 rounded-xl border border-slate-300 has-[:checked]:border-2 has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50/50 cursor-pointer text-center">
                         <input type="radio" name="hospital_pay_method" value="ChuyenKhoan_VietQR" checked onchange="toggleVietQrDisplay()" class="hidden"/>
@@ -1831,7 +1839,7 @@ function ensureHospitalPaymentModalExists() {
                         TTYT HC THANH TOAN
                     </div>
                     <div>
-                        <label class="font-bold text-slate-700 block mb-0.5">Mã giao dịch ngân hàng (\`ma_giao_dich_ngan_hang\`):</label>
+                        <label class="font-bold text-slate-700 block mb-0.5">Mã giao dịch ngân hàng:</label>
                         <input id="pay-modal-tx-code" type="text" class="w-full h-8 px-2.5 rounded-lg border-slate-300 font-mono font-bold text-emerald-800 text-xs"/>
                     </div>
                 </div>
@@ -1941,7 +1949,7 @@ async function submitConfirmHospitalPayment() {
 
         const payload = {
             ...paymentSnapshot,
-            ma_ke_toan: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV004",
+            ma_ke_toan: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV26112004",
             phuong_thuc_thanh_toan: method,
             stk_benh_vien: stkBenhVien,
             stk_ngan_hang: stkNganHangBn,

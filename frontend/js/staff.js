@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const dropEmailEl = document.getElementById("staff-dropdown-email");
         const dropDeptEl = document.getElementById("staff-dropdown-dept");
 
-        const maNv = user.ma_nhan_vien || user.ma_nguoi_dung || "NV002";
+        const maNv = user.ma_nhan_vien || user.ma_nguoi_dung || "NV26112002";
         const tenKhoa = user.ten_khoa || "Phòng P101";
 
         if (nameEl && user.ho_ten) nameEl.textContent = user.ho_ten;
@@ -1273,7 +1273,7 @@ async function submitReceivePatient(event) {
     const payload = {
         ma_lich_hen: document.getElementById("rec-ma-lich-hen").value.trim() || null,
         ma_benh_nhan: document.getElementById("rec-ma-benh-nhan").value.trim() || null,
-        ma_nhan_vien: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV002",
+        ma_nhan_vien: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV26112002",
         vneid: document.getElementById("rec-vneid")?.value.trim() || null,
         stk_ngan_hang: document.getElementById("rec-stk-ngan-hang")?.value.trim() || null,
         ho_ten: document.getElementById("rec-ho-ten").value.trim().toUpperCase(),
@@ -1602,7 +1602,7 @@ async function submitVitalSigns(event) {
     const user = getCurrentUser();
     const payload = {
         ma_ho_so_kham: maHoSo,
-        ma_nhan_vien: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV002",
+        ma_nhan_vien: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV26112002",
         mach: document.getElementById("vt-mach").value,
         nhiet_do: document.getElementById("vt-nhiet-do").value,
         huyet_ap: document.getElementById("vt-huyet-ap").value,
@@ -1959,7 +1959,7 @@ async function submitClsResult(event) {
     const user = getCurrentUser();
     const payload = {
         ma_chi_dinh_cls: maChiDinh,
-        ma_nhan_vien: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV008",
+        ma_nhan_vien: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV26112008",
         ket_qua_cls: document.getElementById("cls-ket-qua-text").value.trim(),
         ai_phan_tich_cls: document.getElementById("cls-ai-note").value.trim(),
         images: selectedClsImages

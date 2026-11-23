@@ -59,7 +59,7 @@
             <div class="flex items-center gap-4 font-semibold text-slate-500">
                 <span class="inline-flex items-center gap-1 text-emerald-700">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                    MySQL Trực Tuyến (`ttyt_haichau_db`)
+                    MySQL Trực Tuyến (ttyt_haichau_db)
                 </span>
                 <span class="hidden md:inline">✉️ ttythaichau@danang.gov.vn</span>
             </div>
@@ -122,7 +122,7 @@
                                 CN. Lê Thị Thu Ngân
                             </div>
                             <div id="acc-header-sub" class="text-[10px] font-semibold text-teal-700 truncate leading-tight">
-                                Kế toán viện phí • P104
+                                Mã NV: #NV26112004 • P104
                             </div>
                         </div>
                         <span class="material-symbols-outlined text-base text-teal-700 transition-transform group-hover:rotate-180">expand_more</span>
@@ -133,7 +133,7 @@
                             <div id="acc-dropdown-name" class="font-extrabold text-slate-900 text-xs">CN. Lê Thị Thu Ngân</div>
                             <div id="acc-sidebar-email" class="text-[11px] text-slate-500 truncate mt-0.5">ketoan@ttythaichau.vn</div>
                             <span id="acc-dropdown-dept" class="inline-block mt-1.5 px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] font-bold">
-                                Quầy Thu Ngân Viện Phí P104
+                                Mã NV: #NV26112004 • Phòng Tài Chính - Kế Toán
                             </span>
                         </div>
 
@@ -160,7 +160,7 @@
         </div>
     </header>
 
-    <!-- KHÔNG GIAN LÀM VIỆC CỦA KẾ TOÁN (ĐÃ XÓA BANNER GỌI LOA) -->
+    <!-- KHÔNG GIAN LÀM VIỆC CỦA KẾ TOÁN -->
     <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
 
         <!-- 4 Thẻ KPI Tài chính Viện phí -->
@@ -169,7 +169,7 @@
                 <div>
                     <span class="text-[11px] font-bold text-slate-500 uppercase">Chờ thu phí Cận lâm sàng</span>
                     <div id="acc-stat-unpaid-cls" class="font-heading text-2xl font-extrabold text-amber-600 mt-1">0 chỉ định</div>
-                    <span class="text-[11px] text-amber-700 font-semibold">Thu xong đẩy sang Phòng P201</span>
+                    <span class="text-[11px] text-amber-700 font-semibold">Thu xong đẩy sang Phòng CLS (P201–P206)</span>
                 </div>
                 <div class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
                     <span class="material-symbols-outlined text-2xl">biotech</span>
@@ -228,7 +228,6 @@
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <div>
                     <h3 class="font-heading text-base font-extrabold text-teal-950">Bảng Danh Sách Thu Phí Dịch Vụ Cận Lâm Sàng (Đợt 1)</h3>
-                    
                 </div>
                 <button type="button" onclick="clearAccClsFilters()"
                         class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition">
@@ -251,7 +250,7 @@
                             class="w-full h-9 px-2.5 rounded-lg border-slate-300 bg-white text-xs font-semibold text-slate-700">
                         <option value="ALL">-- Tất cả chỉ định CLS --</option>
                         <option value="ChuaNop">Chờ thu phí CLS</option>
-                        <option value="DaNop">Đã thu phí (Đã chuyển P201)</option>
+                        <option value="DaNop">Đã thu phí (Đã chuyển Phòng CLS)</option>
                     </select>
                 </div>
 
@@ -297,7 +296,6 @@
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                     <div>
                         <h3 class="font-heading text-base font-extrabold text-teal-950">Thu Viện Phí Khám Lâm Sàng & Đơn Thuốc Ngoại Trú (Đợt 2)</h3>
-                        
                     </div>
                     <button type="button" onclick="clearAccExamFilters()"
                             class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition">
@@ -340,7 +338,7 @@
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <div>
                     <h3 class="font-heading text-base font-extrabold text-teal-950">Sổ Quản Lý Hóa Đơn Viện Phí & Quyết Toán BHYT</h3>
-                    <p class="text-xs text-slate-500">Toàn bộ hóa đơn Đợt 1 (CLS) và Đợt 2 (Khám & Thuốc) lưu trong bảng `HOA_DON_VIEN_PHI`</p>
+                    <p class="text-xs text-slate-500">Toàn bộ hóa đơn Đợt 1 (CLS) và Đợt 2 (Khám & Thuốc) đồng bộ theo thời gian thực</p>
                 </div>
                 <button type="button" onclick="exportInvoicesCsv()"
                         class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition">

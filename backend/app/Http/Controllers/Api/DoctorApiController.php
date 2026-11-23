@@ -32,7 +32,7 @@ class DoctorApiController extends Controller
     }
 
     /**
-     * Tự động sinh mã khóa chính Chữ + Số tiếp theo (CDCLS006, DT005, CTDT009, HD006...)
+     * Tự động sinh mã khóa chính Chữ + Số tiếp theo (CDCLS006, DT006, CTDT007, HD006...)
      */
     private function generateNextCode(string $table, string $pkCol, string $prefix, int $padLength = 3): string
     {
@@ -50,9 +50,9 @@ class DoctorApiController extends Controller
     }
 
     /**
-     * Tìm mã nhân viên Bác sĩ (VD: NV003) từ ma_nhan_vien hoặc ma_nguoi_dung
+     * Tìm mã nhân viên Bác sĩ (VD: NV26112003) từ ma_nhan_vien hoặc ma_nguoi_dung
      */
-    private function resolveMaNhanVien($idOrUserId, $default = 'NV003')
+    private function resolveMaNhanVien($idOrUserId, $default = 'NV26112003')
     {
         if (!$idOrUserId) {
             return DB::table('NHAN_VIEN')->where('chuc_vu', 'BacSi')->value('ma_nhan_vien') ?: $default;
@@ -68,7 +68,7 @@ class DoctorApiController extends Controller
     }
 
     /**
-     * 1. LẤY DỮ LIỆU PHÒNG KHÁM BÁC SĨ TỪ MYSQL (Chỉ lấy bệnh nhân của đúng Bác sĩ đang đăng nhập)
+     * 1. LẤY DỮ LIỆU PHÒNG KHÁM BÁC SĨ TỪ MYSQL
      */
     public function getDashboardData(Request $request)
     {
@@ -76,7 +76,6 @@ class DoctorApiController extends Controller
             $maPhong = $request->query('ma_phong');
             $maBacSiParam = trim((string) $request->query('ma_bac_si', ''));
 
-            // Xác định đúng mã nhân viên (VD: NV003) của Bác sĩ đang đăng nhập
             $maBacSiNv = null;
             if ($maBacSiParam !== '') {
                 $maBacSiNv = DB::table('NHAN_VIEN')->where('ma_nhan_vien', $maBacSiParam)->value('ma_nhan_vien')
@@ -101,7 +100,6 @@ class DoctorApiController extends Controller
                 })
                 ->leftJoin('CHI_SO_SINH_HIEU as sh', 'hs.ma_ho_so_kham', '=', 'sh.ma_ho_so_kham');
 
-            // Lọc: Bệnh nhân chọn khám Bác sĩ nào thì chỉ hiển thị cho đúng Bác sĩ đó
             if ($maBacSiNv) {
                 $query->where('hs.ma_nhan_vien', $maBacSiNv);
             }
@@ -172,7 +170,6 @@ class DoctorApiController extends Controller
                 $rec->pending_cls_count = $pendingClsCount;
                 $rec->unpaid_cls_count = $unpaidClsCount;
 
-                // Nếu hồ sơ vẫn còn dịch vụ CLS chưa cập nhật kết quả thì giữ ở trạng thái đang xử lý CLS (không đưa vào hàng đợi chờ Bác sĩ đọc)
                 if ($pendingClsCount > 0 && $rec->trang_thai_hang_doi !== 'HoanTat') {
                     $correctStatus = ($unpaidClsCount > 0) ? 'ChoThuTienCLS' : 'ChoLamCLS';
                     if ($rec->trang_thai_hang_doi !== $correctStatus) {
@@ -227,7 +224,7 @@ class DoctorApiController extends Controller
     {
         $maHoSo = trim((string) $request->ma_ho_so_kham);
         $clsIds = $request->cls_service_ids;
-        $maBacSiNv = $this->resolveMaNhanVien($request->ma_bac_si, 'NV003');
+        $maBacSiNv = $this->resolveMaNhanVien($request->ma_bac_si, 'NV26112003');
 
         if ($maHoSo === '' || !is_array($clsIds) || empty($clsIds)) {
             return response()->json(['status' => 'error', 'message' => 'Vui lòng chọn ít nhất 1 dịch vụ CLS!'], 400);
@@ -285,7 +282,7 @@ class DoctorApiController extends Controller
     public function completeExamination(Request $request)
     {
         $maHoSo = trim((string) $request->ma_ho_so_kham);
-        $maBacSiNv = $this->resolveMaNhanVien($request->ma_bac_si, 'NV003');
+        $maBacSiNv = $this->resolveMaNhanVien($request->ma_bac_si, 'NV26112003');
         $medicines = $request->medicines ?? [];
 
         DB::beginTransaction();
@@ -302,7 +299,6 @@ class DoctorApiController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Không tìm thấy hồ sơ khám bệnh!'], 404);
             }
 
-            // CHẶN HOÀN TẤT KHÁM NẾU CÒN BẤT KỲ DỊCH VỤ CẬN LÂM SÀNG NÀO CHƯA CẬP NHẬT ĐỦ KẾT QUẢ
             $pendingClsCount = DB::table('CHI_DINH_CAN_LAM_SANG')
                 ->where('ma_ho_so_kham', $maHoSo)
                 ->where(function ($q) {
@@ -316,7 +312,7 @@ class DoctorApiController extends Controller
                 DB::rollBack();
                 return response()->json([
                     'status'  => 'error',
-                    'message' => "Không thể hoàn tất khám! Hồ sơ #{$maHoSo} vẫn còn {$pendingClsCount} dịch vụ Cận lâm sàng chưa cập nhật kết quả từ Phòng P201."
+                    'message' => "Không thể hoàn tất khám! Hồ sơ #{$maHoSo} vẫn còn {$pendingClsCount} dịch vụ Cận lâm sàng chưa cập nhật kết quả từ Phòng Cận lâm sàng."
                 ], 400);
             }
 
@@ -389,7 +385,7 @@ class DoctorApiController extends Controller
                 }
             }
 
-            $giaKham = (float) ($hoSo->gia_kham ?: 45000);
+            $giaKham = (float) ($hoSo->gia_kham ?: 50000);
             $tongTienGoc = $giaKham + $tongTienThuoc;
             $tyLeBhyt = !empty($hoSo->so_the_bhyt) ? 0.8 : 0.0;
             $tienBhyt = round($tongTienGoc * $tyLeBhyt);
@@ -402,7 +398,7 @@ class DoctorApiController extends Controller
 
             if (!$hasInvoice) {
                 $keToanNv = DB::table('NHAN_VIEN')->where('chuc_vu', 'KeToan')->value('ma_nhan_vien')
-                    ?: (DB::table('NHAN_VIEN')->value('ma_nhan_vien') ?: 'NV004');
+                    ?: (DB::table('NHAN_VIEN')->value('ma_nhan_vien') ?: 'NV26112004');
 
                 $maHoaDon = $this->generateNextCode('HOA_DON_VIEN_PHI', 'ma_hoa_don', 'HD', 3);
                 DB::table('HOA_DON_VIEN_PHI')->insert($this->filterValidColumns('HOA_DON_VIEN_PHI', [

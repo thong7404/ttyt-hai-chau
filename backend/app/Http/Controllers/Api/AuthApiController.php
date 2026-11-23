@@ -36,7 +36,7 @@ class AuthApiController extends Controller
     }
 
     /**
-     * Hàm tự động sinh mã Chữ + Số tiếp theo cho các bảng (VD: ND015, BN007, OTP006, LH006...)
+     * Hàm tự động sinh mã Chữ + Số tiếp theo cho các bảng (VD: ND057, OTP006, LH006, LLV044...)
      */
     private function generateNextCode(string $table, string $pkCol, string $prefix, int $padLength = 3): string
     {
@@ -51,6 +51,29 @@ class AuthApiController extends Controller
             }
         }
         return $prefix . str_pad((string) ($maxNum + 1), $padLength, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Sinh mã theo ngày hiện tại: BN{YYMMDD}{XX} hoặc NV{YYMMDD}{XX}
+     */
+    private function generateDateBasedCode(string $table, string $pkCol, string $prefix): string
+    {
+        $datePart = Carbon::now('Asia/Ho_Chi_Minh')->format('ymd');
+        $fullPrefix = $prefix . $datePart;
+
+        $codes = DB::table($table)
+            ->where($pkCol, 'like', $fullPrefix . '%')
+            ->pluck($pkCol);
+
+        $maxSeq = 0;
+        foreach ($codes as $code) {
+            $seq = (int) substr((string) $code, strlen($fullPrefix));
+            if ($seq > $maxSeq) {
+                $maxSeq = $seq;
+            }
+        }
+
+        return $fullPrefix . str_pad((string) ($maxSeq + 1), 2, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -101,7 +124,6 @@ class AuthApiController extends Controller
         ]));
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
-        // Lưu tạm thông tin form đăng ký vào file cache chờ bước xác nhận OTP
         $pendingFile = storage_path('app/pending_registrations.json');
         $pendingData = file_exists($pendingFile) ? (json_decode(file_get_contents($pendingFile), true) ?: []) : [];
         $pendingData[$email] = [
@@ -190,7 +212,7 @@ class AuthApiController extends Controller
         DB::beginTransaction();
         try {
             $maNguoiDung = $this->generateNextCode('NGUOI_DUNG', 'ma_nguoi_dung', 'ND', 3);
-            $maBenhNhan  = $this->generateNextCode('BENH_NHAN', 'ma_benh_nhan', 'BN', 3);
+            $maBenhNhan  = $this->generateDateBasedCode('BENH_NHAN', 'ma_benh_nhan', 'BN');
 
             DB::table('NGUOI_DUNG')->insert($this->filterValidColumns('NGUOI_DUNG', [
                 'ma_nguoi_dung' => $maNguoiDung,
@@ -412,7 +434,7 @@ class AuthApiController extends Controller
     }
 
     /**
-     * 5. ĐẶT LỊCH HẸN KHÁM (Lưu đúng Chuyên khoa & Bác sĩ bệnh nhân đã chọn vào MySQL)
+     * 5. ĐẶT LỊCH HẸN KHÁM (Hỗ trợ đủ 12 chuyên khoa & 3 ca trực Sang/Chieu/Dem)
      */
     public function bookAppointment(Request $request)
     {
@@ -429,7 +451,7 @@ class AuthApiController extends Controller
             $bn = DB::table('BENH_NHAN')->where('ma_nguoi_dung', $maNguoiDung)->first();
 
             if (!$bn) {
-                $maBenhNhan = $this->generateNextCode('BENH_NHAN', 'ma_benh_nhan', 'BN', 3);
+                $maBenhNhan = $this->generateDateBasedCode('BENH_NHAN', 'ma_benh_nhan', 'BN');
                 DB::table('BENH_NHAN')->insert($this->filterValidColumns('BENH_NHAN', [
                     'ma_benh_nhan'     => $maBenhNhan,
                     'ma_nguoi_dung'    => $maNguoiDung,
@@ -444,14 +466,30 @@ class AuthApiController extends Controller
                 $maBenhNhan = $bn->ma_benh_nhan;
             }
 
-            // 1. Xác định Mã Khoa (ưu tiên lấy từ ma_khoa gửi lên)
+            // 1. Xác định Mã Khoa (ưu tiên ma_khoa gửi lên, sau đó dò trong bảng KHOA hoặc theo từ khóa 12 khoa)
             $maKhoa = $request->filled('ma_khoa') ? trim((string) $request->ma_khoa) : '';
             if ($maKhoa === '') {
-                $tenKhoaInput = $request->chuyen_khoa ?: $request->ten_khoa ?: 'Khoa Nội';
-                $maKhoa = 'KH001';
-                if (stripos($tenKhoaInput, 'Tai') !== false || stripos($tenKhoaInput, 'P103') !== false) $maKhoa = 'KH002';
-                elseif (stripos($tenKhoaInput, 'Xương') !== false || stripos($tenKhoaInput, 'P106') !== false) $maKhoa = 'KH004';
-                elseif (stripos($tenKhoaInput, 'Hình') !== false || stripos($tenKhoaInput, 'CLS') !== false || stripos($tenKhoaInput, 'P201') !== false) $maKhoa = 'KH003';
+                $tenKhoaInput = trim((string) ($request->chuyen_khoa ?: $request->ten_khoa ?: 'Khoa Nội'));
+                $khoaDb = DB::table('KHOA')->get()->first(function ($k) use ($tenKhoaInput) {
+                    return stripos($tenKhoaInput, $k->ten_khoa) !== false || stripos($k->ten_khoa, $tenKhoaInput) !== false;
+                });
+
+                if ($khoaDb) {
+                    $maKhoa = $khoaDb->ma_khoa;
+                } else {
+                    $maKhoa = 'KH001';
+                    if (stripos($tenKhoaInput, 'Tai') !== false || stripos($tenKhoaInput, 'P103') !== false) $maKhoa = 'KH002';
+                    elseif (stripos($tenKhoaInput, 'Hình') !== false || stripos($tenKhoaInput, 'CLS') !== false || stripos($tenKhoaInput, 'P201') !== false) $maKhoa = 'KH003';
+                    elseif (stripos($tenKhoaInput, 'Xương') !== false || stripos($tenKhoaInput, 'P106') !== false) $maKhoa = 'KH004';
+                    elseif (stripos($tenKhoaInput, 'Cổ Truyền') !== false || stripos($tenKhoaInput, 'YHCT') !== false || stripos($tenKhoaInput, 'P107') !== false) $maKhoa = 'KH005';
+                    elseif (stripos($tenKhoaInput, 'Ngoại') !== false || stripos($tenKhoaInput, 'P108') !== false) $maKhoa = 'KH006';
+                    elseif (stripos($tenKhoaInput, 'Sản') !== false || stripos($tenKhoaInput, 'P109') !== false) $maKhoa = 'KH007';
+                    elseif (stripos($tenKhoaInput, 'Nhi') !== false || stripos($tenKhoaInput, 'P110') !== false) $maKhoa = 'KH008';
+                    elseif (stripos($tenKhoaInput, 'Răng') !== false || stripos($tenKhoaInput, 'P111') !== false) $maKhoa = 'KH009';
+                    elseif (stripos($tenKhoaInput, 'Mắt') !== false || stripos($tenKhoaInput, 'P112') !== false) $maKhoa = 'KH010';
+                    elseif (stripos($tenKhoaInput, 'Da Liễu') !== false || stripos($tenKhoaInput, 'Truyền Nhiễm') !== false || stripos($tenKhoaInput, 'P113') !== false) $maKhoa = 'KH011';
+                    elseif (stripos($tenKhoaInput, 'Cấp Cứu') !== false || stripos($tenKhoaInput, 'P114') !== false) $maKhoa = 'KH012';
+                }
             }
 
             // 2. Tìm Phòng khám thuộc Chuyên khoa đó
@@ -463,22 +501,31 @@ class AuthApiController extends Controller
 
             // 3. Xác định Bác sĩ khám mà bệnh nhân đã chọn
             $maBacSi = $request->filled('ma_nhan_vien') ? trim((string) $request->ma_nhan_vien) : '';
-            if ($maBacSi === '') {
+            if ($maBacSi === '' || !DB::table('NHAN_VIEN')->where('ma_nhan_vien', $maBacSi)->exists()) {
                 $bsRow = DB::table('NHAN_VIEN')
                     ->where('ma_khoa', $maKhoa)
                     ->where('chuc_vu', 'BacSi')
                     ->first() ?: DB::table('NHAN_VIEN')->where('chuc_vu', 'BacSi')->first();
-                $maBacSi = $bsRow ? $bsRow->ma_nhan_vien : 'NV003';
+                $maBacSi = $bsRow ? $bsRow->ma_nhan_vien : 'NV26112003';
             }
 
-            $ngayHen = $request->ngay_hen_kham ?: Carbon::today()->format('Y-m-d');
+            $ngayHen = $request->ngay_hen_kham ?: Carbon::now('Asia/Ho_Chi_Minh')->format('Y-m-d');
             $khungGio = $request->khung_gio_hen ?: 'Ca Sáng (07:00 - 11:30)';
-            $caTruc = (stripos($khungGio, 'Sáng') !== false) ? 'Sang' : 'Toi';
 
-            // 4. Tìm hoặc tạo LICH_LAM_VIEC gắn đúng Bác sĩ & Phòng khám đã chọn
+            // Chuẩn hóa 3 ca: Sang (07:00-11:30), Chieu (13:00-16:30), Dem (16:30-07:00)
+            $caTruc = 'Sang';
+            if (stripos($khungGio, 'Đêm') !== false || stripos($khungGio, 'Tối') !== false) {
+                $caTruc = 'Dem';
+            } elseif (stripos($khungGio, 'Chiều') !== false) {
+                $caTruc = 'Chieu';
+            }
+
+            // 4. Tìm hoặc tạo LICH_LAM_VIEC gắn đúng Bác sĩ, Phòng khám, Ngày & Ca trực
             $lichLam = DB::table('LICH_LAM_VIEC')
                 ->where('ma_nhan_vien', $maBacSi)
                 ->where('ma_phong', $maPhong)
+                ->where('ngay_lam_viec', $ngayHen)
+                ->where('ca_truc', $caTruc)
                 ->first();
 
             if ($lichLam) {
@@ -491,7 +538,7 @@ class AuthApiController extends Controller
                     'ma_phong'           => $maPhong,
                     'ngay_lam_viec'      => $ngayHen,
                     'ca_truc'            => $caTruc,
-                    'so_luong_bn_toi_da' => 30
+                    'so_luong_bn_toi_da' => 35
                 ]));
             }
 
@@ -528,14 +575,14 @@ class AuthApiController extends Controller
             ->update($this->filterValidColumns('LICH_HEN_KHAM', [
                 'trang_thai_hen' => 'DaHuy',
                 'ly_do_huy'      => $request->ly_do_huy ?: 'Bệnh nhân chủ động hủy lịch hẹn',
-                'thoi_gian_huy'  => Carbon::now()
+                'thoi_gian_huy'  => Carbon::now('Asia/Ho_Chi_Minh')
             ]));
 
         return response()->json(['status' => 'success', 'message' => 'Đã hủy lịch hẹn khám thành công!']);
     }
 
     /**
-     * Hàm tự động kiểm tra và hủy các lịch hẹn đã quá thời gian mà bệnh nhân chưa đến khám
+     * Hàm tự động kiểm tra và hủy các lịch hẹn đã quá thời gian (hỗ trợ đúng 3 ca: Sáng / Chiều / Đêm qua ngày)
      */
     private function autoCancelExpiredAppointments()
     {
@@ -551,16 +598,25 @@ class AuthApiController extends Controller
             $ngayHen = (string) $lh->ngay_hen_kham;
             $khungGio = (string) $lh->khung_gio_hen;
 
-            $endTime = '17:00';
-            if (preg_match('/-\s*(\d{2}:\d{2})/', $khungGio, $matches)) {
-                $endTime = $matches[1];
-            } elseif (stripos($khungGio, 'Sáng') !== false) {
-                $endTime = '11:30';
-            } elseif (stripos($khungGio, 'Tối') !== false || stripos($khungGio, 'Chiều') !== false) {
-                $endTime = '19:00';
-            }
+            $isNightShift = (stripos($khungGio, 'Đêm') !== false) || preg_match('/-\s*07:00/', $khungGio);
 
-            $isExpired = ($ngayHen < $todayStr) || ($ngayHen === $todayStr && $currentTimeStr > $endTime);
+            if ($isNightShift) {
+                // Ca Đêm (16:30 hôm nay - 07:00 sáng hôm sau) chỉ hết hạn sau 07:00 ngày kế tiếp
+                $nextDay = Carbon::parse($ngayHen)->addDay()->format('Y-m-d');
+                $isExpired = ($todayStr > $nextDay) || ($todayStr === $nextDay && $currentTimeStr > '07:00');
+            } else {
+                $endTime = '16:30';
+                if (preg_match('/-\s*(\d{2}:\d{2})/', $khungGio, $matches)) {
+                    $endTime = $matches[1];
+                } elseif (stripos($khungGio, 'Sáng') !== false) {
+                    $endTime = '11:30';
+                } elseif (stripos($khungGio, 'Chiều') !== false) {
+                    $endTime = '16:30';
+                } elseif (stripos($khungGio, 'Tối') !== false) {
+                    $endTime = '19:00';
+                }
+                $isExpired = ($ngayHen < $todayStr) || ($ngayHen === $todayStr && $currentTimeStr > $endTime);
+            }
 
             if ($isExpired) {
                 DB::table('LICH_HEN_KHAM')
@@ -691,7 +747,7 @@ class AuthApiController extends Controller
                 'ma_phien_chat'           => $maPhien,
                 'ma_nguoi_dung'           => $request->ma_nguoi_dung ?: 'ND009',
                 'tieu_de_cuoc_tro_chuyen' => mb_substr($request->noi_dung_tin_nhan ?: 'Tư vấn sức khỏe AI', 0, 80),
-                'thoi_gian_tao'           => Carbon::now()
+                'thoi_gian_tao'           => Carbon::now('Asia/Ho_Chi_Minh')
             ]));
         }
 
@@ -701,7 +757,7 @@ class AuthApiController extends Controller
             'ma_phien_chat'     => $maPhien,
             'nguoi_gui'         => $request->nguoi_gui ?: 'NguoiDung',
             'noi_dung_tin_nhan' => $request->noi_dung_tin_nhan,
-            'thoi_gian_gui'     => Carbon::now()
+            'thoi_gian_gui'     => Carbon::now('Asia/Ho_Chi_Minh')
         ]));
 
         if (is_array($request->images)) {
@@ -711,7 +767,7 @@ class AuthApiController extends Controller
                     'ma_anh_tin_nhan'   => $maAnhTn,
                     'ma_tin_nhan'       => $maTinNhan,
                     'duong_dan_anh'     => $imgBase64,
-                    'thoi_gian_tai_len' => Carbon::now()
+                    'thoi_gian_tai_len' => Carbon::now('Asia/Ho_Chi_Minh')
                 ]));
             }
         }

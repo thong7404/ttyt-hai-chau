@@ -76,7 +76,7 @@
             <!-- CỘT BÊN TRÁI (7/12): ĐƯỜNG DÂY NÓNG DỊU NHẸ + HƯỚNG DẪN ĐẶT LỊCH -->
             <div class="lg:col-span-7 space-y-5 self-start">
 
-                <!-- Thanh Đường dây nóng & Giờ khám nằm gọn trên 1 hàng với màu Pastel dịu mắt -->
+                <!-- Thanh Đường dây nóng & Giờ khám 3 ca chuẩn TTYT Phường Hải Châu -->
                 <div class="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm font-bold">
                     <a href="tel:02363822292"
                        class="inline-flex items-center gap-2 bg-teal-50/90 hover:bg-teal-100/80 text-teal-800 px-3.5 py-2 rounded-full border border-teal-200/90 shadow-2xs transition">
@@ -86,7 +86,7 @@
                     </a>
                     <div class="inline-flex items-center gap-2 bg-sky-50/90 text-sky-900 px-3.5 py-2 rounded-full border border-sky-200/90 shadow-2xs">
                         <span class="material-symbols-outlined text-base text-sky-600">schedule</span>
-                        <span>Giờ khám: <b>Sáng (07:00 - 11:30)</b> • <b>Chiều/Tối (13:30 - 19:00)</b></span>
+                        <span>Giờ khám: <b>Sáng (07:00 - 11:30)</b> • <b>Chiều (13:00 - 16:30)</b> • <b>Đêm (16:30 - 07:00)</b></span>
                     </div>
                 </div>
 
@@ -103,7 +103,7 @@
                             TRUNG TÂM Y TẾ PHƯỜNG HẢI CHÂU
                         </h2>
                         <p class="text-xs sm:text-sm text-teal-700 font-semibold">
-                            Sở Y Tế TP. Đà Nẵng • Tiếp nhận Khám BHYT & Dịch vụ
+                            Sở Y Tế TP. Đà Nẵng • 12 Chuyên Khoa • Khám BHYT & Dịch vụ 24/7
                         </p>
                     </div>
                 </div>
@@ -114,7 +114,7 @@
                         Đặt Lịch Hẹn Khám Bệnh & Lấy Số Thứ Tự BHYT Trực Tuyến
                     </h1>
                     <p class="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl">
-                        Đăng ký trước tại nhà để <b class="text-teal-800">nhận ngay số thứ tự ưu tiên</b>, chủ động chọn <b class="text-teal-800">Chuyên khoa, Bác sĩ khám & Khung giờ hẹn</b>, không phải xếp hàng chờ đợi lâu tại quầy tiếp đón.
+                        Đăng ký trước tại nhà để <b class="text-teal-800">nhận ngay số thứ tự ưu tiên</b>, chủ động chọn <b class="text-teal-800">Chuyên khoa, Bác sĩ khám & Khung giờ hẹn 3 ca</b>, không phải xếp hàng chờ đợi lâu tại quầy tiếp đón.
                     </p>
                 </div>
 
@@ -167,10 +167,18 @@
                             <select id="bk-department" required onchange="onChangeBookingDepartment()"
                                     class="w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-bold text-teal-900 focus:border-teal-500 focus:ring-teal-500">
                                 <option value="">-- Chọn Khoa & Phòng --</option>
-                                <option value="Khoa Nội Tổng Quát (P102)" data-ma-khoa="KH001">Khoa Nội Tổng Quát (P102 - 45.000đ)</option>
-                                <option value="Khoa Tai - Mũi - Họng (P103)" data-ma-khoa="KH002">Khoa Tai - Mũi - Họng (P103 - 50.000đ)</option>
-                                <option value="Khoa Cơ - Xương - Khớp (P106)" data-ma-khoa="KH004">Khoa Cơ - Xương - Khớp (P106 - 50.000đ)</option>
-                                <option value="Khoa Chẩn Đoán Hình Ảnh (P201)" data-ma-khoa="KH003">Khoa Chẩn Đoán Hình Ảnh (P201)</option>
+                                <option value="Khoa Nội Tổng Quát (P102)" data-ma-khoa="KH001">Khoa Nội Tổng Quát (P102 - 50.000đ)</option>
+                                <option value="Khoa Tai - Mũi - Họng (P103)" data-ma-khoa="KH002">Khoa Tai - Mũi - Họng (P103 - 55.000đ)</option>
+                                <option value="Khoa Cận Lâm Sàng (P201)" data-ma-khoa="KH003">Khoa Cận Lâm Sàng (P201 - 50.000đ)</option>
+                                <option value="Khoa Cơ - Xương - Khớp (P106)" data-ma-khoa="KH004">Khoa Cơ - Xương - Khớp (P106 - 55.000đ)</option>
+                                <option value="Khoa Y Học Cổ Truyền & PHCN (P107)" data-ma-khoa="KH005">Khoa Y Học Cổ Truyền & PHCN (P107 - 50.000đ)</option>
+                                <option value="Khoa Ngoại Tổng Hợp (P108)" data-ma-khoa="KH006">Khoa Ngoại Tổng Hợp (P108 - 55.000đ)</option>
+                                <option value="Khoa Phụ Sản & KHHGĐ (P109)" data-ma-khoa="KH007">Khoa Phụ Sản & KHHGĐ (P109 - 55.000đ)</option>
+                                <option value="Khoa Nhi (P110)" data-ma-khoa="KH008">Khoa Nhi (P110 - 50.000đ)</option>
+                                <option value="Khoa Răng - Hàm - Mặt (P111)" data-ma-khoa="KH009">Khoa Răng - Hàm - Mặt (P111 - 55.000đ)</option>
+                                <option value="Khoa Mắt (P112)" data-ma-khoa="KH010">Khoa Mắt (P112 - 55.000đ)</option>
+                                <option value="Khoa Da Liễu & Truyền Nhiễm (P113)" data-ma-khoa="KH011">Khoa Da Liễu & Truyền Nhiễm (P113 - 50.000đ)</option>
+                                <option value="Khoa Cấp Cứu - Hồi Sức Tích Cực (P114)" data-ma-khoa="KH012">Khoa Cấp Cứu - Hồi Sức Tích Cực (P114 - 70.000đ)</option>
                             </select>
                         </div>
 
@@ -183,7 +191,7 @@
                         </div>
                     </div>
 
-                    <!-- Hàng 2: Ngày hẹn khám & Khung giờ khám -->
+                    <!-- Hàng 2: Ngày hẹn khám & Khung giờ khám (3 ca chuẩn) -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="font-semibold block mb-1 text-slate-700 text-xs">Ngày hẹn khám *</label>
@@ -192,8 +200,9 @@
                         <div>
                             <label class="font-semibold block mb-1 text-slate-700 text-xs">Khung giờ khám *</label>
                             <select id="bk-shift" required class="w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold focus:border-teal-500 focus:ring-teal-500">
-                                <option value="Ca Sáng (07:00 - 11:30)">Buổi Sáng (07:00 - 11:30)</option>
-                                <option value="Ca Tối (13:30 - 19:00)">Buổi Chiều/Tối (13:30 - 19:00)</option>
+                                <option value="Ca Sáng (07:00 - 11:30)">Ca Sáng (07:00 - 11:30)</option>
+                                <option value="Ca Chiều (13:00 - 16:30)">Ca Chiều (13:00 - 16:30)</option>
+                                <option value="Ca Đêm (16:30 - 07:00)">Ca Đêm / Trực Cấp cứu (16:30 - 07:00)</option>
                             </select>
                         </div>
                     </div>
@@ -234,7 +243,7 @@
                 <span class="text-teal-600 font-bold text-xs uppercase tracking-widest">UY TÍN Y TẾ TRUNG TÂM ĐÀ NẴNG</span>
                 <h2 class="font-heading text-2xl sm:text-3xl font-bold text-slate-800 mt-2">Giới Thiệu Trung Tâm Y Tế Phường Hải Châu</h2>
                 <p class="text-sm text-slate-500 mt-2.5 leading-relaxed">
-                    Đơn vị y tế cơ sở trọng điểm tại phường Hải Châu, TP. Đà Nẵng — Nâng tầm cơ sở vật chất và số hóa toàn diện quy trình khám chữa bệnh.
+                    Đơn vị y tế cơ sở trọng điểm tại phường Hải Châu, TP. Đà Nẵng — Nâng tầm cơ sở vật chất với 12 chuyên khoa và số hóa toàn diện quy trình khám chữa bệnh.
                 </p>
             </div>
 
@@ -244,7 +253,7 @@
                         <span class="material-symbols-outlined text-2xl">domain</span>
                     </div>
                     <h3 class="font-heading font-bold text-lg text-slate-800 mb-2.5">Giới thiệu về Trung tâm</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Cơ sở khám chữa bệnh BHYT ban đầu uy tín tại trung tâm Đà Nẵng, quản lý hồ sơ bệnh án điện tử khép kín từ tiếp đón đến cấp phát thuốc.</p>
+                    <p class="text-sm text-slate-600 leading-relaxed">Cơ sở khám chữa bệnh BHYT ban đầu uy tín tại trung tâm Đà Nẵng, vận hành 3 ca liên tục 24/7 và quản lý hồ sơ bệnh án điện tử khép kín.</p>
                 </div>
 
                 <div class="bg-slate-50/80 p-8 rounded-2xl border border-slate-200/70 card-shadow reveal-up delay-200">
@@ -260,7 +269,7 @@
                         <span class="material-symbols-outlined text-2xl">biotech</span>
                     </div>
                     <h3 class="font-heading font-bold text-lg text-slate-800 mb-2.5">Cơ sở vật chất & Thiết bị</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Trang bị máy Siêu âm màu 4D, X-Quang kỹ thuật số, xét nghiệm sinh hóa tự động trả ảnh kết quả trực tiếp lên hồ sơ bệnh án.</p>
+                    <p class="text-sm text-slate-600 leading-relaxed">Trang bị hệ thống Cộng hưởng từ MRI 1.5 Tesla, CT Scanner, Siêu âm màu 4D, X-Quang kỹ thuật số và xét nghiệm sinh hóa tự động.</p>
                 </div>
             </div>
         </div>
@@ -307,7 +316,7 @@
                         <span class="material-symbols-outlined">radiology</span>
                     </div>
                     <h3 class="font-bold text-base text-slate-800 mb-2">Xét nghiệm & Cận lâm sàng</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Thực hiện xét nghiệm máu, siêu âm Doppler, chụp X-Quang kỹ thuật số và lưu trữ đa hình ảnh kết quả CLS.</p>
+                    <p class="text-sm text-slate-600 leading-relaxed">Thực hiện 22 kỹ thuật Xét nghiệm, Siêu âm 4D/Doppler, X-Quang số, CT Scanner, MRI 1.5 Tesla và Nội soi.</p>
                 </div>
             </div>
         </div>
@@ -321,7 +330,7 @@
             <div class="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-4 reveal-up">
                 <div>
                     <span class="text-teal-600 font-bold text-xs uppercase tracking-widest">PHỤC VỤ NHÂN DÂN ĐÀ NẴNG</span>
-                    <h2 class="font-heading text-2xl sm:text-3xl font-bold text-slate-800 mt-2">Các Chuyên Khoa Phục Vụ Tại TTYT Hải Châu</h2>
+                    <h2 class="font-heading text-2xl sm:text-3xl font-bold text-slate-800 mt-2">12 Chuyên Khoa Phục Vụ Tại TTYT Hải Châu</h2>
                 </div>
                 <a href="#booking-box" class="inline-flex items-center gap-1.5 text-teal-600 font-bold text-sm hover:underline">
                     <span>Đặt lịch khám theo chuyên khoa</span>
@@ -332,16 +341,16 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-7">
                 <div class="bg-slate-50/80 rounded-2xl overflow-hidden border border-slate-200/70 card-shadow flex flex-col group reveal-zoom delay-100">
                     <div class="h-48 overflow-hidden relative">
-                        <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=80" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="Chẩn đoán hình ảnh"/>
-                        <span class="absolute top-3 left-3 bg-white/95 px-3 py-1 rounded-md text-xs font-bold text-teal-700 shadow-sm">Phòng P201</span>
+                        <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=80" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="Cận lâm sàng"/>
+                        <span class="absolute top-3 left-3 bg-white/95 px-3 py-1 rounded-md text-xs font-bold text-teal-700 shadow-sm">Phòng P201–P206</span>
                     </div>
                     <div class="p-6 flex-1 flex flex-col justify-between">
                         <div>
-                            <h3 class="font-bold text-base text-slate-800">Chẩn đoán hình ảnh & CLS</h3>
-                            <p class="text-sm text-slate-600 mt-2 leading-relaxed">Siêu âm 4D, chụp X-Quang kỹ thuật số, xét nghiệm huyết học và sinh hóa máu tự động.</p>
+                            <h3 class="font-bold text-base text-slate-800">Khoa Cận Lâm Sàng</h3>
+                            <p class="text-sm text-slate-600 mt-2 leading-relaxed">Xét nghiệm huyết học – sinh hóa, X-Quang số, Siêu âm 4D, CT Scanner, MRI 1.5 Tesla & Nội soi.</p>
                         </div>
                         <div class="mt-5 pt-3.5 border-t border-slate-200/60 flex items-center justify-between text-sm font-bold text-emerald-600">
-                            <span>Theo danh mục CLS</span>
+                            <span>Từ 50.000đ + CLS</span>
                             <a href="#booking-box" class="text-teal-600 text-xs hover:underline">Đăng ký →</a>
                         </div>
                     </div>
@@ -355,10 +364,10 @@
                     <div class="p-6 flex-1 flex flex-col justify-between">
                         <div>
                             <h3 class="font-bold text-base text-slate-800">Khoa Cơ - Xương - Khớp</h3>
-                            <p class="text-sm text-slate-600 mt-2 leading-relaxed">Khám thoái hóa khớp, cột sống, viêm khớp, đau thần kinh tọa và phục hồi chức năng.</p>
+                            <p class="text-sm text-slate-600 mt-2 leading-relaxed">Khám thoái hóa khớp, cột sống, viêm khớp, đau thần kinh tọa, gout và chấn thương vận động.</p>
                         </div>
                         <div class="mt-5 pt-3.5 border-t border-slate-200/60 flex items-center justify-between text-sm font-bold text-emerald-600">
-                            <span>Giá khám: 50.000đ</span>
+                            <span>Giá khám: 55.000đ</span>
                             <a href="#booking-box" class="text-teal-600 text-xs hover:underline">Đăng ký →</a>
                         </div>
                     </div>
@@ -375,7 +384,7 @@
                             <p class="text-sm text-slate-600 mt-2 leading-relaxed">Nội soi tai mũi họng, điều trị viêm xoang, viêm họng cấp, viêm amidan và viêm tai giữa.</p>
                         </div>
                         <div class="mt-5 pt-3.5 border-t border-slate-200/60 flex items-center justify-between text-sm font-bold text-emerald-600">
-                            <span>Giá khám: 50.000đ</span>
+                            <span>Giá khám: 55.000đ</span>
                             <a href="#booking-box" class="text-teal-600 text-xs hover:underline">Đăng ký →</a>
                         </div>
                     </div>
@@ -392,11 +401,47 @@
                             <p class="text-sm text-slate-600 mt-2 leading-relaxed">Khám tim mạch, quản lý tăng huyết áp, đái tháo đường, tiêu hóa và bệnh lý hô hấp.</p>
                         </div>
                         <div class="mt-5 pt-3.5 border-t border-slate-200/60 flex items-center justify-between text-sm font-bold text-emerald-600">
-                            <span>Giá khám: 45.000đ</span>
+                            <span>Giá khám: 50.000đ</span>
                             <a href="#booking-box" class="text-teal-600 text-xs hover:underline">Đăng ký →</a>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Danh mục nhanh 8 chuyên khoa còn lại tại TTYT Phường Hải Châu -->
+            <div class="mt-7 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs reveal-up">
+                <a href="#booking-box" class="p-3.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 transition">
+                    <div class="font-bold text-slate-800">YHCT & PHCN (P107)</div>
+                    <div class="text-emerald-700 font-semibold mt-0.5">50.000đ</div>
+                </a>
+                <a href="#booking-box" class="p-3.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 transition">
+                    <div class="font-bold text-slate-800">Ngoại Tổng Hợp (P108)</div>
+                    <div class="text-emerald-700 font-semibold mt-0.5">55.000đ</div>
+                </a>
+                <a href="#booking-box" class="p-3.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 transition">
+                    <div class="font-bold text-slate-800">Phụ Sản & KHHGĐ (P109)</div>
+                    <div class="text-emerald-700 font-semibold mt-0.5">55.000đ</div>
+                </a>
+                <a href="#booking-box" class="p-3.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 transition">
+                    <div class="font-bold text-slate-800">Khoa Nhi (P110)</div>
+                    <div class="text-emerald-700 font-semibold mt-0.5">50.000đ</div>
+                </a>
+                <a href="#booking-box" class="p-3.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 transition">
+                    <div class="font-bold text-slate-800">Răng - Hàm - Mặt (P111)</div>
+                    <div class="text-emerald-700 font-semibold mt-0.5">55.000đ</div>
+                </a>
+                <a href="#booking-box" class="p-3.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 transition">
+                    <div class="font-bold text-slate-800">Khoa Mắt (P112)</div>
+                    <div class="text-emerald-700 font-semibold mt-0.5">55.000đ</div>
+                </a>
+                <a href="#booking-box" class="p-3.5 rounded-xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200/80 transition">
+                    <div class="font-bold text-slate-800">Da Liễu & Truyền Nhiễm (P113)</div>
+                    <div class="text-emerald-700 font-semibold mt-0.5">50.000đ</div>
+                </a>
+                <a href="#booking-box" class="p-3.5 rounded-xl bg-rose-50/70 hover:bg-rose-100/70 border border-rose-200 transition">
+                    <div class="font-bold text-rose-800">Cấp Cứu 24/7 (P114)</div>
+                    <div class="text-rose-700 font-semibold mt-0.5">70.000đ</div>
+                </a>
             </div>
         </div>
     </section>
@@ -414,10 +459,10 @@
                 </div>
                 <div class="flex flex-wrap gap-2 text-sm">
                     <button onclick="filterDoctorsByDept('ALL')" class="px-4 py-2 rounded-full bg-teal-600 text-white font-semibold shadow-sm">Tất cả</button>
-                    <button onclick="filterDoctorsByDept('CDHA')" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-teal-500 shadow-sm">Chẩn đoán hình ảnh</button>
-                    <button onclick="filterDoctorsByDept('CXK')" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-teal-500 shadow-sm">Cơ - Xương - Khớp</button>
-                    <button onclick="filterDoctorsByDept('TMH')" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-teal-500 shadow-sm">Tai - Mũi - Họng</button>
                     <button onclick="filterDoctorsByDept('NOI')" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-teal-500 shadow-sm">Nội Tổng Quát</button>
+                    <button onclick="filterDoctorsByDept('YHCT')" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-teal-500 shadow-sm">YHCT & PHCN</button>
+                    <button onclick="filterDoctorsByDept('TMH')" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-teal-500 shadow-sm">Tai - Mũi - Họng</button>
+                    <button onclick="filterDoctorsByDept('CXK')" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-teal-500 shadow-sm">Cơ - Xương - Khớp</button>
                 </div>
             </div>
 
@@ -426,14 +471,14 @@
                     <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=300&q=80" class="w-24 h-24 rounded-full mx-auto object-cover ring-4 ring-teal-500/15 mb-4" alt="BS Hưng"/>
                     <span class="inline-block text-xs font-bold text-teal-700 bg-teal-50 px-3 py-1 rounded-full">Khoa Nội - Phòng P102</span>
                     <h3 class="font-bold text-base text-slate-800 mt-3">BS.CKI Nguyễn Văn Hưng</h3>
-                    <p class="text-xs text-slate-500 mt-1">Trưởng khoa Khám • 22 năm kinh nghiệm</p>
+                    <p class="text-xs text-slate-500 mt-1">Trưởng khoa Nội • 22 năm kinh nghiệm</p>
                 </div>
 
-                <div class="doctor-item-card bg-white p-7 rounded-2xl border border-slate-200/70 card-shadow text-center hover:-translate-y-1 transition duration-300 reveal-up delay-200" data-dept="CDHA">
+                <div class="doctor-item-card bg-white p-7 rounded-2xl border border-slate-200/70 card-shadow text-center hover:-translate-y-1 transition duration-300 reveal-up delay-200" data-dept="YHCT">
                     <img src="https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=300&q=80" class="w-24 h-24 rounded-full mx-auto object-cover ring-4 ring-teal-500/15 mb-4" alt="BS Duyên"/>
-                    <span class="inline-block text-xs font-bold text-teal-700 bg-teal-50 px-3 py-1 rounded-full">Chẩn đoán hình ảnh - P201</span>
-                    <h3 class="font-bold text-base text-slate-800 mt-3">BS.CKII Phan Thị Mỹ Duyên</h3>
-                    <p class="text-xs text-slate-500 mt-1">Phụ trách CĐHA & Siêu âm 4D</p>
+                    <span class="inline-block text-xs font-bold text-teal-700 bg-teal-50 px-3 py-1 rounded-full">YHCT & PHCN - Phòng P107</span>
+                    <h3 class="font-bold text-base text-slate-800 mt-3">BS.CKI Phan Thị Mỹ Duyên</h3>
+                    <p class="text-xs text-slate-500 mt-1">Chuyên khoa Y Học Cổ Truyền & PHCN</p>
                 </div>
 
                 <div class="doctor-item-card bg-white p-7 rounded-2xl border border-slate-200/70 card-shadow text-center hover:-translate-y-1 transition duration-300 reveal-up delay-300" data-dept="TMH">
@@ -447,7 +492,7 @@
                     <img src="https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=300&q=80" class="w-24 h-24 rounded-full mx-auto object-cover ring-4 ring-teal-500/15 mb-4" alt="BS Sơn"/>
                     <span class="inline-block text-xs font-bold text-teal-700 bg-teal-50 px-3 py-1 rounded-full">Cơ - Xương - Khớp - P106</span>
                     <h3 class="font-bold text-base text-slate-800 mt-3">BS.CKI Trần Ngọc Sơn</h3>
-                    <p class="text-xs text-slate-500 mt-1">Nội Cơ Xương Khớp & Phục hồi chức năng</p>
+                    <p class="text-xs text-slate-500 mt-1">Nội Cơ Xương Khớp & Chấn thương vận động</p>
                 </div>
             </div>
         </div>
@@ -489,7 +534,7 @@
                     <div class="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg mb-5">03</div>
                     <h3 class="font-heading font-bold text-base text-slate-800 mb-2.5">Khám lâm sàng & CĐHA</h3>
                     <p class="text-sm text-slate-600 leading-relaxed">
-                        Bác sĩ khám theo chuyên khoa, chỉ định cận lâm sàng (siêu âm, xét nghiệm máu, chụp phim nếu có) trực tiếp tại chỗ.
+                        Bác sĩ khám theo chuyên khoa, chỉ định cận lâm sàng (siêu âm, xét nghiệm, X-Quang, CT, MRI nếu có) trực tiếp tại chỗ.
                     </p>
                 </div>
 
@@ -543,7 +588,7 @@
                     <div class="p-6 flex-1 flex flex-col justify-between">
                         <div>
                             <div class="flex items-center gap-2 text-xs text-slate-500 mb-2.5">
-                                <span>Tháng 10, 2026</span>
+                                <span>Tháng 11, 2026</span>
                                 <span>•</span>
                                 <span class="text-teal-600 font-semibold">Tiêm chủng mở rộng</span>
                             </div>
@@ -568,7 +613,7 @@
                     <div class="p-6 flex-1 flex flex-col justify-between">
                         <div>
                             <div class="flex items-center gap-2 text-xs text-slate-500 mb-2.5">
-                                <span>Tháng 10, 2026</span>
+                                <span>Tháng 11, 2026</span>
                                 <span>•</span>
                                 <span class="text-sky-600 font-semibold">Chăm sóc người cao tuổi</span>
                             </div>
@@ -593,7 +638,7 @@
                     <div class="p-6 flex-1 flex flex-col justify-between">
                         <div>
                             <div class="flex items-center gap-2 text-xs text-slate-500 mb-2.5">
-                                <span>Tháng 10, 2026</span>
+                                <span>Tháng 11, 2026</span>
                                 <span>•</span>
                                 <span class="text-emerald-600 font-semibold">Chuyển đổi số</span>
                             </div>
@@ -747,7 +792,7 @@
                             </tr>
                             <tr>
                                 <th class="py-2.5 px-3.5 font-semibold text-slate-600">Ngày & Giờ hẹn</th>
-                                <td id="bsm-thoi-gian" class="py-2.5 px-3.5 font-semibold text-slate-800">2026-11-14 • Ca Sáng (07:00 - 11:30)</td>
+                                <td id="bsm-thoi-gian" class="py-2.5 px-3.5 font-semibold text-slate-800">2026-11-20 • Ca Sáng (07:00 - 11:30)</td>
                             </tr>
                             <tr>
                                 <th class="py-2.5 px-3.5 font-semibold text-slate-600">Triệu chứng</th>

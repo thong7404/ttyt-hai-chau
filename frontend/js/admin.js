@@ -300,7 +300,7 @@ function renderDepartmentsAndRooms() {
                 <p class="text-emerald-700 font-bold mt-0.5">Giá khám: ${Number(d.gia_kham).toLocaleString("vi-VN")}đ</p>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick='fillDeptForm(${JSON.stringify(d)})' class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-primary font-bold text-xs">
+                <button type="button" onclick="editDepartmentById('${d.ma_khoa}')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-primary font-bold text-xs">
                     Sửa
                 </button>
                 <button type="button" onclick="deleteDepartment('${d.ma_khoa}')" class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 font-bold text-xs transition">
@@ -321,11 +321,16 @@ function renderDepartmentsAndRooms() {
             <td class="p-3">${r.ten_khoa || "-"}</td>
             <td class="p-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[11px]">${r.loai_phong}</span></td>
             <td class="p-3 text-right whitespace-nowrap space-x-1">
-                <button type="button" onclick='fillRoomForm(${JSON.stringify(r)})' class="px-2.5 py-1 rounded bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white font-bold transition">Sửa</button>
+                <button type="button" onclick="editRoomById('${r.ma_phong}')" class="px-2.5 py-1 rounded bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white font-bold transition">Sửa</button>
                 <button type="button" onclick="deleteRoom('${r.ma_phong}')" class="px-2.5 py-1 rounded bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold transition">Xóa</button>
             </td>
         </tr>
     `).join("");
+}
+
+function editDepartmentById(maKhoa) {
+    const d = (cachedAdminData?.departments || []).find(item => String(item.ma_khoa) === String(maKhoa));
+    if (d) fillDeptForm(d);
 }
 
 function fillDeptForm(d) {
@@ -368,6 +373,11 @@ async function deleteDepartment(id) {
     const data = await res.json();
     alert(data.message || "Đã xóa Chuyên khoa!");
     await loadAdminOverviewData();
+}
+
+function editRoomById(maPhong) {
+    const r = (cachedAdminData?.rooms || []).find(item => String(item.ma_phong) === String(maPhong));
+    if (r) fillRoomForm(r);
 }
 
 function fillRoomForm(r) {
@@ -429,7 +439,7 @@ function renderCatalogsSection() {
             <td class="p-2.5 font-bold text-emerald-700">${Number(m.don_gia_thuoc).toLocaleString("vi-VN")}đ</td>
             <td class="p-2.5 font-bold">${m.so_luong_ton_kho}</td>
             <td class="p-2.5 text-right whitespace-nowrap space-x-1">
-                <button type="button" onclick='fillMedForm(${JSON.stringify(m)})' class="px-2.5 py-1 rounded bg-sky-50 hover:bg-teal-600 text-primary hover:text-white font-bold transition">Sửa</button>
+                <button type="button" onclick="editMedById('${m.ma_thuoc}')" class="px-2.5 py-1 rounded bg-sky-50 hover:bg-teal-600 text-primary hover:text-white font-bold transition">Sửa</button>
                 <button type="button" onclick="deleteMedicine('${m.ma_thuoc}')" class="px-2.5 py-1 rounded bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold transition">Xóa</button>
             </td>
         </tr>
@@ -444,7 +454,7 @@ function renderCatalogsSection() {
                 <p class="text-indigo-700 font-bold mt-0.5">Đơn giá: ${Number(c.don_gia_cls).toLocaleString("vi-VN")}đ • Phòng ${c.so_phong || "P201"}</p>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick='fillClsServiceForm(${JSON.stringify(c)})' class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-sky-600 font-bold text-xs">
+                <button type="button" onclick="editClsServiceById('${c.ma_dich_vu_cls}')" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-sky-600 font-bold text-xs">
                     Sửa
                 </button>
                 <button type="button" onclick="deleteClsService('${c.ma_dich_vu_cls}')" class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 font-bold text-xs transition">
@@ -453,6 +463,11 @@ function renderCatalogsSection() {
             </div>
         </div>
     `).join("");
+}
+
+function editMedById(maThuoc) {
+    const m = (cachedAdminData?.medicines || []).find(item => String(item.ma_thuoc) === String(maThuoc));
+    if (m) fillMedForm(m);
 }
 
 function fillMedForm(m) {
@@ -499,6 +514,11 @@ async function deleteMedicine(id) {
     const data = await res.json();
     alert(data.message || "Đã xóa thuốc!");
     await loadAdminOverviewData();
+}
+
+function editClsServiceById(maDv) {
+    const c = (cachedAdminData?.cls_services || []).find(item => String(item.ma_dich_vu_cls) === String(maDv));
+    if (c) fillClsServiceForm(c);
 }
 
 function fillClsServiceForm(c) {

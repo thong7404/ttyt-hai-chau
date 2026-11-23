@@ -50,7 +50,7 @@
     <!-- THANH SIDEBAR TÔNG MÀU XANH MINT DỊU NHẸ, DỄ NHÌN                         -->
     <!-- ========================================================================= -->
     <aside class="w-72 bg-slate-900 text-slate-700 flex flex-col h-full border-r border-teal-200/80 shrink-0 select-none">
-        
+
         <!-- Logo & Tên Trung tâm -->
         <div class="p-5 border-b border-teal-200/70 flex items-center gap-3 bg-white/80">
             <img src="../img/logo3.jpg" alt="Logo TTYT Hải Châu" class="w-11 h-11 rounded-xl object-contain bg-white p-0.5 border border-teal-200 shadow-xs shrink-0"/>
@@ -149,9 +149,7 @@
             <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
                 <div>
                     <h2 class="font-heading text-2xl font-extrabold text-slate-800">Tổng Quan Hoạt Động Trung Tâm Y Tế</h2>
-                    
                 </div>
-                
             </div>
 
             <!-- 6 Thẻ KPI Thống kê -->
@@ -160,7 +158,6 @@
                     <div>
                         <span class="text-xs font-bold text-slate-500 uppercase">Tổng Hồ sơ Bệnh nhân</span>
                         <div id="stat-total-patients" class="font-heading text-3xl font-extrabold text-teal-600 mt-1">0</div>
-                        
                     </div>
                     <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center">
                         <span class="material-symbols-outlined text-2xl">personal_injury</span>
@@ -171,7 +168,6 @@
                     <div>
                         <span class="text-xs font-bold text-slate-500 uppercase">Đội ngũ Y Bác sĩ & Nhân sự</span>
                         <div id="stat-total-staff" class="font-heading text-3xl font-extrabold text-sky-600 mt-1">0</div>
-                        
                     </div>
                     <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
                         <span class="material-symbols-outlined text-2xl">medical_information</span>
@@ -182,7 +178,6 @@
                     <div>
                         <span class="text-xs font-bold text-slate-500 uppercase">Tổng Hồ sơ Bệnh án</span>
                         <div id="stat-total-records" class="font-heading text-3xl font-extrabold text-emerald-600 mt-1">0</div>
-                        
                     </div>
                     <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                         <span class="material-symbols-outlined text-2xl">folder_shared</span>
@@ -193,7 +188,6 @@
                     <div>
                         <span class="text-xs font-bold text-slate-500 uppercase">Lịch hẹn Khám trực tuyến</span>
                         <div id="stat-total-bookings" class="font-heading text-3xl font-extrabold text-amber-600 mt-1">0</div>
-                        
                     </div>
                     <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
                         <span class="material-symbols-outlined text-2xl">event_available</span>
@@ -204,7 +198,6 @@
                     <div>
                         <span class="text-xs font-bold text-slate-500 uppercase">Tổng Thu Viện phí (Đã thu)</span>
                         <div id="stat-total-revenue" class="font-heading text-2xl font-extrabold text-rose-500 mt-1">0đ</div>
-                        
                     </div>
                     <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center">
                         <span class="material-symbols-outlined text-2xl">payments</span>
@@ -215,7 +208,6 @@
                     <div>
                         <span class="text-xs font-bold text-slate-500 uppercase">Phiên Tư vấn Trợ lý AI</span>
                         <div id="stat-total-ai" class="font-heading text-3xl font-extrabold text-indigo-600 mt-1">0</div>
-                        
                     </div>
                     <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                         <span class="material-symbols-outlined text-2xl">smart_toy</span>
@@ -252,7 +244,6 @@
             <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
                 <div>
                     <h2 class="font-heading text-2xl font-extrabold text-slate-800">Quản Lý Nhân Sự & Tài Khoản Hệ Thống</h2>
-                    
                 </div>
                 <button type="button" onclick="openUserModal()" class="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs">
                     <span class="material-symbols-outlined text-base">person_add</span>
@@ -262,15 +253,15 @@
 
             <div class="bg-white p-4 rounded-2xl border border-slate-200 card-shadow flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-3 flex-1">
-                    <input id="admin-user-search" type="text" oninput="renderUsersTable()" placeholder="Tìm theo mã, họ tên, VNeID, email, số điện thoại..." class="h-10 w-80 px-3.5 rounded-xl border-slate-300 text-xs"/>
+                    <input id="admin-user-search" type="text" oninput="renderUsersTable()" placeholder="Tìm theo mã NV/BN, họ tên, VNeID, email, số điện thoại..." class="h-10 w-80 px-3.5 rounded-xl border-slate-300 text-xs"/>
                     <select id="admin-user-role-filter" onchange="renderUsersTable()" class="h-10 px-3 rounded-xl border-slate-300 text-xs font-bold">
                         <option value="ALL">-- Tất cả vai trò --</option>
-                        <option value="BacSi">Bác sĩ </option>
-                        <option value="NVYT">Nhân viên y tế / ĐD / KTV </option>
-                        <option value="KeToan">Kế toán viện phí </option>
-                        <option value="DuocSi">Dược sĩ </option>
-                        <option value="QuanTri">Quản trị viên </option>
-                        <option value="BenhNhan">Bệnh nhân </option>
+                        <option value="BacSi">Bác sĩ</option>
+                        <option value="NVYT">Nhân viên y tế / ĐD / KTV</option>
+                        <option value="KeToan">Kế toán viện phí</option>
+                        <option value="DuocSi">Dược sĩ</option>
+                        <option value="QuanTri">Quản trị viên</option>
+                        <option value="BenhNhan">Bệnh nhân</option>
                     </select>
                 </div>
             </div>
@@ -300,17 +291,16 @@
         <section id="admin-sec-departments" class="hidden space-y-6">
             <div class="border-b border-slate-200 pb-4">
                 <h2 class="font-heading text-2xl font-extrabold text-slate-800">Quản Lý Chuyên Khoa & Phòng Chức Năng</h2>
-                
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 <div class="lg:col-span-5 bg-white rounded-2xl p-5 border border-slate-200 card-shadow space-y-4">
-                    <h3 class="font-heading font-bold text-base text-teal-700">1. Danh Sách Chuyên Khoa </h3>
+                    <h3 class="font-heading font-bold text-base text-teal-700">1. Danh Sách Chuyên Khoa</h3>
                     <form id="admin-dept-form" onsubmit="submitSaveDepartment(event)" class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div>
-                                <label class="font-bold block mb-1">Mã Khoa </label>
-                                <input id="dept-id" type="text" placeholder="KH001" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-mono font-bold text-teal-700"/>
+                                <label class="font-bold block mb-1">Mã Khoa</label>
+                                <input id="dept-id" type="text" placeholder="Để trống tự sinh (KH013)" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-mono font-bold text-teal-700"/>
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="font-bold block mb-1">Tên Chuyên khoa *</label>
@@ -320,7 +310,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div>
                                 <label class="font-bold block mb-1">Giá khám *</label>
-                                <input id="dept-price" type="number" required placeholder="45000" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-bold text-emerald-700"/>
+                                <input id="dept-price" type="number" required placeholder="50000" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-bold text-emerald-700"/>
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="font-bold block mb-1">Mô tả chuyên môn</label>
@@ -333,16 +323,16 @@
                         </div>
                     </form>
 
-                    <div id="admin-departments-list" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1"></div>
+                    <div id="admin-departments-list" class="space-y-2.5 max-h-[460px] overflow-y-auto pr-1"></div>
                 </div>
 
                 <div class="lg:col-span-7 bg-white rounded-2xl p-5 border border-slate-200 card-shadow space-y-4">
-                    <h3 class="font-heading font-bold text-base text-sky-700">2. Danh Sách Phòng Chức Năng </h3>
+                    <h3 class="font-heading font-bold text-base text-sky-700">2. Danh Sách Phòng Chức Năng</h3>
                     <form id="admin-room-form" onsubmit="submitSaveRoom(event)" class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
                         <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
                             <div>
-                                <label class="font-bold block mb-1">Mã Phòng </label>
-                                <input id="room-id" type="text" placeholder="PH001" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-mono font-bold text-sky-700"/>
+                                <label class="font-bold block mb-1">Mã Phòng</label>
+                                <input id="room-id" type="text" placeholder="Để trống (PH021)" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-mono font-bold text-sky-700"/>
                             </div>
                             <div>
                                 <label class="font-bold block mb-1">Số phòng *</label>
@@ -373,10 +363,10 @@
                         </div>
                     </form>
 
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto max-h-[460px] overflow-y-auto">
                         <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                            <thead class="sticky top-0 bg-slate-100 z-10">
+                                <tr class="text-slate-700 uppercase font-bold border-b border-slate-200">
                                     <th class="p-3">Số phòng / Mã</th>
                                     <th class="p-3">Tên phòng</th>
                                     <th class="p-3">Chuyên khoa</th>
@@ -395,7 +385,6 @@
         <section id="admin-sec-catalogs" class="hidden space-y-6">
             <div class="border-b border-slate-200 pb-4">
                 <h2 class="font-heading text-2xl font-extrabold text-slate-800">Quản Lý Kho Thuốc BHYT & Dịch Vụ Cận Lâm Sàng</h2>
-                
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -404,8 +393,8 @@
                     <form id="admin-med-form" onsubmit="submitSaveMedicine(event)" class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div>
-                                <label class="font-bold block mb-1">Mã Thuốc </label>
-                                <input id="med-id" type="text" placeholder="TH001" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-mono font-bold text-teal-700"/>
+                                <label class="font-bold block mb-1">Mã Thuốc</label>
+                                <input id="med-id" type="text" placeholder="Để trống (TH026)" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-mono font-bold text-teal-700"/>
                             </div>
                             <div>
                                 <label class="font-bold block mb-1">Tên thuốc & Hàm lượng *</label>
@@ -436,10 +425,10 @@
                         </div>
                     </form>
 
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto max-h-[460px] overflow-y-auto">
                         <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                            <thead class="sticky top-0 bg-slate-100 z-10">
+                                <tr class="text-slate-700 uppercase font-bold border-b border-slate-200">
                                     <th class="p-2.5">Mã</th>
                                     <th class="p-2.5">Tên thuốc</th>
                                     <th class="p-2.5">ĐVT</th>
@@ -454,21 +443,21 @@
                 </div>
 
                 <div class="lg:col-span-5 bg-white rounded-2xl p-5 border border-slate-200 card-shadow space-y-4">
-                    <h3 class="font-heading font-bold text-base text-sky-700">2. Dịch Vụ Cận Lâm Sàng </h3>
+                    <h3 class="font-heading font-bold text-base text-sky-700">2. Dịch Vụ Cận Lâm Sàng</h3>
                     <form id="admin-cls-form" onsubmit="submitSaveClsService(event)" class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <div>
-                                <label class="font-bold block mb-1">Mã DV CLS </label>
-                                <input id="cls-srv-id" type="text" placeholder="DVCLS001" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-mono font-bold text-sky-700"/>
+                                <label class="font-bold block mb-1">Mã DV CLS</label>
+                                <input id="cls-srv-id" type="text" placeholder="Để trống (DVCLS023)" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-mono font-bold text-sky-700"/>
                             </div>
                             <div>
                                 <label class="font-bold block mb-1">Đơn giá *</label>
-                                <input id="cls-srv-price" type="number" required placeholder="65000" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-bold text-sky-700"/>
+                                <input id="cls-srv-price" type="number" required placeholder="85000" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-bold text-sky-700"/>
                             </div>
                         </div>
                         <div>
                             <label class="font-bold block mb-1">Tên dịch vụ Cận lâm sàng *</label>
-                            <input id="cls-srv-name" type="text" required placeholder="Chụp X-Quang Tim Phổi Thẳng" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-bold"/>
+                            <input id="cls-srv-name" type="text" required placeholder="Chụp X-Quang Tim Phổi Thẳng Kỹ Thuật Số" class="w-full h-9 px-2.5 rounded-lg border-slate-300 text-xs font-bold"/>
                         </div>
                         <div class="flex gap-2">
                             <button type="submit" class="flex-1 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold">Lưu Dịch Vụ CLS</button>
@@ -476,7 +465,7 @@
                         </div>
                     </form>
 
-                    <div id="admin-cls-services-list" class="space-y-2.5"></div>
+                    <div id="admin-cls-services-list" class="space-y-2.5 max-h-[460px] overflow-y-auto pr-1"></div>
                 </div>
             </div>
         </section>
@@ -485,7 +474,6 @@
         <section id="admin-sec-records" class="hidden space-y-6">
             <div class="border-b border-slate-200 pb-4">
                 <h2 class="font-heading text-2xl font-extrabold text-slate-800">Giám Sát Hồ Sơ Bệnh Án & Hóa Đơn Viện Phí</h2>
-                
             </div>
 
             <div class="bg-white rounded-2xl border border-slate-200 card-shadow overflow-hidden">
@@ -522,12 +510,12 @@
             <form id="admin-user-form" onsubmit="submitSaveUser(event)" class="space-y-3.5 text-xs">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-teal-50/60 border border-teal-200/80">
                     <div>
-                        <label class="font-bold text-teal-900 block mb-1">Mã Tài khoản (`ma_nguoi_dung`)</label>
-                        <input id="usr-id" type="text" placeholder="Tự nhập (VD: ND016) hoặc để trống" class="w-full h-9 px-3 rounded-lg border-slate-300 text-xs font-mono font-bold text-teal-700 bg-white"/>
+                        <label class="font-bold text-teal-900 block mb-1">Mã Tài khoản</label>
+                        <input id="usr-id" type="text" placeholder="Để trống tự sinh (VD: ND057)" class="w-full h-9 px-3 rounded-lg border-slate-300 text-xs font-mono font-bold text-teal-700 bg-white"/>
                     </div>
                     <div>
-                        <label class="font-bold text-teal-900 block mb-1">Mã Nhân sự / BN (`ma_nhan_vien`)</label>
-                        <input id="usr-staff-id" type="text" placeholder="Tự nhập (VD: NV009) hoặc để trống" class="w-full h-9 px-3 rounded-lg border-slate-300 text-xs font-mono font-bold text-sky-700 bg-white"/>
+                        <label class="font-bold text-teal-900 block mb-1">Mã Nhân sự / Bệnh nhân</label>
+                        <input id="usr-staff-id" type="text" placeholder="Để trống tự sinh NV/BN theo ngày" class="w-full h-9 px-3 rounded-lg border-slate-300 text-xs font-mono font-bold text-sky-700 bg-white"/>
                     </div>
                 </div>
 
@@ -538,7 +526,7 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                        <label class="font-bold text-slate-700 block mb-1">Số định danh VNeID (`vneid`)</label>
+                        <label class="font-bold text-slate-700 block mb-1">Số định danh VNeID</label>
                         <input id="usr-vneid" type="text" placeholder="04820000xxxx" class="w-full h-10 px-3 rounded-xl border-slate-300 text-xs font-mono font-bold text-teal-700"/>
                     </div>
                     <div>
