@@ -222,7 +222,7 @@ async function handleChangePassword(event) {
 }
 
 /**
- * Hàm kiểm tra xem Ngày hẹn và Khung giờ hẹn đã qua thời điểm hiện tại hay chưa
+ * Hàm kiểm tra xem Ngày hẹn và Khung giờ hẹn (3 ca: Sáng / Chiều / Đêm) đã qua thời điểm hiện tại hay chưa
  */
 function checkIsAppointmentExpired(ngayHen, khungGio) {
     if (!ngayHen) return false;
@@ -231,19 +231,32 @@ function checkIsAppointmentExpired(ngayHen, khungGio) {
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const day = String(now.getDate()).padStart(2, "0");
     const todayStr = `${year}-${month}-${day}`;
+    const currentHm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+
+    const shiftText = String(khungGio || "");
+    const isNightShift = shiftText.toLowerCase().includes("đêm") || /-\s*07:00/.test(shiftText);
+
+    if (isNightShift) {
+        const nextDateObj = new Date(ngayHen + "T00:00:00");
+        nextDateObj.setDate(nextDateObj.getDate() + 1);
+        const ny = nextDateObj.getFullYear();
+        const nm = String(nextDateObj.getMonth() + 1).padStart(2, "0");
+        const nd = String(nextDateObj.getDate()).padStart(2, "0");
+        const nextDayStr = `${ny}-${nm}-${nd}`;
+        return (todayStr > nextDayStr) || (todayStr === nextDayStr && currentHm > "07:00");
+    }
 
     if (ngayHen < todayStr) return true;
     if (ngayHen > todayStr) return false;
 
-    const currentHm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
-    let endTime = "17:00";
-    const match = String(khungGio || "").match(/-\s*(\d{2}:\d{2})/);
+    let endTime = "16:30";
+    const match = shiftText.match(/-\s*(\d{2}:\d{2})/);
     if (match) {
         endTime = match[1];
-    } else if (String(khungGio).toLowerCase().includes("sáng")) {
+    } else if (shiftText.toLowerCase().includes("sáng")) {
         endTime = "11:30";
-    } else {
-        endTime = "19:00";
+    } else if (shiftText.toLowerCase().includes("chiều")) {
+        endTime = "16:30";
     }
 
     return currentHm > endTime;
@@ -286,7 +299,7 @@ async function loadPatientPortalDataFromMySql(maNguoiDung) {
                 return {
                     ma_lich_hen: a.ma_lich_hen,
                     ma_lich_lam: a.ma_lich_lam,
-                    chuyen_khoa: `${a.ten_khoa || "Chuyên khoa"} • Phòng ${a.so_phong || "P102"} (${Number(a.gia_kham || 45000).toLocaleString("vi-VN")}đ)`,
+                    chuyen_khoa: `${a.ten_khoa || "Chuyên khoa"} • Phòng ${a.so_phong || "P102"} (${Number(a.gia_kham || 50000).toLocaleString("vi-VN")}đ)`,
                     ngay_hen: a.ngay_hen_kham,
                     ca_kham: a.khung_gio_hen,
                     trieu_chung: a.trieu_chung_ban_dau || "Khám theo lịch hẹn",
@@ -325,7 +338,6 @@ function filterPatientMedicalRecords() {
     const sortOrder = document.getElementById("rec-sort-date")?.value || "DESC";
 
     const filtered = (cachedMedicalRecords || []).filter(rec => {
-        // Kiểm tra xem hồ sơ còn dịch vụ CLS nào chưa có kết quả không
         const clsList = rec.cls_results || [];
         const hasPendingCls = clsList.some(
             c => c.trang_thai_thuc_hien !== "DaCoKetQua" || !c.ket_qua_cls || String(c.ket_qua_cls).trim() === ""
@@ -409,7 +421,7 @@ function renderMedicalRecordsFromMySql(records) {
         ChoKhamBS: { label: "Đang chờ Bác sĩ khám", cls: "bg-sky-100 text-sky-800" },
         ChoBSKham: { label: "Đang chờ Bác sĩ khám", cls: "bg-sky-100 text-sky-800" },
         ChoThuTienCLS: { label: "Chờ nộp phí Cận lâm sàng (P104)", cls: "bg-amber-100 text-amber-800" },
-        ChoLamCLS: { label: "Đang làm Cận lâm sàng (P201)", cls: "bg-indigo-100 text-indigo-800" },
+        ChoLamCLS: { label: "Đang làm Cận lâm sàng", cls: "bg-indigo-100 text-indigo-800" },
         ChoBSDocCLS: { label: "Đã có KQ CLS • Chờ Bác sĩ đọc", cls: "bg-purple-100 text-purple-800" },
         HoanTat: { label: "Đã hoàn tất khám", cls: "bg-emerald-100 text-emerald-800" }
     };
@@ -431,7 +443,7 @@ function renderMedicalRecordsFromMySql(records) {
         const clsHtml = clsList.map(c => `
             <div class="mt-2.5 p-3 rounded-lg bg-indigo-50/70 border border-indigo-200 text-xs">
                 <b class="text-indigo-900">Dịch vụ Cận lâm sàng (#${c.ma_chi_dinh_cls}): ${c.ten_dich_vu_cls}</b>
-                <p class="text-slate-700 mt-1"><b>Kết quả:</b> ${c.ket_qua_cls || "<span class='text-amber-700 font-semibold italic'>Đang chờ kết quả từ Phòng P201</span>"}</p>
+                <p class="text-slate-700 mt-1"><b>Kết quả:</b> ${c.ket_qua_cls || "<span class='text-amber-700 font-semibold italic'>Đang chờ kết quả từ Phòng Cận lâm sàng</span>"}</p>
                 ${c.ai_phan_tich_cls ? `<p class="text-indigo-800 mt-0.5"><b>Nhận định CLS:</b> ${c.ai_phan_tich_cls}</p>` : ""}
                 ${c.images && c.images.length > 0 ? `
                     <div class="flex gap-2 mt-2 overflow-x-auto">

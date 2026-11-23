@@ -360,7 +360,11 @@ function showRegisterSuccessModal(user) {
         sessionStorage.setItem("last_registered_email", user.email);
     }
 
-    const maBenhNhan = (user && user.ma_benh_nhan) ? `#${user.ma_benh_nhan}` : "#BN008";
+    const now = new Date();
+    const ymd = String(now.getFullYear()).slice(-2) +
+        String(now.getMonth() + 1).padStart(2, "0") +
+        String(now.getDate()).padStart(2, "0");
+    const maBenhNhan = (user && user.ma_benh_nhan) ? `#${user.ma_benh_nhan}` : `#BN${ymd}01`;
     const hoTen = (user && user.ho_ten) ? user.ho_ten : "Bệnh nhân";
     const email = (user && user.email) ? user.email : "";
 

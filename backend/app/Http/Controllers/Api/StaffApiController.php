@@ -44,7 +44,30 @@ class StaffApiController extends Controller
         return $prefix . str_pad((string) ($maxNum + 1), $padLength, '0', STR_PAD_LEFT);
     }
 
-    private function resolveMaNhanVien($idOrUserId, $default = 'NV002')
+    /**
+     * Sinh mã theo ngày hiện tại: BN{YYMMDD}{XX} hoặc NV{YYMMDD}{XX}
+     */
+    private function generateDateBasedCode(string $table, string $pkCol, string $prefix): string
+    {
+        $datePart = Carbon::now('Asia/Ho_Chi_Minh')->format('ymd');
+        $fullPrefix = $prefix . $datePart;
+
+        $codes = DB::table($table)
+            ->where($pkCol, 'like', $fullPrefix . '%')
+            ->pluck($pkCol);
+
+        $maxSeq = 0;
+        foreach ($codes as $code) {
+            $seq = (int) substr((string) $code, strlen($fullPrefix));
+            if ($seq > $maxSeq) {
+                $maxSeq = $seq;
+            }
+        }
+
+        return $fullPrefix . str_pad((string) ($maxSeq + 1), 2, '0', STR_PAD_LEFT);
+    }
+
+    private function resolveMaNhanVien($idOrUserId, $default = 'NV26112002')
     {
         if (!$idOrUserId) {
             return DB::table('NHAN_VIEN')->value('ma_nhan_vien') ?: $default;
@@ -264,7 +287,7 @@ class StaffApiController extends Controller
                     'ngay_tao'      => Carbon::now('Asia/Ho_Chi_Minh')
                 ]));
 
-                $maBenhNhan = $this->generateNextCode('BENH_NHAN', 'ma_benh_nhan', 'BN', 3);
+                $maBenhNhan = $this->generateDateBasedCode('BENH_NHAN', 'ma_benh_nhan', 'BN');
                 DB::table('BENH_NHAN')->insert($this->filterValidColumns('BENH_NHAN', [
                     'ma_benh_nhan'            => $maBenhNhan,
                     'ma_nguoi_dung'           => $newUserId,
@@ -295,13 +318,13 @@ class StaffApiController extends Controller
                     ->where('ma_khoa', $maKhoa)
                     ->where('chuc_vu', 'BacSi')
                     ->first() ?? DB::table('NHAN_VIEN')->where('chuc_vu', 'BacSi')->first();
-                $maBacSi = $bacSiObj ? $bacSiObj->ma_nhan_vien : 'NV003';
+                $maBacSi = $bacSiObj ? $bacSiObj->ma_nhan_vien : 'NV26112003';
             } else {
-                $maBacSi = $this->resolveMaNhanVien($maBacSi, 'NV003');
+                $maBacSi = $this->resolveMaNhanVien($maBacSi, 'NV26112003');
             }
 
             $stt = DB::table('HO_SO_KHAM_BENH')
-                ->whereDate('thoi_gian_tiep_nhan', Carbon::today())
+                ->whereDate('thoi_gian_tiep_nhan', Carbon::now('Asia/Ho_Chi_Minh')->toDateString())
                 ->count() + 1;
 
             $maHoSo = $this->generateNextCode('HO_SO_KHAM_BENH', 'ma_ho_so_kham', 'HS', 3);
@@ -337,7 +360,7 @@ class StaffApiController extends Controller
     public function saveVitalSigns(Request $request)
     {
         $maHoSo = trim((string) $request->ma_ho_so_kham);
-        $maNhanVien = $this->resolveMaNhanVien($request->ma_nhan_vien ?? $request->ma_nvyt_do, 'NV002');
+        $maNhanVien = $this->resolveMaNhanVien($request->ma_nhan_vien ?? $request->ma_nvyt_do, 'NV26112002');
 
         DB::beginTransaction();
         try {
@@ -425,9 +448,8 @@ class StaffApiController extends Controller
                 ], 400);
             }
 
-            $maNhanVien = $this->resolveMaNhanVien($request->ma_nhan_vien, 'NV008');
+            $maNhanVien = $this->resolveMaNhanVien($request->ma_nhan_vien, 'NV26112008');
 
-            // 1. Cập nhật kết quả cho chỉ định CLS hiện tại
             DB::table('CHI_DINH_CAN_LAM_SANG')
                 ->where('ma_chi_dinh_cls', $maChiDinh)
                 ->update($this->filterValidColumns('CHI_DINH_CAN_LAM_SANG', [
@@ -438,7 +460,6 @@ class StaffApiController extends Controller
                     'thoi_gian_co_ket_qua' => Carbon::now('Asia/Ho_Chi_Minh')
                 ]));
 
-            // 2. Lưu danh sách ảnh kết quả CLS (nếu có)
             if (is_array($images) && count($images) > 0) {
                 $anhCols = Schema::getColumnListing('ANH_KET_QUA_CLS');
                 $anhPk = in_array('ma_anh_cls', $anhCols) ? 'ma_anh_cls' : null;
@@ -460,7 +481,6 @@ class StaffApiController extends Controller
                 }
             }
 
-            // 3. KIỂM TRA XEM HỒ SƠ KHÁM NÀY CÒN DỊCH VỤ CLS NÀO CHƯA CẬP NHẬT KẾT QUẢ KHÔNG
             $maHoSo = $chiDinh->ma_ho_so_kham;
             $pendingClsCount = DB::table('CHI_DINH_CAN_LAM_SANG')
                 ->where('ma_ho_so_kham', $maHoSo)

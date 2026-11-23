@@ -7,11 +7,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 
 class AdminApiController extends Controller
 {
     /**
-     * Hàm chỉ giữ lại các cột thực sự tồn tại trong bảng MySQL (Chống lỗi 500 Unknown Column khi Insert/Update)
+     * Hàm chỉ giữ lại các cột thực sự tồn tại trong bảng MySQL
      */
     private function filterValidColumns(string $table, array $data): array
     {
@@ -34,7 +35,7 @@ class AdminApiController extends Controller
     }
 
     /**
-     * Hàm đọc bảng an toàn (Không gây sập API nếu bảng chưa có dữ liệu)
+     * Hàm đọc bảng an toàn
      */
     private function safeGetTable(string $table)
     {
@@ -46,7 +47,7 @@ class AdminApiController extends Controller
     }
 
     /**
-     * Hàm tự động sinh mã khóa chính Chữ + Số tiếp theo (VD: ND015, NV008, KH005, PH008, TH010, DV006)
+     * Hàm tự động sinh mã khóa chính Chữ + Số tiếp theo (VD: ND057, KH013, PH021, TH026, DVCLS023)
      */
     private function generateNextCode(string $table, string $pkCol, string $prefix, int $padLength = 3): string
     {
@@ -61,6 +62,29 @@ class AdminApiController extends Controller
             }
         }
         return $prefix . str_pad((string) ($maxNum + 1), $padLength, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Sinh mã theo ngày hiện tại: BN{YYMMDD}{XX} hoặc NV{YYMMDD}{XX}
+     */
+    private function generateDateBasedCode(string $table, string $pkCol, string $prefix): string
+    {
+        $datePart = Carbon::now('Asia/Ho_Chi_Minh')->format('ymd');
+        $fullPrefix = $prefix . $datePart;
+
+        $codes = DB::table($table)
+            ->where($pkCol, 'like', $fullPrefix . '%')
+            ->pluck($pkCol);
+
+        $maxSeq = 0;
+        foreach ($codes as $code) {
+            $seq = (int) substr((string) $code, strlen($fullPrefix));
+            if ($seq > $maxSeq) {
+                $maxSeq = $seq;
+            }
+        }
+
+        return $fullPrefix . str_pad((string) ($maxSeq + 1), 2, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -81,7 +105,6 @@ class AdminApiController extends Controller
             $hdList     = $this->safeGetTable('HOA_DON_VIEN_PHI');
             $aiChatList = $this->safeGetTable('PHIEN_TRO_CHUYEN_AI');
 
-            // Tạo Map tra cứu nhanh theo khóa chính
             $ndById    = $ndList->keyBy('ma_nguoi_dung');
             $nvById    = $nvList->keyBy('ma_nhan_vien');
             $nvByNdId  = $nvList->keyBy('ma_nguoi_dung');
@@ -91,7 +114,6 @@ class AdminApiController extends Controller
             $phongById = $phongList->keyBy('ma_phong');
             $hdByHsId  = $hdList->keyBy('ma_ho_so_kham');
 
-            // Tính tổng doanh thu từ các hóa đơn đã thu
             $tongDoanhThu = 0;
             foreach ($hdList as $hd) {
                 $trangThaiThu = $hd->trang_thai_thu ?? $hd->trang_thai_thanh_toan ?? 'DaThu';
@@ -109,7 +131,6 @@ class AdminApiController extends Controller
                 'tong_phien_ai'  => $aiChatList->count(),
             ];
 
-            // 1. Danh sách Nhân sự & Tài khoản
             $users = $ndList->map(function ($nd) use ($nvByNdId, $bnByNdId, $khoaById) {
                 $nv = $nvByNdId->get($nd->ma_nguoi_dung);
                 $bn = $bnByNdId->get($nd->ma_nguoi_dung);
@@ -134,7 +155,6 @@ class AdminApiController extends Controller
                 ];
             })->values();
 
-            // 2. Danh sách Phòng kèm tên Khoa
             $rooms = $phongList->map(function ($p) use ($khoaById) {
                 $khoa = isset($p->ma_khoa) ? $khoaById->get($p->ma_khoa) : null;
                 $arr = (array) $p;
@@ -142,7 +162,6 @@ class AdminApiController extends Controller
                 return $arr;
             })->values();
 
-            // 3. Dịch vụ Cận lâm sàng kèm tên Phòng
             $clsServices = $clsList->map(function ($dm) use ($phongById) {
                 $phong = isset($dm->ma_phong) ? $phongById->get($dm->ma_phong) : null;
                 $arr = (array) $dm;
@@ -151,7 +170,6 @@ class AdminApiController extends Controller
                 return $arr;
             })->values();
 
-            // 4. Hồ sơ bệnh án & Viện phí
             $records = $hsList->sortByDesc('ma_ho_so_kham')->map(function ($hs) use ($bnById, $ndById, $nvById, $khoaById, $phongList, $hdByHsId) {
                 $bn = isset($hs->ma_benh_nhan) ? $bnById->get($hs->ma_benh_nhan) : null;
                 $ndBn = ($bn && isset($bn->ma_nguoi_dung)) ? $ndById->get($bn->ma_nguoi_dung) : null;
@@ -191,7 +209,7 @@ class AdminApiController extends Controller
                     'tien_bhyt_chi_tra'      => $hd->tien_bhyt_chi_tra ?? 0,
                     'tien_benh_nhan_tra'     => $hd->tien_benh_nhan_tra ?? 0,
                     'phuong_thuc_thanh_toan' => $hd->phuong_thuc_thanh_toan ?? 'VietQR',
-                    'stk_benh_vien'          => $hd->stk_benh_vien ?? '02363822292 - Vietcombank TTYT Hải Châu',
+                    'stk_benh_vien'          => $hd->stk_benh_vien ?? '0041000888999 - Vietcombank (TTYT Phường Hải Châu)',
                     'ma_giao_dich_ngan_hang' => $hd->ma_giao_dich_ngan_hang ?? null,
                     'trang_thai_thu'         => $hd->trang_thai_thu ?? ($hd->trang_thai_thanh_toan ?? null),
                 ];
@@ -216,7 +234,7 @@ class AdminApiController extends Controller
     }
 
     /**
-     * 2. THÊM / SỬA / KHÓA / XÓA NHÂN SỰ & TÀI KHOẢN (Tự nhập mã bất kỳ hoặc để trống tự sinh)
+     * 2. THÊM / SỬA / KHÓA / XÓA NHÂN SỰ & TÀI KHOẢN
      */
     public function saveUser(Request $request)
     {
@@ -270,7 +288,7 @@ class AdminApiController extends Controller
                 } else {
                     $maBn = ($inputSubCode !== '' && !DB::table('BENH_NHAN')->where('ma_benh_nhan', $inputSubCode)->exists())
                         ? $inputSubCode
-                        : $this->generateNextCode('BENH_NHAN', 'ma_benh_nhan', 'BN', 3);
+                        : $this->generateDateBasedCode('BENH_NHAN', 'ma_benh_nhan', 'BN');
 
                     DB::table('BENH_NHAN')->insert($this->filterValidColumns('BENH_NHAN', [
                         'ma_benh_nhan'     => $maBn,
@@ -282,9 +300,15 @@ class AdminApiController extends Controller
                     ]));
                 }
             } else {
-                $chucVu = $request->vai_tro === 'QuanTri' ? 'QuanTriVien' : ($request->vai_tro === 'NVYT' ? 'DieuDuong' : $request->vai_tro);
                 $defaultKhoa = DB::table('KHOA')->value('ma_khoa') ?: 'KH001';
                 $maKhoa = $request->filled('ma_khoa') ? trim((string) $request->ma_khoa) : $defaultKhoa;
+                $chucVu = $request->filled('chuc_vu')
+                    ? trim((string) $request->chuc_vu)
+                    : ($request->vai_tro === 'QuanTri'
+                        ? 'QuanTriVien'
+                        : ($request->vai_tro === 'NVYT'
+                            ? ($maKhoa === 'KH003' ? 'KTV_CLS' : 'DieuDuong')
+                            : $request->vai_tro));
 
                 $existingNv = DB::table('NHAN_VIEN')->where('ma_nguoi_dung', $userId)->first();
                 if ($existingNv) {
@@ -295,7 +319,7 @@ class AdminApiController extends Controller
                 } else {
                     $maNv = ($inputSubCode !== '' && !DB::table('NHAN_VIEN')->where('ma_nhan_vien', $inputSubCode)->exists())
                         ? $inputSubCode
-                        : $this->generateNextCode('NHAN_VIEN', 'ma_nhan_vien', 'NV', 3);
+                        : $this->generateDateBasedCode('NHAN_VIEN', 'ma_nhan_vien', 'NV');
 
                     DB::table('NHAN_VIEN')->insert($this->filterValidColumns('NHAN_VIEN', [
                         'ma_nhan_vien' => $maNv,
@@ -354,7 +378,7 @@ class AdminApiController extends Controller
     }
 
     /**
-     * 3. QUẢN LÝ KHOA & PHÒNG CHỨC NĂNG (Tự nhập mã bất kỳ hoặc để trống tự sinh + Xóa)
+     * 3. QUẢN LÝ KHOA & PHÒNG CHỨC NĂNG
      */
     public function saveDepartment(Request $request)
     {
@@ -432,7 +456,7 @@ class AdminApiController extends Controller
     }
 
     /**
-     * 4. QUẢN LÝ DANH MỤC THUỐC & CẬN LÂM SÀNG (Tự nhập mã bất kỳ hoặc để trống tự sinh + Xóa)
+     * 4. QUẢN LÝ DANH MỤC THUỐC & CẬN LÂM SÀNG
      */
     public function saveMedicine(Request $request)
     {
@@ -490,7 +514,7 @@ class AdminApiController extends Controller
             DB::table('DANH_MUC_CAN_LAM_SANG')->where('ma_dich_vu_cls', $inputCode)->update($this->filterValidColumns('DANH_MUC_CAN_LAM_SANG', $data));
             $msg = 'Đã cập nhật dịch vụ Cận lâm sàng #' . $inputCode . ' trong MySQL!';
         } else {
-            $maDv = $inputCode !== '' ? $inputCode : $this->generateNextCode('DANH_MUC_CAN_LAM_SANG', 'ma_dich_vu_cls', 'DV', 3);
+            $maDv = $inputCode !== '' ? $inputCode : $this->generateNextCode('DANH_MUC_CAN_LAM_SANG', 'ma_dich_vu_cls', 'DVCLS', 3);
             $data['ma_dich_vu_cls'] = $maDv;
             DB::table('DANH_MUC_CAN_LAM_SANG')->insert($this->filterValidColumns('DANH_MUC_CAN_LAM_SANG', $data));
             $msg = 'Đã thêm dịch vụ Cận lâm sàng mới (#' . $maDv . ') vào MySQL!';

@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const deptEl = document.getElementById("doc-dropdown-dept");
         const activeFilterBadge = document.getElementById("doc-active-filter-badge");
 
-        const maNv = user.ma_nhan_vien || user.ma_nguoi_dung || "NV003";
+        const maNv = user.ma_nhan_vien || user.ma_nguoi_dung || "NV26112003";
         const tenKhoa = user.ten_khoa || "Khoa Khám Bệnh";
 
         if (nameEl && user.ho_ten) nameEl.textContent = user.ho_ten;
@@ -520,7 +520,7 @@ function renderDoctorQueueList() {
         ChoBSKham: { text: "Đã đo SH • Chờ BS khám", cls: "bg-teal-100 text-teal-800" },
         ChoKhamBS: { text: "Đã đo SH • Chờ BS khám", cls: "bg-teal-100 text-teal-800" },
         ChoThuTienCLS: { text: "Chờ thu phí CLS", cls: "bg-amber-100 text-amber-800" },
-        ChoLamCLS: { text: "Đang làm CLS (P201)", cls: "bg-indigo-100 text-indigo-800" },
+        ChoLamCLS: { text: "Đang làm CLS", cls: "bg-indigo-100 text-indigo-800" },
         ChoSinhHieu: { text: "Chờ đo sinh hiệu", cls: "bg-slate-100 text-slate-700" },
         HoanTat: { text: "Đã hoàn tất khám", cls: "bg-emerald-100 text-emerald-800" }
     };
@@ -636,7 +636,6 @@ function populateDoctorExamForm(rec) {
         rec.tom_tat_benh_su_ai || `Triệu chứng ban đầu: ${rec.trieu_chung_lam_sang || "Khám lâm sàng"}`;
 
     document.getElementById("exam-clinical-symptoms").value = rec.trieu_chung_lam_sang || "";
-    // Làm sạch mã [ICD] cũ nếu có trong dữ liệu mẫu để hiển thị chẩn đoán thuần túy
     const cleanDiag = String(rec.ket_luan_chan_doan || "").replace(/^\[[A-Za-z0-9.]+\]\s*/, "");
     document.getElementById("exam-final-diagnosis").value = cleanDiag;
 
@@ -652,7 +651,7 @@ function populateDoctorExamForm(rec) {
         if (pendingClsList.length > 0) {
             submitBtn.disabled = true;
             submitBtn.className = "w-full py-3.5 rounded-xl bg-amber-500 text-white font-extrabold text-sm shadow flex items-center justify-center gap-2 cursor-not-allowed";
-            submitBtn.innerHTML = `<span class="material-symbols-outlined text-xl">hourglass_top</span><span>CHƯA THỂ HOÀN TẤT KHÁM • CÒN ${pendingClsList.length} DỊCH VỤ CLS CHƯA CẬP NHẬT KẾT QUẢ TỪ P201</span>`;
+            submitBtn.innerHTML = `<span class="material-symbols-outlined text-xl">hourglass_top</span><span>CHƯA THỂ HOÀN TẤT KHÁM • CÒN ${pendingClsList.length} DỊCH VỤ CLS CHƯA CẬP NHẬT KẾT QUẢ TỪ PHÒNG CLS</span>`;
         } else {
             submitBtn.disabled = false;
             submitBtn.className = "w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm shadow-lg flex items-center justify-center gap-2 transition";
@@ -716,6 +715,7 @@ function renderExistingClsResultsForRecord(clsOrders) {
     container.innerHTML = clsOrders.map(c => {
         const isDone = c.trang_thai_thuc_hien === "DaCoKetQua" && c.ket_qua_cls && String(c.ket_qua_cls).trim() !== "";
         const isPaid = c.trang_thai_nop_tien === "DaNop";
+        const phongCls = c.phong_cls || "P201";
 
         const imgsHtml = (c.images && c.images.length > 0)
             ? `<div class="flex flex-wrap gap-2.5 mt-2.5">` +
@@ -737,11 +737,11 @@ function renderExistingClsResultsForRecord(clsOrders) {
                             ${isPaid ? 'Đã nộp phí' : 'Chờ Kế toán thu phí'}
                         </span>
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isDone ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'}">
-                            ${isDone ? 'Đã có kết quả' : 'Chờ Phòng P201 thực hiện'}
+                            ${isDone ? 'Đã có kết quả' : `Chờ Phòng ${phongCls} thực hiện`}
                         </span>
                     </div>
                 </div>
-                <p class="text-slate-800"><b>Kết quả mô tả:</b> ${c.ket_qua_cls || "<i>Đang chờ Kỹ thuật viên P201 cập nhật...</i>"}</p>
+                <p class="text-slate-800"><b>Kết quả mô tả:</b> ${c.ket_qua_cls || `<i>Đang chờ Kỹ thuật viên ${phongCls} cập nhật...</i>`}</p>
                 ${c.ai_phan_tich_cls ? `<p class="text-indigo-800"><b>Ghi chú CLS:</b> ${c.ai_phan_tich_cls}</p>` : ""}
                 ${imgsHtml}
             </div>
@@ -770,7 +770,7 @@ async function submitDoctorOrderCls() {
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({
                 ma_ho_so_kham: currentSelectedRecord.ma_ho_so_kham,
-                ma_bac_si: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV003",
+                ma_bac_si: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV26112003",
                 cls_service_ids: clsIds,
                 trieu_chung_lam_sang: document.getElementById("exam-clinical-symptoms").value.trim()
             })
@@ -848,7 +848,7 @@ async function submitCompleteExamination(event) {
     if (pendingCls.length > 0) {
         showDoctorNoticeModal(
             "Chưa Đủ Kết Quả Cận Lâm Sàng",
-            `Hồ sơ #${currentSelectedRecord.ma_ho_so_kham} vẫn còn ${pendingCls.length} dịch vụ Cận lâm sàng chưa cập nhật kết quả (${pendingCls.map(c => c.ten_dich_vu_cls).join(", ")}). Vui lòng đợi Phòng P201 cập nhật đủ kết quả trước khi hoàn tất khám!`,
+            `Hồ sơ #${currentSelectedRecord.ma_ho_so_kham} vẫn còn ${pendingCls.length} dịch vụ Cận lâm sàng chưa cập nhật kết quả (${pendingCls.map(c => c.ten_dich_vu_cls).join(", ")}). Vui lòng đợi Phòng Cận lâm sàng cập nhật đủ kết quả trước khi hoàn tất khám!`,
             true
         );
         return;
@@ -866,7 +866,7 @@ async function submitCompleteExamination(event) {
 
     const payload = {
         ma_ho_so_kham: currentSelectedRecord.ma_ho_so_kham,
-        ma_bac_si: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV003",
+        ma_bac_si: user ? (user.ma_nhan_vien || user.ma_nguoi_dung) : "NV26112003",
         trieu_chung_lam_sang: document.getElementById("exam-clinical-symptoms").value.trim(),
         ket_luan_chan_doan: finalDiag,
         loi_dan_bac_si: document.getElementById("exam-doctor-advice").value.trim(),
