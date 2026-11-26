@@ -184,25 +184,61 @@
 
                         <div>
                             <label class="font-semibold block mb-1 text-slate-700 text-xs">Bác sĩ khám *</label>
-                            <select id="bk-doctor" required disabled
+                            <select id="bk-doctor" required disabled onchange="onChangeBookingDoctor()"
                                     class="w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75 focus:border-teal-500 focus:ring-teal-500">
                                 <option value="">-- Chọn Chuyên khoa trước --</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- Hàng 2: Ngày hẹn khám & Khung giờ khám (3 ca chuẩn) -->
+                    <!-- Hàng 2: Lịch tháng chọn ngày Bác sĩ làm & Khung giờ khám theo ca trực -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
+                        <div class="relative" id="bk-date-picker-wrapper">
                             <label class="font-semibold block mb-1 text-slate-700 text-xs">Ngày hẹn khám *</label>
-                            <input id="bk-date" type="date" required class="w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold"/>
+                            <input type="hidden" id="bk-date" value=""/>
+                            <button type="button" id="bk-date-display-btn" disabled onclick="toggleBookingCalendarPopover(event)"
+                                    class="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-between gap-2 text-left transition focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+                                <span id="bk-date-display-text" class="truncate">-- Chọn Bác sĩ trước --</span>
+                                <span class="material-symbols-outlined text-base text-teal-600 shrink-0">calendar_month</span>
+                            </button>
+
+                            <!-- Bảng lịch tháng đổ xuống -->
+                            <div id="bk-calendar-popover"
+                                 class="hidden absolute left-0 top-full mt-1.5 w-[290px] sm:w-[304px] bg-white rounded-2xl shadow-2xl border border-teal-200 p-3.5 z-50 select-none">
+                                <div class="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-100">
+                                    <button type="button" onclick="shiftBookingCalendarMonth(-1, event)"
+                                            class="w-7 h-7 rounded-lg hover:bg-teal-50 text-slate-600 hover:text-teal-700 flex items-center justify-center transition">
+                                        <span class="material-symbols-outlined text-lg">chevron_left</span>
+                                    </button>
+                                    <span id="bk-cal-month-label" class="font-heading font-extrabold text-xs text-teal-900 uppercase">Tháng 11 / 2026</span>
+                                    <button type="button" onclick="shiftBookingCalendarMonth(1, event)"
+                                            class="w-7 h-7 rounded-lg hover:bg-teal-50 text-slate-600 hover:text-teal-700 flex items-center justify-center transition">
+                                        <span class="material-symbols-outlined text-lg">chevron_right</span>
+                                    </button>
+                                </div>
+
+                                <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1.5">
+                                    <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span class="text-rose-400">CN</span>
+                                </div>
+
+                                <div id="bk-cal-days-grid" class="grid grid-cols-7 gap-1 text-center text-xs"></div>
+
+                                <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block"></span> Có lịch BS
+                                    </span>
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-slate-200 inline-block"></span> Không trực (Khóa)
+                                    </span>
+                                </div>
+                            </div>
                         </div>
+
                         <div>
                             <label class="font-semibold block mb-1 text-slate-700 text-xs">Khung giờ khám *</label>
-                            <select id="bk-shift" required class="w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold focus:border-teal-500 focus:ring-teal-500">
-                                <option value="Ca Sáng (07:00 - 11:30)">Ca Sáng (07:00 - 11:30)</option>
-                                <option value="Ca Chiều (13:00 - 16:30)">Ca Chiều (13:00 - 16:30)</option>
-                                <option value="Ca Đêm (16:30 - 07:00)">Ca Đêm / Trực Cấp cứu (16:30 - 07:00)</option>
+                            <select id="bk-shift" required disabled
+                                    class="w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75 focus:border-teal-500 focus:ring-teal-500">
+                                <option value="">-- Chọn Ngày khám trước --</option>
                             </select>
                         </div>
                     </div>

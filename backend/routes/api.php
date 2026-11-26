@@ -47,6 +47,14 @@ $adminRoutes = function () {
 
     Route::post('/save-cls-service', 'saveClsService');
     Route::delete('/delete-cls-service/{id}', 'deleteClsService');
+
+    // Phân công lịch làm việc 3 ca (Bảng Ma Trận Admin)
+    Route::post('/toggle-single-shift', 'toggleSingleShift');
+    Route::post('/bulk-assign-week', 'bulkAssignWeek');
+    Route::post('/auto-generate-week', 'autoGenerateWeek');
+    Route::post('/copy-previous-week', 'copyPreviousWeek');
+    Route::post('/save-schedule', 'saveSchedule');
+    Route::delete('/delete-schedule/{id}', 'deleteSchedule');
 };
 
 // 3. Nhóm Route Cổng Nghiệp Vụ Nhân Viên Y Tế (Staff)
@@ -79,12 +87,16 @@ $pharmacistRoutes = function () {
     Route::post('/save-medicine', 'saveMedicineStock');
 };
 
-// Nhóm Route Hệ Thống Thông Báo & Gửi Gmail (Nhắc lịch hẹn trước 1 ngày / Ưu đãi)
+// 7. Nhóm Route Hệ Thống Thông Báo & Gửi Gmail (Nhắc lịch hẹn trước 1 ngày / Ưu đãi)
 Route::prefix('notifications')->controller(NotificationApiController::class)->group(function () {
     Route::get('/user/{maNguoiDung}', 'getUserNotifications');
     Route::post('/scan-reminders', 'scanAndSendAppointmentReminders');
     Route::post('/send', 'sendCustomOrPromoNotification');
 });
+
+// 8. Nhóm Route Xem Lịch Làm Việc Cá Nhân cho Nhân sự (NVYT, Bác sĩ, Kế toán, Dược sĩ)
+Route::get('/schedules/staff/{id}', [AdminApiController::class, 'getStaffSchedules']);
+Route::get('/v1/schedules/staff/{id}', [AdminApiController::class, 'getStaffSchedules']);
 
 Route::prefix('pharmacist')->controller(PharmacistApiController::class)->group($pharmacistRoutes);
 Route::prefix('v1/pharmacist')->controller(PharmacistApiController::class)->group($pharmacistRoutes);
@@ -101,11 +113,14 @@ Route::prefix('v1/staff')->controller(StaffApiController::class)->group($staffRo
 Route::prefix('admin')->controller(AdminApiController::class)->group($adminRoutes);
 Route::prefix('v1/admin')->controller(AdminApiController::class)->group($adminRoutes);
 
-// Thống kê số lượng bản ghi của 22 bảng và tải file/ảnh từ máy tính
+// Thống kê số lượng bản ghi của các bảng và tải file/ảnh từ máy tính
 Route::get('/tables-summary', [TableApiController::class, 'summary']);
 Route::post('/tables-manager-upload', [TableApiController::class, 'uploadFile']);
 
-// Nhóm Route Thêm - Xem - Sửa - Xóa dữ liệu cho 22 bảng CSDL
+Route::get('/schedules/weekly-board', [AdminApiController::class, 'getWeeklyScheduleBoard']);
+Route::get('/v1/schedules/weekly-board', [AdminApiController::class, 'getWeeklyScheduleBoard']);
+
+// Nhóm Route Thêm - Xem - Sửa - Xóa dữ liệu cho các bảng CSDL
 Route::prefix('tables-manager')->controller(TableApiController::class)->group(function () {
     Route::get('/{table}', 'show');
     Route::post('/{table}', 'store');

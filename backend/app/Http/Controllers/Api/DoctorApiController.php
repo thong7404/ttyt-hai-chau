@@ -68,7 +68,7 @@ class DoctorApiController extends Controller
     }
 
     /**
-     * 1. LẤY DỮ LIỆU PHÒNG KHÁM BÁC SĨ TỪ MYSQL
+     * 1. LẤY DỮ LIỆU PHÒNG KHÁM BÁC SĨ TỪ MYSQL (CÓ PHÂN QUYỀN CLS THEO CHUYÊN KHOA)
      */
     public function getDashboardData(Request $request)
     {
@@ -77,9 +77,24 @@ class DoctorApiController extends Controller
             $maBacSiParam = trim((string) $request->query('ma_bac_si', ''));
 
             $maBacSiNv = null;
+            $doctorMaKhoa = null;
+            $doctorTenKhoa = null;
+
             if ($maBacSiParam !== '') {
                 $maBacSiNv = DB::table('NHAN_VIEN')->where('ma_nhan_vien', $maBacSiParam)->value('ma_nhan_vien')
                     ?: DB::table('NHAN_VIEN')->where('ma_nguoi_dung', $maBacSiParam)->value('ma_nhan_vien');
+
+                if ($maBacSiNv) {
+                    $docRow = DB::table('NHAN_VIEN as nv')
+                        ->leftJoin('KHOA as k', 'nv.ma_khoa', '=', 'k.ma_khoa')
+                        ->where('nv.ma_nhan_vien', $maBacSiNv)
+                        ->select('nv.ma_khoa', 'k.ten_khoa')
+                        ->first();
+                    if ($docRow) {
+                        $doctorMaKhoa = $docRow->ma_khoa;
+                        $doctorTenKhoa = $docRow->ten_khoa;
+                    }
+                }
             }
 
             $examRooms = DB::table('PHONG as p')
@@ -202,15 +217,33 @@ class DoctorApiController extends Controller
                 ->select('dm.*', 'p.so_phong', 'p.ten_phong')
                 ->get();
 
+            // Đọc bảng trung gian KHOA_DICH_VU_CLS để gắn danh sách chuyên khoa áp dụng cho từng dịch vụ CLS
+            $hasKhoaClsMapping = false;
+            $khoaClsMap = [];
+            if (Schema::hasTable('KHOA_DICH_VU_CLS')) {
+                $mappingRows = DB::table('KHOA_DICH_VU_CLS')->get();
+                foreach ($mappingRows as $mr) {
+                    $khoaClsMap[$mr->ma_dich_vu_cls][] = $mr->ma_khoa;
+                }
+                $hasKhoaClsMapping = $mappingRows->isNotEmpty();
+            }
+
+            foreach ($clsCatalog as $dv) {
+                $dv->ma_khoa_ap_dung = $khoaClsMap[$dv->ma_dich_vu_cls] ?? [];
+            }
+
             $medicineCatalog = DB::table('DANH_MUC_THUOC')->orderBy('ten_thuoc', 'asc')->get();
 
             return response()->json([
-                'status'           => 'success',
-                'ma_bac_si_loc'    => $maBacSiNv,
-                'exam_rooms'       => $examRooms,
-                'queue_records'    => $queueRecords,
-                'cls_catalog'      => $clsCatalog,
-                'medicine_catalog' => $medicineCatalog
+                'status'               => 'success',
+                'ma_bac_si_loc'        => $maBacSiNv,
+                'doctor_ma_khoa'       => $doctorMaKhoa,
+                'doctor_ten_khoa'      => $doctorTenKhoa,
+                'has_khoa_cls_mapping' => $hasKhoaClsMapping,
+                'exam_rooms'           => $examRooms,
+                'queue_records'        => $queueRecords,
+                'cls_catalog'          => $clsCatalog,
+                'medicine_catalog'     => $medicineCatalog
             ], 200);
         } catch (\Throwable $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
@@ -218,7 +251,7 @@ class DoctorApiController extends Controller
     }
 
     /**
-     * 2. BÁC SĨ CHỈ ĐỊNH DỊCH VỤ CẬN LÂM SÀNG
+     * 2. BÁC SĨ CHỈ ĐỊNH DỊCH VỤ CẬN LÂM SÀNG (CÓ KIỂM TRA ĐÚNG CHUYÊN KHOA)
      */
     public function orderClsServices(Request $request)
     {
@@ -230,13 +263,62 @@ class DoctorApiController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Vui lòng chọn ít nhất 1 dịch vụ CLS!'], 400);
         }
 
+        $cleanClsIds = array_values(array_unique(array_filter(array_map(
+            fn($id) => trim((string) $id),
+            $clsIds
+        ))));
+
+        if (empty($cleanClsIds)) {
+            return response()->json(['status' => 'error', 'message' => 'Vui lòng chọn ít nhất 1 dịch vụ CLS hợp lệ!'], 400);
+        }
+
+        // Ràng buộc nghiệp vụ: Bác sĩ chỉ được chỉ định dịch vụ CLS thuộc chuyên khoa mình (bảng KHOA_DICH_VU_CLS)
+        if (Schema::hasTable('KHOA_DICH_VU_CLS') && DB::table('KHOA_DICH_VU_CLS')->exists()) {
+            $docRow = DB::table('NHAN_VIEN as nv')
+                ->leftJoin('KHOA as k', 'nv.ma_khoa', '=', 'k.ma_khoa')
+                ->where('nv.ma_nhan_vien', $maBacSiNv)
+                ->select('nv.ma_khoa', 'k.ten_khoa')
+                ->first();
+
+            $maKhoaBs = $docRow->ma_khoa ?? null;
+            $tenKhoaBs = $docRow->ten_khoa ?? $maKhoaBs;
+
+            if (!$maKhoaBs) {
+                $hsDocRow = DB::table('HO_SO_KHAM_BENH as hs')
+                    ->join('NHAN_VIEN as nv', 'hs.ma_nhan_vien', '=', 'nv.ma_nhan_vien')
+                    ->leftJoin('KHOA as k', 'nv.ma_khoa', '=', 'k.ma_khoa')
+                    ->where('hs.ma_ho_so_kham', $maHoSo)
+                    ->select('nv.ma_khoa', 'k.ten_khoa')
+                    ->first();
+                $maKhoaBs = $hsDocRow->ma_khoa ?? null;
+                $tenKhoaBs = $hsDocRow->ten_khoa ?? $maKhoaBs;
+            }
+
+            if ($maKhoaBs) {
+                $allowedIds = DB::table('KHOA_DICH_VU_CLS')
+                    ->where('ma_khoa', $maKhoaBs)
+                    ->pluck('ma_dich_vu_cls')
+                    ->all();
+
+                $invalidIds = array_diff($cleanClsIds, $allowedIds);
+                if (!empty($invalidIds)) {
+                    $invalidNames = DB::table('DANH_MUC_CAN_LAM_SANG')
+                        ->whereIn('ma_dich_vu_cls', $invalidIds)
+                        ->pluck('ten_dich_vu_cls')
+                        ->implode(', ');
+
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => "Không thể chỉ định dịch vụ ngoài chuyên khoa ({$tenKhoaBs}): {$invalidNames}."
+                    ], 400);
+                }
+            }
+        }
+
         DB::beginTransaction();
         try {
             $addedCount = 0;
-            foreach ($clsIds as $dichVuId) {
-                $maDichVu = trim((string) $dichVuId);
-                if ($maDichVu === '') continue;
-
+            foreach ($cleanClsIds as $maDichVu) {
                 $exists = DB::table('CHI_DINH_CAN_LAM_SANG')
                     ->where('ma_ho_so_kham', $maHoSo)
                     ->where('ma_dich_vu_cls', $maDichVu)

@@ -14,6 +14,12 @@ let chatSessions = [];
 let activeSessionId = null;
 let cachedUserNotifications = [];
 
+let allSchedulesFromMySql = [];
+let currentDoctorSchedules = [];
+let availableDoctorDatesMap = new Map(); // ymd -> Set(["Sáng", "Chiều", ...])
+let bookingCalYear = new Date().getFullYear();
+let bookingCalMonth = new Date().getMonth(); // 0 - 11
+
 // Danh sách Bác sĩ mặc định theo 12 Chuyên khoa (sẽ được bổ sung/cập nhật thêm từ MySQL)
 let doctorsByDeptMap = {
     "KH001": [
@@ -119,7 +125,7 @@ async function loadHeaderAndFooterHtml() {
 }
 
 /**
- * 4. Hàm lấy chuỗi ngày hôm nay theo định dạng YYYY-MM-DD
+ * 4. Các hàm tiện ích xử lý ngày & ca trực của Bác sĩ
  */
 function getTodayDateStr() {
     const now = new Date();
@@ -129,35 +135,228 @@ function getTodayDateStr() {
     return `${year}-${month}-${day}`;
 }
 
-/**
- * 5. Hàm giới hạn ngày đặt lịch khám tối thiểu là ngày hôm nay & đồng bộ 3 ca chuẩn
- */
-function initBookingDateMin() {
-    const todayStr = getTodayDateStr();
-    const bkDateEl = document.getElementById("bk-date");
-    if (bkDateEl) {
-        bkDateEl.setAttribute("min", todayStr);
-        if (!bkDateEl.value || bkDateEl.value < todayStr) {
-            bkDateEl.value = todayStr;
-        }
-    }
+function getBookingShiftMeta(caTruc) {
+    const norm = caTruc === "Toi" ? "Chieu" : caTruc;
+    const map = {
+        Sang:  { code: "Sang",  value: "Ca Sáng (07:00 - 11:30)",  shortLabel: "Sáng",  endHm: "11:30", order: 1 },
+        Chieu: { code: "Chieu", value: "Ca Chiều (13:00 - 16:30)", shortLabel: "Chiều", endHm: "16:30", order: 2 },
+        Dem:   { code: "Dem",   value: "Ca Đêm (16:30 - 07:00)",   shortLabel: "Đêm",   endHm: "23:59", order: 3 }
+    };
+    return map[norm] || map.Sang;
+}
 
-    const bkShiftEl = document.getElementById("bk-shift");
-    if (bkShiftEl) {
-        const currentShift = bkShiftEl.value;
-        bkShiftEl.innerHTML = `
-            <option value="Ca Sáng (07:00 - 11:30)">Ca Sáng (07:00 - 11:30)</option>
-            <option value="Ca Chiều (13:00 - 16:30)">Ca Chiều (13:00 - 16:30)</option>
-            <option value="Ca Đêm (16:30 - 07:00)">Ca Đêm / Trực Cấp cứu (16:30 - 07:00)</option>
-        `;
-        if (currentShift && Array.from(bkShiftEl.options).some(o => o.value === currentShift)) {
-            bkShiftEl.value = currentShift;
-        }
-    }
+function isBookingShiftExpired(ymdStr, caTruc) {
+    const todayStr = getTodayDateStr();
+    if (!ymdStr || ymdStr < todayStr) return true;
+    if (ymdStr > todayStr) return false;
+
+    const meta = getBookingShiftMeta(caTruc);
+    if (meta.code === "Dem") return false;
+
+    const now = new Date();
+    const currentHm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    return currentHm >= meta.endHm;
+}
+
+function formatDisplayDateButton(ymdStr) {
+    if (!ymdStr) return "-- Chọn ngày khám --";
+    const d = new Date(ymdStr + "T00:00:00");
+    if (isNaN(d.getTime())) return ymdStr;
+    const days = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy} (${days[d.getDay()]})`;
 }
 
 /**
- * 6. Tải danh sách Chuyên khoa & Bác sĩ từ MySQL để đồng bộ vào ô chọn
+ * 5. Đảm bảo ô Ngày hẹn khám luôn có Bộ lịch tháng (Calendar Popover) chọn ngày Bác sĩ trực
+ */
+function ensureBookingCalendarDOM() {
+    if (document.getElementById("bk-calendar-popover")) return;
+
+    const oldDateEl = document.getElementById("bk-date");
+    if (!oldDateEl || !oldDateEl.parentElement) return;
+
+    const container = oldDateEl.parentElement;
+    container.id = "bk-date-picker-wrapper";
+    container.classList.add("relative");
+
+    container.innerHTML = `
+        <label class="font-semibold block mb-1 text-slate-700 text-xs">Ngày hẹn khám *</label>
+        <input type="hidden" id="bk-date" value=""/>
+        <button type="button" id="bk-date-display-btn" disabled onclick="toggleBookingCalendarPopover(event)"
+                class="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-between gap-2 text-left transition focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500">
+            <span id="bk-date-display-text" class="truncate">-- Chọn Bác sĩ trước --</span>
+            <span class="material-symbols-outlined text-base text-teal-600 shrink-0">calendar_month</span>
+        </button>
+
+        <div id="bk-calendar-popover"
+             class="hidden absolute left-0 top-full mt-1.5 w-[290px] sm:w-[304px] bg-white rounded-2xl shadow-2xl border border-teal-200 p-3.5 z-50 select-none">
+            <div class="flex items-center justify-between mb-2.5 pb-2 border-b border-slate-100">
+                <button type="button" onclick="shiftBookingCalendarMonth(-1, event)"
+                        class="w-7 h-7 rounded-lg hover:bg-teal-50 text-slate-600 hover:text-teal-700 flex items-center justify-center transition">
+                    <span class="material-symbols-outlined text-lg">chevron_left</span>
+                </button>
+                <span id="bk-cal-month-label" class="font-heading font-extrabold text-xs text-teal-900 uppercase">Tháng 11 / 2026</span>
+                <button type="button" onclick="shiftBookingCalendarMonth(1, event)"
+                        class="w-7 h-7 rounded-lg hover:bg-teal-50 text-slate-600 hover:text-teal-700 flex items-center justify-center transition">
+                    <span class="material-symbols-outlined text-lg">chevron_right</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1.5">
+                <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span class="text-rose-400">CN</span>
+            </div>
+
+            <div id="bk-cal-days-grid" class="grid grid-cols-7 gap-1 text-center text-xs"></div>
+
+            <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+                <span class="inline-flex items-center gap-1">
+                    <span class="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block"></span> Có lịch BS
+                </span>
+                <span class="inline-flex items-center gap-1">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-200 inline-block"></span> Không trực (Khóa)
+                </span>
+            </div>
+        </div>
+    `;
+}
+
+function closeBookingCalendarPopover() {
+    document.getElementById("bk-calendar-popover")?.classList.add("hidden");
+}
+
+function toggleBookingCalendarPopover(event) {
+    if (event) event.stopPropagation();
+    const btn = document.getElementById("bk-date-display-btn");
+    const pop = document.getElementById("bk-calendar-popover");
+    if (!btn || btn.disabled || !pop) return;
+
+    const willOpen = pop.classList.contains("hidden");
+    if (willOpen) {
+        renderBookingCalendarGrid();
+        pop.classList.remove("hidden");
+    } else {
+        pop.classList.add("hidden");
+    }
+}
+
+function shiftBookingCalendarMonth(delta, event) {
+    if (event) event.stopPropagation();
+    const d = new Date(bookingCalYear, bookingCalMonth + delta, 1);
+    bookingCalYear = d.getFullYear();
+    bookingCalMonth = d.getMonth();
+    renderBookingCalendarGrid();
+}
+
+function renderBookingCalendarGrid() {
+    const labelEl = document.getElementById("bk-cal-month-label");
+    const gridEl = document.getElementById("bk-cal-days-grid");
+    const selectedDate = document.getElementById("bk-date")?.value || "";
+    if (!labelEl || !gridEl) return;
+
+    labelEl.textContent = `Tháng ${bookingCalMonth + 1} / ${bookingCalYear}`;
+
+    const firstDay = new Date(bookingCalYear, bookingCalMonth, 1);
+    const startOffset = (firstDay.getDay() + 6) % 7; // Thứ 2 = 0 ... Chủ nhật = 6
+    const daysInMonth = new Date(bookingCalYear, bookingCalMonth + 1, 0).getDate();
+    const todayStr = getTodayDateStr();
+
+    let cellsHtml = "";
+    for (let i = 0; i < startOffset; i++) {
+        cellsHtml += `<div></div>`;
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const ymd = `${bookingCalYear}-${String(bookingCalMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const shiftsSet = availableDoctorDatesMap.get(ymd);
+        const isAvailable = Boolean(shiftsSet && shiftsSet.size > 0);
+        const isSelected = selectedDate === ymd;
+        const isToday = ymd === todayStr;
+
+        if (isAvailable) {
+            const shiftsText = Array.from(shiftsSet).join(", ");
+            const btnClass = isSelected
+                ? "bg-teal-600 text-white font-extrabold shadow-sm ring-2 ring-teal-300"
+                : (isToday
+                    ? "bg-emerald-50 hover:bg-teal-600 text-teal-900 hover:text-white font-extrabold border-2 border-teal-500"
+                    : "bg-teal-50/90 hover:bg-teal-600 text-teal-900 hover:text-white font-bold border border-teal-200");
+
+            cellsHtml += `
+                <button type="button" onclick="selectBookingCalendarDate('${ymd}', true, event)"
+                        title="Có lịch trực: ${shiftsText}"
+                        class="h-8 rounded-lg text-xs flex flex-col items-center justify-center relative transition ${btnClass}">
+                    <span>${day}</span>
+                    <span class="w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-teal-500'}"></span>
+                </button>
+            `;
+        } else {
+            cellsHtml += `
+                <button type="button" disabled title="Bác sĩ không có lịch làm việc ngày này"
+                        class="h-8 rounded-lg text-xs text-slate-300 bg-slate-50/70 line-through cursor-not-allowed flex items-center justify-center">
+                    ${day}
+                </button>
+            `;
+        }
+    }
+
+    gridEl.innerHTML = cellsHtml;
+}
+
+function selectBookingCalendarDate(ymd, shouldClose = true, event = null) {
+    if (event) event.stopPropagation();
+    if (!availableDoctorDatesMap.has(ymd)) return;
+
+    const dateHidden = document.getElementById("bk-date");
+    const displayText = document.getElementById("bk-date-display-text");
+
+    if (dateHidden) dateHidden.value = ymd;
+    if (displayText) displayText.textContent = formatDisplayDateButton(ymd);
+
+    const parsed = new Date(ymd + "T00:00:00");
+    if (!isNaN(parsed.getTime())) {
+        bookingCalYear = parsed.getFullYear();
+        bookingCalMonth = parsed.getMonth();
+    }
+
+    if (shouldClose) closeBookingCalendarPopover();
+    renderBookingCalendarGrid();
+    onChangeBookingDate();
+}
+
+function resetBookingDateAndShift(datePlaceholder = "-- Chọn Bác sĩ trước --", shiftPlaceholder = "-- Chọn Ngày khám trước --") {
+    ensureBookingCalendarDOM();
+    closeBookingCalendarPopover();
+
+    const dateHidden = document.getElementById("bk-date");
+    const displayBtn = document.getElementById("bk-date-display-btn");
+    const displayText = document.getElementById("bk-date-display-text");
+    const shiftEl = document.getElementById("bk-shift");
+
+    if (dateHidden) dateHidden.value = "";
+    if (displayBtn) {
+        displayBtn.disabled = true;
+        displayBtn.className = "w-full h-10 px-3 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-between gap-2 text-left transition";
+    }
+    if (displayText) displayText.textContent = datePlaceholder;
+
+    if (shiftEl) {
+        shiftEl.disabled = true;
+        shiftEl.className = "w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75 focus:border-teal-500 focus:ring-teal-500";
+        shiftEl.innerHTML = `<option value="">${shiftPlaceholder}</option>`;
+    }
+}
+
+function initBookingDateMin() {
+    ensureBookingCalendarDOM();
+    const docEl = document.getElementById("bk-doctor");
+    if (docEl) docEl.onchange = onChangeBookingDoctor;
+    resetBookingDateAndShift();
+}
+
+/**
+ * 6. Tải danh sách Chuyên khoa, Bác sĩ & Lịch làm việc từ MySQL để đồng bộ vào ô chọn
  */
 async function loadDepartmentsAndDoctorsFromMySql() {
     try {
@@ -172,6 +371,7 @@ async function loadDepartmentsAndDoctorsFromMySql() {
         const users = (data.users || []).filter(
             u => (u.vai_tro === "BacSi" || u.chuc_vu === "BacSi") && u.trang_thai !== "DaKhoa"
         );
+        allSchedulesFromMySql = Array.isArray(data.schedules) ? data.schedules : [];
 
         if (users.length > 0) {
             const newMap = {};
@@ -211,9 +411,9 @@ async function loadDepartmentsAndDoctorsFromMySql() {
 }
 
 /**
- * 7. Khi bệnh nhân chọn Chuyên khoa -> Mở khóa và nạp danh sách Bác sĩ khám thuộc khoa đó
+ * 7. Khi bệnh nhân chọn Chuyên khoa -> Mở khóa, nạp danh sách Bác sĩ và tải lịch làm của Bác sĩ đó
  */
-function onChangeBookingDepartment() {
+async function onChangeBookingDepartment() {
     const deptSelect = document.getElementById("bk-department");
     const doctorSelect = document.getElementById("bk-doctor");
     if (!deptSelect || !doctorSelect) return;
@@ -225,6 +425,9 @@ function onChangeBookingDepartment() {
         doctorSelect.disabled = true;
         doctorSelect.className = "w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75";
         doctorSelect.innerHTML = `<option value="">-- Chọn Chuyên khoa trước --</option>`;
+        currentDoctorSchedules = [];
+        availableDoctorDatesMap = new Map();
+        resetBookingDateAndShift();
         return;
     }
 
@@ -258,6 +461,150 @@ function onChangeBookingDepartment() {
             doctors.map(doc => `<option value="${doc.ma_nhan_vien}" data-ten-bs="${doc.ho_ten}">${doc.ho_ten}</option>`).join("") +
             `<option value="ANY" data-ten-bs="Bác sĩ bất kỳ trong khoa">-- Bác sĩ bất kỳ trong khoa --</option>`;
     }
+
+    await onChangeBookingDoctor();
+}
+
+/**
+ * 8. Khi bệnh nhân chọn Bác sĩ -> Nạp các NGÀY bác sĩ đó làm việc lên lịch tháng & khóa các ngày nghỉ
+ */
+async function onChangeBookingDoctor() {
+    ensureBookingCalendarDOM();
+    const deptSelect = document.getElementById("bk-department");
+    const doctorSelect = document.getElementById("bk-doctor");
+    const displayBtn = document.getElementById("bk-date-display-btn");
+    if (!doctorSelect || !displayBtn) return;
+
+    const maNhanVien = doctorSelect.value;
+    if (!maNhanVien) {
+        currentDoctorSchedules = [];
+        availableDoctorDatesMap = new Map();
+        resetBookingDateAndShift();
+        return;
+    }
+
+    resetBookingDateAndShift("⏳ Đang tải lịch bác sĩ...", "-- Chọn Ngày khám trước --");
+
+    let rawSchedules = [];
+    if (maNhanVien === "ANY") {
+        const selectedDeptOpt = deptSelect && deptSelect.selectedIndex >= 0 ? deptSelect.options[deptSelect.selectedIndex] : null;
+        const maKhoa = selectedDeptOpt ? (selectedDeptOpt.getAttribute("data-ma-khoa") || "") : "";
+        const deptDoctorIds = new Set((doctorsByDeptMap[maKhoa] || []).map(d => String(d.ma_nhan_vien)));
+
+        if (allSchedulesFromMySql.length === 0) {
+            try {
+                const res = await fetch(`${INDEX_API.BASE_API_URL}/schedules/weekly-board`, {
+                    headers: { "Accept": "application/json" }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    allSchedulesFromMySql = data.lich_lam_viec_tuan || [];
+                }
+            } catch (e) {}
+        }
+
+        rawSchedules = allSchedulesFromMySql.filter(s => deptDoctorIds.has(String(s.ma_nhan_vien)));
+    } else {
+        try {
+            const res = await fetch(`${INDEX_API.BASE_API_URL}/schedules/staff/${encodeURIComponent(maNhanVien)}`, {
+                headers: { "Accept": "application/json" }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                rawSchedules = Array.isArray(data.schedules) ? data.schedules : [];
+            }
+        } catch (e) {
+            rawSchedules = allSchedulesFromMySql.filter(s => String(s.ma_nhan_vien) === String(maNhanVien));
+        }
+    }
+
+    currentDoctorSchedules = rawSchedules
+        .map(s => ({
+            ...s,
+            ngay_ymd: String(s.ngay_lam_viec || "").substring(0, 10),
+            shiftMeta: getBookingShiftMeta(s.ca_truc)
+        }))
+        .filter(s => s.ngay_ymd && !isBookingShiftExpired(s.ngay_ymd, s.ca_truc))
+        .sort((a, b) => {
+            if (a.ngay_ymd !== b.ngay_ymd) return a.ngay_ymd.localeCompare(b.ngay_ymd);
+            return a.shiftMeta.order - b.shiftMeta.order;
+        });
+
+    availableDoctorDatesMap = new Map();
+    currentDoctorSchedules.forEach(s => {
+        if (!availableDoctorDatesMap.has(s.ngay_ymd)) {
+            availableDoctorDatesMap.set(s.ngay_ymd, new Set());
+        }
+        availableDoctorDatesMap.get(s.ngay_ymd).add(s.shiftMeta.shortLabel);
+    });
+
+    if (availableDoctorDatesMap.size === 0) {
+        resetBookingDateAndShift("-- Bác sĩ chưa có lịch trực --", "-- Không có ca khám --");
+        return;
+    }
+
+    displayBtn.disabled = false;
+    displayBtn.className = "w-full h-10 px-3 rounded-lg border border-slate-300 text-xs font-bold text-teal-900 bg-white hover:border-teal-500 flex items-center justify-between gap-2 text-left transition focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500";
+
+    // Tự động chọn sẵn ngày làm việc gần nhất của Bác sĩ và nạp đúng khung giờ làm ngày đó
+    const firstAvailableDate = Array.from(availableDoctorDatesMap.keys())[0];
+    selectBookingCalendarDate(firstAvailableDate, false);
+}
+
+/**
+ * 9. Khi chọn 1 ngày trên lịch -> Chỉ hiển thị đúng CA và KHUNG GIỜ bác sĩ làm việc trong ngày đó
+ */
+function onChangeBookingDate() {
+    const dateHidden = document.getElementById("bk-date");
+    const shiftSelect = document.getElementById("bk-shift");
+    const doctorSelect = document.getElementById("bk-doctor");
+    if (!dateHidden || !shiftSelect) return;
+
+    const selectedDate = dateHidden.value;
+    if (!selectedDate) {
+        shiftSelect.disabled = true;
+        shiftSelect.className = "w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75 focus:border-teal-500 focus:ring-teal-500";
+        shiftSelect.innerHTML = `<option value="">-- Chọn Ngày khám trước --</option>`;
+        return;
+    }
+
+    const daySchedules = currentDoctorSchedules.filter(s => s.ngay_ymd === selectedDate);
+    if (daySchedules.length === 0) {
+        shiftSelect.disabled = true;
+        shiftSelect.className = "w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-semibold text-slate-700 bg-slate-100 disabled:opacity-75 focus:border-teal-500 focus:ring-teal-500";
+        shiftSelect.innerHTML = `<option value="">-- Không có ca khám ngày này --</option>`;
+        return;
+    }
+
+    const isAnyDoctor = doctorSelect && doctorSelect.value === "ANY";
+    const uniqueShiftList = [];
+    const seenShiftCodes = new Set();
+
+    daySchedules.forEach(s => {
+        if (isAnyDoctor) {
+            if (seenShiftCodes.has(s.shiftMeta.code)) return;
+            seenShiftCodes.add(s.shiftMeta.code);
+        }
+        uniqueShiftList.push(s);
+    });
+
+    shiftSelect.disabled = false;
+    shiftSelect.className = "w-full h-10 px-3 rounded-lg border-slate-300 text-xs font-bold text-teal-900 bg-white focus:border-teal-500 focus:ring-teal-500";
+    shiftSelect.innerHTML = uniqueShiftList.map(s => {
+        const maxSlots = Number(s.so_luong_bn_toi_da || 35);
+        const booked = Number(s.so_lich_hen || 0);
+        const isFull = s.so_lich_hen !== undefined && (maxSlots - booked) <= 0;
+
+        return `
+            <option value="${s.shiftMeta.value}"
+                    data-ma-lich-lam="${s.ma_lich_lam || ''}"
+                    data-ma-nhan-vien="${s.ma_nhan_vien || ''}"
+                    data-ten-bs="${s.ten_nhan_su || ''}"
+                    ${isFull ? 'disabled' : ''}>
+                ${s.shiftMeta.value}${isFull ? " (Hết chỗ)" : ""}
+            </option>
+        `;
+    }).join("");
 }
 
 /**
@@ -282,6 +629,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         const notifDropdown = document.getElementById("header-notif-dropdown");
         if (notifWrapper && notifDropdown && !notifWrapper.contains(e.target)) {
             notifDropdown.classList.add("hidden");
+        }
+
+        const calWrapper = document.getElementById("bk-date-picker-wrapper");
+        const calPopover = document.getElementById("bk-calendar-popover");
+        if (calWrapper && calPopover && !calWrapper.contains(e.target)) {
+            calPopover.classList.add("hidden");
         }
     });
 });
@@ -442,25 +795,26 @@ function openBookedListFromSuccessModal() {
 // =========================================================================
 // 3. TỰ ĐỘNG ĐIỀN FORM ĐẶT LỊCH & LƯU VÀO BẢNG LICH_HEN_KHAM
 // =========================================================================
-function autoFillHomepageBookingForm(suggestion) {
+async function autoFillHomepageBookingForm(suggestion) {
     if (!suggestion) return;
     const user = getCurrentUser();
-    const todayStr = getTodayDateStr();
 
     const deptEl = document.getElementById("bk-department");
     const shiftEl = document.getElementById("bk-shift");
-    const dateEl = document.getElementById("bk-date");
     const symptomEl = document.getElementById("bk-symptom");
     const nameEl = document.getElementById("bk-fullname");
     const phoneEl = document.getElementById("bk-phone");
 
     if (deptEl && suggestion.chuyen_khoa) {
         deptEl.value = suggestion.chuyen_khoa;
-        onChangeBookingDepartment();
+        await onChangeBookingDepartment();
     }
-    if (shiftEl && suggestion.ca_kham) shiftEl.value = suggestion.ca_kham;
-    if (dateEl) {
-        dateEl.value = (suggestion.ngay_hen && suggestion.ngay_hen >= todayStr) ? suggestion.ngay_hen : todayStr;
+    if (suggestion.ngay_hen && availableDoctorDatesMap.has(suggestion.ngay_hen)) {
+        selectBookingCalendarDate(suggestion.ngay_hen, true);
+    }
+    if (shiftEl && suggestion.ca_kham) {
+        const hasSuggestedShift = Array.from(shiftEl.options).some(o => o.value === suggestion.ca_kham && !o.disabled);
+        if (hasSuggestedShift) shiftEl.value = suggestion.ca_kham;
     }
     if (symptomEl && suggestion.trieu_chung_tom_tat) {
         symptomEl.value = suggestion.trieu_chung_tom_tat;
@@ -575,7 +929,7 @@ async function confirmAiBookingDirectly(cardId) {
 }
 
 /**
- * Xử lý khi nhấn nút "XÁC NHẬN ĐẶT LỊCH KHÁM" trên trang chủ (Có chọn Khoa & Bác sĩ)
+ * Xử lý khi nhấn nút "XÁC NHẬN ĐẶT LỊCH KHÁM" trên trang chủ (Theo đúng lịch trực của Bác sĩ)
  */
 async function handleQuickBooking(event) {
     event.preventDefault();
@@ -586,31 +940,41 @@ async function handleQuickBooking(event) {
         return;
     }
 
-    const todayStr = getTodayDateStr();
-    const dateInput = document.getElementById("bk-date");
-    const selectedDate = dateInput.value;
+    const deptSelect = document.getElementById("bk-department");
+    const doctorSelect = document.getElementById("bk-doctor");
+    const dateHidden = document.getElementById("bk-date");
+    const shiftSelect = document.getElementById("bk-shift");
 
-    if (!selectedDate || selectedDate < todayStr) {
-        alert(`⚠️ Ngày hẹn khám không hợp lệ!\nVui lòng chọn từ ngày hôm nay (${todayStr}) trở đi.`);
-        dateInput.value = todayStr;
+    const selectedDate = dateHidden ? dateHidden.value : "";
+    const shiftVal = shiftSelect ? shiftSelect.value : "";
+
+    if (!selectedDate || !shiftVal) {
+        alert("⚠️ Vui lòng chọn ngày có lịch làm việc của Bác sĩ và khung giờ khám phù hợp!");
         return;
     }
 
-    const deptSelect = document.getElementById("bk-department");
-    const doctorSelect = document.getElementById("bk-doctor");
     const selectedDeptOpt = deptSelect.options[deptSelect.selectedIndex];
     const selectedDocOpt = doctorSelect && doctorSelect.selectedIndex >= 0
         ? doctorSelect.options[doctorSelect.selectedIndex]
         : null;
+    const selectedShiftOpt = shiftSelect && shiftSelect.selectedIndex >= 0
+        ? shiftSelect.options[shiftSelect.selectedIndex]
+        : null;
 
     const deptVal = deptSelect.value;
     const maKhoa = selectedDeptOpt ? (selectedDeptOpt.getAttribute("data-ma-khoa") || null) : null;
-    const maNhanVienBs = (doctorSelect && doctorSelect.value && doctorSelect.value !== "ANY") ? doctorSelect.value : null;
-    const tenBacSi = selectedDocOpt
-        ? (selectedDocOpt.getAttribute("data-ten-bs") || selectedDocOpt.text.replace(/^👨‍⚕️\s*/, ""))
-        : "Bác sĩ chuyên khoa";
+    const maLichLam = selectedShiftOpt ? (selectedShiftOpt.getAttribute("data-ma-lich-lam") || null) : null;
 
-    const shiftVal = document.getElementById("bk-shift").value;
+    const maNhanVienBs = (doctorSelect && doctorSelect.value && doctorSelect.value !== "ANY")
+        ? doctorSelect.value
+        : (selectedShiftOpt ? (selectedShiftOpt.getAttribute("data-ma-nhan-vien") || null) : null);
+
+    const tenBacSi = (doctorSelect && doctorSelect.value === "ANY" && selectedShiftOpt && selectedShiftOpt.getAttribute("data-ten-bs"))
+        ? selectedShiftOpt.getAttribute("data-ten-bs")
+        : (selectedDocOpt
+            ? (selectedDocOpt.getAttribute("data-ten-bs") || selectedDocOpt.text.replace(/^👨‍⚕️\s*/, ""))
+            : "Bác sĩ chuyên khoa");
+
     const fullNameVal = document.getElementById("bk-fullname").value.trim().toUpperCase();
     const phoneVal = document.getElementById("bk-phone").value.trim();
     const symptomVal = document.getElementById("bk-symptom").value.trim() || "Khám lâm sàng theo lịch hẹn";
@@ -620,6 +984,7 @@ async function handleQuickBooking(event) {
         ma_benh_nhan: user.ma_benh_nhan,
         ma_khoa: maKhoa,
         chuyen_khoa: deptVal,
+        ma_lich_lam: maLichLam,
         ma_nhan_vien: maNhanVienBs,
         ten_bac_si: tenBacSi,
         ho_ten: fullNameVal,
@@ -650,8 +1015,7 @@ async function handleQuickBooking(event) {
         });
 
         event.target.reset();
-        onChangeBookingDepartment();
-        initBookingDateMin();
+        await onChangeBookingDepartment();
         renderHeaderAuthStatus();
     } catch (e) {
         alert("⚠️ Không kết nối được tới Server Laravel (Cổng 8000)!");
@@ -1143,7 +1507,7 @@ async function sendSymptomChatToAi(event) {
     removeBubbleById(loadingId);
 
     if (aiResponseData && aiResponseData.booking_suggestion) {
-        autoFillHomepageBookingForm(aiResponseData.booking_suggestion);
+        await autoFillHomepageBookingForm(aiResponseData.booking_suggestion);
     }
 
     const replyText = (aiResponseData && aiResponseData.reply) ? aiResponseData.reply : "Đã phân tích triệu chứng.";
