@@ -2,7 +2,7 @@ CREATE DATABASE ttyt_haichau_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 USE ttyt_haichau_db;
 
 -- =========================================================================
--- PHẦN 1: KHỞI TẠO CẤU TRÚC 23 BẢNG
+-- PHẦN 1: KHỞI TẠO CẤU TRÚC 24 BẢNG
 -- =========================================================================
 
 -- 1. BẢNG KHOA
@@ -11,7 +11,7 @@ CREATE TABLE KHOA (
     ten_khoa VARCHAR(100) NOT NULL,
     mo_ta_chuyen_mon TEXT,
     gia_kham DECIMAL(12,2) NOT NULL DEFAULT 50000
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2. BẢNG PHÒNG
 CREATE TABLE PHONG (
@@ -22,7 +22,7 @@ CREATE TABLE PHONG (
     loai_phong VARCHAR(50) NOT NULL,
     trang_thai_hoat_dong VARCHAR(30) DEFAULT 'HoatDong',
     FOREIGN KEY (ma_khoa) REFERENCES KHOA(ma_khoa) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. BẢNG NGƯỜI DÙNG
 CREATE TABLE NGUOI_DUNG (
@@ -34,7 +34,7 @@ CREATE TABLE NGUOI_DUNG (
     mat_khau VARCHAR(255) NOT NULL,
     vai_tro VARCHAR(30) NOT NULL,
     trang_thai VARCHAR(30) DEFAULT 'HoatDong'
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4. BẢNG MÃ XÁC THỰC OTP
 CREATE TABLE MA_XAC_THUC_OTP (
@@ -45,7 +45,7 @@ CREATE TABLE MA_XAC_THUC_OTP (
     trang_thai_su_dung VARCHAR(30) DEFAULT 'ChuaSuDung',
     thoi_gian_tao DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 5. BẢNG NHÂN VIÊN (Định dạng mã: NV + YYMMDD + XX)
 CREATE TABLE NHAN_VIEN (
@@ -57,7 +57,7 @@ CREATE TABLE NHAN_VIEN (
     chung_chi_hanh_nghe VARCHAR(50) NULL,
     FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_khoa) REFERENCES KHOA(ma_khoa) ON DELETE SET NULL ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 6. BẢNG BỆNH NHÂN (Định dạng mã: BN + YYMMDD + XX)
 CREATE TABLE BENH_NHAN (
@@ -73,7 +73,7 @@ CREATE TABLE BENH_NHAN (
     tien_su_di_ung_benh_nen TEXT NULL,
     stk_ngan_hang VARCHAR(100) NULL,
     FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung) ON DELETE SET NULL ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 7. BẢNG LỊCH LÀM VIỆC (3 ca: Sang, Chieu, Dem)
 CREATE TABLE LICH_LAM_VIEC (
@@ -85,7 +85,7 @@ CREATE TABLE LICH_LAM_VIEC (
     so_luong_bn_toi_da INT DEFAULT 30,
     FOREIGN KEY (ma_nhan_vien) REFERENCES NHAN_VIEN(ma_nhan_vien) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_phong) REFERENCES PHONG(ma_phong) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 8. BẢNG LỊCH HẸN KHÁM
 CREATE TABLE LICH_HEN_KHAM (
@@ -100,7 +100,7 @@ CREATE TABLE LICH_HEN_KHAM (
     thoi_gian_huy DATETIME NULL,
     FOREIGN KEY (ma_benh_nhan) REFERENCES BENH_NHAN(ma_benh_nhan) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_lich_lam) REFERENCES LICH_LAM_VIEC(ma_lich_lam) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 9. BẢNG HỒ SƠ KHÁM BỆNH
 CREATE TABLE HO_SO_KHAM_BENH (
@@ -121,7 +121,7 @@ CREATE TABLE HO_SO_KHAM_BENH (
     FOREIGN KEY (ma_lich_hen) REFERENCES LICH_HEN_KHAM(ma_lich_hen) ON DELETE SET NULL ON UPDATE CASCADE,
     FOREIGN KEY (ma_benh_nhan) REFERENCES BENH_NHAN(ma_benh_nhan) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_nhan_vien) REFERENCES NHAN_VIEN(ma_nhan_vien) ON DELETE SET NULL ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 10. BẢNG CHỈ SỐ SINH HIỆU
 CREATE TABLE CHI_SO_SINH_HIEU (
@@ -137,7 +137,7 @@ CREATE TABLE CHI_SO_SINH_HIEU (
     thoi_gian_do DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ma_ho_so_kham) REFERENCES HO_SO_KHAM_BENH(ma_ho_so_kham) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_nhan_vien) REFERENCES NHAN_VIEN(ma_nhan_vien) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 11. BẢNG DANH MỤC CẬN LÂM SÀNG
 CREATE TABLE DANH_MUC_CAN_LAM_SANG (
@@ -146,9 +146,19 @@ CREATE TABLE DANH_MUC_CAN_LAM_SANG (
     ten_dich_vu_cls VARCHAR(150) NOT NULL,
     don_gia_cls DECIMAL(12,2) NOT NULL,
     FOREIGN KEY (ma_phong) REFERENCES PHONG(ma_phong) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 12. BẢNG CHỈ ĐỊNH CẬN LÂM SÀNG
+-- 12. BẢNG PHÂN QUYỀN KHOA - DỊCH VỤ CẬN LÂM SÀNG (Quan hệ N-N chuẩn 3NF)
+CREATE TABLE KHOA_DICH_VU_CLS (
+    ma_khoa_cls VARCHAR(20) NOT NULL DEFAULT '' PRIMARY KEY,
+    ma_khoa VARCHAR(20) NOT NULL,
+    ma_dich_vu_cls VARCHAR(20) NOT NULL,
+    UNIQUE KEY uq_khoa_dv_cls (ma_khoa, ma_dich_vu_cls),
+    CONSTRAINT fk_kcls_khoa FOREIGN KEY (ma_khoa) REFERENCES KHOA(ma_khoa) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_kcls_dv   FOREIGN KEY (ma_dich_vu_cls) REFERENCES DANH_MUC_CAN_LAM_SANG(ma_dich_vu_cls) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 13. BẢNG CHỈ ĐỊNH CẬN LÂM SÀNG
 CREATE TABLE CHI_DINH_CAN_LAM_SANG (
     ma_chi_dinh_cls VARCHAR(20) PRIMARY KEY,
     ma_ho_so_kham VARCHAR(20) NOT NULL,
@@ -162,9 +172,9 @@ CREATE TABLE CHI_DINH_CAN_LAM_SANG (
     FOREIGN KEY (ma_ho_so_kham) REFERENCES HO_SO_KHAM_BENH(ma_ho_so_kham) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_dich_vu_cls) REFERENCES DANH_MUC_CAN_LAM_SANG(ma_dich_vu_cls) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_nhan_vien) REFERENCES NHAN_VIEN(ma_nhan_vien) ON DELETE SET NULL ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 13. BẢNG ẢNH KẾT QUẢ CẬN LÂM SÀNG
+-- 14. BẢNG ẢNH KẾT QUẢ CẬN LÂM SÀNG
 CREATE TABLE ANH_KET_QUA_CLS (
     ma_anh_cls VARCHAR(20) PRIMARY KEY,
     ma_chi_dinh_cls VARCHAR(20) NOT NULL,
@@ -172,9 +182,9 @@ CREATE TABLE ANH_KET_QUA_CLS (
     ghi_chu_anh VARCHAR(150) NULL,
     thoi_gian_tai_len DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ma_chi_dinh_cls) REFERENCES CHI_DINH_CAN_LAM_SANG(ma_chi_dinh_cls) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 14. BẢNG DANH MỤC THUỐC
+-- 15. BẢNG DANH MỤC THUỐC
 CREATE TABLE DANH_MUC_THUOC (
     ma_thuoc VARCHAR(20) PRIMARY KEY,
     ten_thuoc VARCHAR(150) NOT NULL,
@@ -182,9 +192,9 @@ CREATE TABLE DANH_MUC_THUOC (
     don_vi_tinh VARCHAR(30) NOT NULL,
     don_gia_thuoc DECIMAL(12,2) NOT NULL,
     so_luong_ton_kho INT NOT NULL DEFAULT 0
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 15. BẢNG ĐƠN THUỐC
+-- 16. BẢNG ĐƠN THUỐC
 CREATE TABLE DON_THUOC (
     ma_don_thuoc VARCHAR(20) PRIMARY KEY,
     ma_ho_so_kham VARCHAR(20) NOT NULL UNIQUE,
@@ -196,9 +206,9 @@ CREATE TABLE DON_THUOC (
     thoi_gian_cap_thuoc DATETIME NULL,
     FOREIGN KEY (ma_ho_so_kham) REFERENCES HO_SO_KHAM_BENH(ma_ho_so_kham) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_nhan_vien) REFERENCES NHAN_VIEN(ma_nhan_vien) ON DELETE SET NULL ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 16. BẢNG CHI TIẾT ĐƠN THUỐC
+-- 17. BẢNG CHI TIẾT ĐƠN THUỐC
 CREATE TABLE CHI_TIET_DON_THUOC (
     ma_chi_tiet_don VARCHAR(20) PRIMARY KEY,
     ma_don_thuoc VARCHAR(20) NOT NULL,
@@ -208,9 +218,9 @@ CREATE TABLE CHI_TIET_DON_THUOC (
     don_gia_luc_ke DECIMAL(12,2) NOT NULL,
     FOREIGN KEY (ma_don_thuoc) REFERENCES DON_THUOC(ma_don_thuoc) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_thuoc) REFERENCES DANH_MUC_THUOC(ma_thuoc) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 17. BẢNG HÓA ĐƠN VIỆN PHÍ
+-- 18. BẢNG HÓA ĐƠN VIỆN PHÍ
 CREATE TABLE HOA_DON_VIEN_PHI (
     ma_hoa_don VARCHAR(20) PRIMARY KEY,
     ma_ho_so_kham VARCHAR(20) NOT NULL,
@@ -226,9 +236,9 @@ CREATE TABLE HOA_DON_VIEN_PHI (
     ma_giao_dich_ngan_hang VARCHAR(100) NULL,
     FOREIGN KEY (ma_ho_so_kham) REFERENCES HO_SO_KHAM_BENH(ma_ho_so_kham) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ma_nhan_vien) REFERENCES NHAN_VIEN(ma_nhan_vien) ON DELETE SET NULL ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 18. BẢNG CHI TIẾT HÓA ĐƠN
+-- 19. BẢNG CHI TIẾT HÓA ĐƠN
 CREATE TABLE CHI_TIET_HOA_DON (
     ma_chi_tiet_hd VARCHAR(20) PRIMARY KEY,
     ma_hoa_don VARCHAR(20) NOT NULL,
@@ -238,18 +248,18 @@ CREATE TABLE CHI_TIET_HOA_DON (
     don_gia DECIMAL(12,2) NOT NULL,
     thanh_tien DECIMAL(12,2) NOT NULL,
     FOREIGN KEY (ma_hoa_don) REFERENCES HOA_DON_VIEN_PHI(ma_hoa_don) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 19. BẢNG PHIÊN TRÒ CHUYỆN AI
+-- 20. BẢNG PHIÊN TRÒ CHUYỆN AI
 CREATE TABLE PHIEN_TRO_CHUYEN_AI (
     ma_phien_chat VARCHAR(20) PRIMARY KEY,
     ma_nguoi_dung VARCHAR(20) NOT NULL,
     tieu_de_cuoc_tro_chuyen VARCHAR(150),
     thoi_gian_tao DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ma_nguoi_dung) REFERENCES NGUOI_DUNG(ma_nguoi_dung) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 20. BẢNG LỊCH SỬ TIN NHẮN AI
+-- 21. BẢNG LỊCH SỬ TIN NHẮN AI
 CREATE TABLE LICH_SU_TIN_NHAN_AI (
     ma_tin_nhan VARCHAR(20) PRIMARY KEY,
     ma_phien_chat VARCHAR(20) NOT NULL,
@@ -257,18 +267,18 @@ CREATE TABLE LICH_SU_TIN_NHAN_AI (
     noi_dung_tin_nhan TEXT NOT NULL,
     thoi_gian_gui DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ma_phien_chat) REFERENCES PHIEN_TRO_CHUYEN_AI(ma_phien_chat) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 21. BẢNG ẢNH TIN NHẮN AI
+-- 22. BẢNG ẢNH TIN NHẮN AI
 CREATE TABLE ANH_TIN_NHAN_AI (
     ma_anh_tin_nhan VARCHAR(20) PRIMARY KEY,
     ma_tin_nhan VARCHAR(20) NOT NULL,
     duong_dan_anh LONGTEXT NOT NULL,
     thoi_gian_tai_len DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ma_tin_nhan) REFERENCES LICH_SU_TIN_NHAN_AI(ma_tin_nhan) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 22. BẢNG TÀI LIỆU HUẤN LUYỆN AI
+-- 23. BẢNG TÀI LIỆU HUẤN LUYỆN AI
 CREATE TABLE TAI_LIEU_HUAN_LUYEN_AI (
     ma_tai_lieu VARCHAR(20) PRIMARY KEY,
     ma_nhan_vien VARCHAR(20) NOT NULL,
@@ -281,9 +291,9 @@ CREATE TABLE TAI_LIEU_HUAN_LUYEN_AI (
     trang_thai_dong_bo VARCHAR(30) DEFAULT 'ChoVectorHoa',
     thoi_gian_cap_nhat DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ma_nhan_vien) REFERENCES NHAN_VIEN(ma_nhan_vien) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 23. BẢNG THÔNG BÁO
+-- 24. BẢNG THÔNG BÁO
 CREATE TABLE THONG_BAO (
     ma_thong_bao VARCHAR(20) PRIMARY KEY,
     ma_nguoi_dung VARCHAR(20) NOT NULL,
@@ -298,10 +308,10 @@ CREATE TABLE THONG_BAO (
 
 
 -- =========================================================================
--- PHẦN 2: DỮ LIỆU KHOA, PHÒNG, DỊCH VỤ CLS & THUỐC (GIÁ THỰC TẾ THỊ TRƯỜNG)
+-- PHẦN 2: DỮ LIỆU KHOA, PHÒNG, DỊCH VỤ CLS, PHÂN QUYỀN KHOA-CLS & THUỐC
 -- =========================================================================
 
--- 1. KHOA (12 khoa thực tế tại TTYT Phường Hải Châu — Không có khoa 0đ)
+-- 1. KHOA (12 khoa thực tế tại TTYT Phường Hải Châu)
 INSERT INTO KHOA (ma_khoa, ten_khoa, mo_ta_chuyen_mon, gia_kham) VALUES
 ('KH001', 'Khoa Nội Tổng Quát', 'Khám và điều trị các bệnh lý tim mạch, tăng huyết áp, đái tháo đường, tiêu hóa, hô hấp nội khoa', 50000),
 ('KH002', 'Khoa Tai - Mũi - Họng', 'Khám viêm họng cấp, viêm xoang, viêm amidan, viêm tai giữa, nội soi Tai - Mũi - Họng', 55000),
@@ -364,7 +374,70 @@ INSERT INTO DANH_MUC_CAN_LAM_SANG (ma_dich_vu_cls, ma_phong, ten_dich_vu_cls, do
 ('DVCLS021', 'PH020', 'Nội Soi Tai - Mũi - Họng Ống Mềm Kỹ Thuật Số', 150000),
 ('DVCLS022', 'PH020', 'Nội Soi Thực Quản - Dạ Dày - Tá Tràng Có Test HP', 450000);
 
--- 14. DANH_MUC_THUOC (25 loại thuốc BHYT & dịch vụ theo giá thị trường)
+-- 12. KHOA_DICH_VU_CLS (100 dòng phân quyền chỉ định CLS đúng chuyên khoa: KCLS001 -> KCLS100)
+INSERT INTO KHOA_DICH_VU_CLS (ma_khoa_cls, ma_khoa, ma_dich_vu_cls) VALUES
+-- KH001: Khoa Nội Tổng Quát (15 dịch vụ)
+('KCLS001', 'KH001', 'DVCLS001'), ('KCLS002', 'KH001', 'DVCLS002'), ('KCLS003', 'KH001', 'DVCLS003'),
+('KCLS004', 'KH001', 'DVCLS004'), ('KCLS005', 'KH001', 'DVCLS005'), ('KCLS006', 'KH001', 'DVCLS009'),
+('KCLS007', 'KH001', 'DVCLS010'), ('KCLS008', 'KH001', 'DVCLS013'), ('KCLS009', 'KH001', 'DVCLS014'),
+('KCLS010', 'KH001', 'DVCLS015'), ('KCLS011', 'KH001', 'DVCLS016'), ('KCLS012', 'KH001', 'DVCLS017'),
+('KCLS013', 'KH001', 'DVCLS018'), ('KCLS014', 'KH001', 'DVCLS019'), ('KCLS015', 'KH001', 'DVCLS022'),
+
+-- KH002: Khoa Tai - Mũi - Họng (4 dịch vụ)
+('KCLS016', 'KH002', 'DVCLS003'), ('KCLS017', 'KH002', 'DVCLS008'), ('KCLS018', 'KH002', 'DVCLS009'),
+('KCLS019', 'KH002', 'DVCLS021'),
+
+-- KH003: Khoa Cận Lâm Sàng (22 dịch vụ)
+('KCLS020', 'KH003', 'DVCLS001'), ('KCLS021', 'KH003', 'DVCLS002'), ('KCLS022', 'KH003', 'DVCLS003'),
+('KCLS023', 'KH003', 'DVCLS004'), ('KCLS024', 'KH003', 'DVCLS005'), ('KCLS025', 'KH003', 'DVCLS006'),
+('KCLS026', 'KH003', 'DVCLS007'), ('KCLS027', 'KH003', 'DVCLS008'), ('KCLS028', 'KH003', 'DVCLS009'),
+('KCLS029', 'KH003', 'DVCLS010'), ('KCLS030', 'KH003', 'DVCLS011'), ('KCLS031', 'KH003', 'DVCLS012'),
+('KCLS032', 'KH003', 'DVCLS013'), ('KCLS033', 'KH003', 'DVCLS014'), ('KCLS034', 'KH003', 'DVCLS015'),
+('KCLS035', 'KH003', 'DVCLS016'), ('KCLS036', 'KH003', 'DVCLS017'), ('KCLS037', 'KH003', 'DVCLS018'),
+('KCLS038', 'KH003', 'DVCLS019'), ('KCLS039', 'KH003', 'DVCLS020'), ('KCLS040', 'KH003', 'DVCLS021'),
+('KCLS041', 'KH003', 'DVCLS022'),
+
+-- KH004: Khoa Cơ - Xương - Khớp (5 dịch vụ)
+('KCLS042', 'KH004', 'DVCLS003'), ('KCLS043', 'KH004', 'DVCLS006'), ('KCLS044', 'KH004', 'DVCLS007'),
+('KCLS045', 'KH004', 'DVCLS014'), ('KCLS046', 'KH004', 'DVCLS020'),
+
+-- KH005: Khoa Y Học Cổ Truyền & PHCN (4 dịch vụ)
+('KCLS047', 'KH005', 'DVCLS004'), ('KCLS048', 'KH005', 'DVCLS006'), ('KCLS049', 'KH005', 'DVCLS007'),
+('KCLS050', 'KH005', 'DVCLS020'),
+
+-- KH006: Khoa Ngoại Tổng Hợp (15 dịch vụ)
+('KCLS051', 'KH006', 'DVCLS001'), ('KCLS052', 'KH006', 'DVCLS002'), ('KCLS053', 'KH006', 'DVCLS003'),
+('KCLS054', 'KH006', 'DVCLS004'), ('KCLS055', 'KH006', 'DVCLS006'), ('KCLS056', 'KH006', 'DVCLS007'),
+('KCLS057', 'KH006', 'DVCLS009'), ('KCLS058', 'KH006', 'DVCLS012'), ('KCLS059', 'KH006', 'DVCLS013'),
+('KCLS060', 'KH006', 'DVCLS014'), ('KCLS061', 'KH006', 'DVCLS016'), ('KCLS062', 'KH006', 'DVCLS018'),
+('KCLS063', 'KH006', 'DVCLS019'), ('KCLS064', 'KH006', 'DVCLS020'), ('KCLS065', 'KH006', 'DVCLS022'),
+
+-- KH007: Khoa Phụ Sản & KHHGĐ (6 dịch vụ)
+('KCLS066', 'KH007', 'DVCLS002'), ('KCLS067', 'KH007', 'DVCLS003'), ('KCLS068', 'KH007', 'DVCLS005'),
+('KCLS069', 'KH007', 'DVCLS011'), ('KCLS070', 'KH007', 'DVCLS012'), ('KCLS071', 'KH007', 'DVCLS016'),
+
+-- KH008: Khoa Nhi (6 dịch vụ)
+('KCLS072', 'KH008', 'DVCLS001'), ('KCLS073', 'KH008', 'DVCLS002'), ('KCLS074', 'KH008', 'DVCLS003'),
+('KCLS075', 'KH008', 'DVCLS016'), ('KCLS076', 'KH008', 'DVCLS017'), ('KCLS077', 'KH008', 'DVCLS021'),
+
+-- KH009: Khoa Răng - Hàm - Mặt (2 dịch vụ)
+('KCLS078', 'KH009', 'DVCLS003'), ('KCLS079', 'KH009', 'DVCLS008'),
+
+-- KH010: Khoa Mắt (3 dịch vụ)
+('KCLS080', 'KH010', 'DVCLS003'), ('KCLS081', 'KH010', 'DVCLS005'), ('KCLS082', 'KH010', 'DVCLS015'),
+
+-- KH011: Khoa Da Liễu & Truyền Nhiễm (5 dịch vụ)
+('KCLS083', 'KH011', 'DVCLS003'), ('KCLS084', 'KH011', 'DVCLS013'), ('KCLS085', 'KH011', 'DVCLS014'),
+('KCLS086', 'KH011', 'DVCLS016'), ('KCLS087', 'KH011', 'DVCLS017'),
+
+-- KH012: Khoa Cấp Cứu - Hồi Sức Tích Cực (13 dịch vụ)
+('KCLS088', 'KH012', 'DVCLS001'), ('KCLS089', 'KH012', 'DVCLS002'), ('KCLS090', 'KH012', 'DVCLS003'),
+('KCLS091', 'KH012', 'DVCLS004'), ('KCLS092', 'KH012', 'DVCLS005'), ('KCLS093', 'KH012', 'DVCLS007'),
+('KCLS094', 'KH012', 'DVCLS010'), ('KCLS095', 'KH012', 'DVCLS013'), ('KCLS096', 'KH012', 'DVCLS014'),
+('KCLS097', 'KH012', 'DVCLS016'), ('KCLS098', 'KH012', 'DVCLS017'), ('KCLS099', 'KH012', 'DVCLS018'),
+('KCLS100', 'KH012', 'DVCLS019');
+
+-- 15. DANH_MUC_THUOC (25 loại thuốc BHYT & dịch vụ theo giá thị trường)
 INSERT INTO DANH_MUC_THUOC (ma_thuoc, ten_thuoc, hoat_chat, don_vi_tinh, don_gia_thuoc, so_luong_ton_kho) VALUES
 ('TH001', 'Amoxicillin 500mg', 'Amoxicillin', 'Viên', 2500, 1200),
 ('TH002', 'Paracetamol 500mg', 'Paracetamol', 'Viên', 1500, 2000),
@@ -394,15 +467,15 @@ INSERT INTO DANH_MUC_THUOC (ma_thuoc, ten_thuoc, hoat_chat, don_vi_tinh, don_gia
 
 
 -- =========================================================================
--- PHẦN 3: NGƯỜI DÙNG, OTP, NHÂN VIÊN (50 NHÂN SỰ CHIA 3 CA) & BỆNH NHÂN
+-- PHẦN 3: NGƯỜI DÙNG (64 TK), OTP, NHÂN VIÊN (58 NS CHIA 6 NHÓM) & BỆNH NHÂN
 -- Định dạng mã: NV261120XX & BN261120XX | Mật khẩu mặc định demo: "123456"
 -- =========================================================================
 
--- 3. NGUOI_DUNG (56 tài khoản: ND001 -> ND056)
+-- 3. NGUOI_DUNG (64 tài khoản: ND001 -> ND064)
 INSERT INTO NGUOI_DUNG (ma_nguoi_dung, vneid, ho_ten, email, so_dien_thoai, mat_khau, vai_tro, trang_thai) VALUES
 -- 8 Tài khoản nhân sự demo gốc
 ('ND001', '048200000001', 'Quản trị viên Hệ thống', 'admin@ttythaichau.vn', '0905000001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'QuanTri', 'HoatDong'),
-('ND002', '048200000002', 'ĐD. Nguyễn Thị Lan (Tiếp đón & Sàng lọc)', 'nvyt@ttythaichau.vn', '0905000002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND002', '048200000002', 'ĐD. Nguyễn Thị Lan (Tiếp nhận)', 'nvyt@ttythaichau.vn', '0905000002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
 ('ND003', '048200000003', 'BS.CKI Nguyễn Văn Hưng (Trưởng khoa Nội)', 'bacsi@ttythaichau.vn', '0905000003', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'BacSi', 'HoatDong'),
 ('ND004', '048200000004', 'CN. Lê Thị Thu Ngân (Kế toán)', 'ketoan@ttythaichau.vn', '0905000004', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'KeToan', 'HoatDong'),
 ('ND005', '048200000005', 'DS. Trần Quốc Bảo (Dược sĩ)', 'duocsi@ttythaichau.vn', '0905000005', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'DuocSi', 'HoatDong'),
@@ -418,13 +491,13 @@ INSERT INTO NGUOI_DUNG (ma_nguoi_dung, vneid, ho_ten, email, so_dien_thoai, mat_
 ('ND013', '048188003344', 'PHẠM THỊ THU HÀ', 'thuha@gmail.com', '0905998877', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'BenhNhan', 'HoatDong'),
 ('ND014', '048082005566', 'VÕ ĐỨC THẮNG', 'voducthang@gmail.com', '0977889900', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'BenhNhan', 'HoatDong'),
 
--- 42 Nhân sự bổ sung (Đủ xếp lịch 3 ca Sáng - Chiều - Đêm)
+-- 50 Nhân sự bổ sung (Tổng 58 nhân sự đủ xếp lịch 3 ca & nghỉ bù ra trực)
 ('ND015', '048200000015', 'CN. Võ Minh Tuấn (Quản trị CNTT)', 'admin2@ttythaichau.vn', '0905000015', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'QuanTri', 'HoatDong'),
-('ND016', '048200000016', 'ĐD. Trần Thị Mai (Tiếp đón & Sàng lọc)', 'dd.mai@ttythaichau.vn', '0905000016', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
-('ND017', '048200000017', 'ĐD. Lê Thị Hồng Nhung (Tiếp đón & Sàng lọc)', 'dd.nhung@ttythaichau.vn', '0905000017', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
-('ND018', '048200000018', 'ĐD. Phạm Thị Thanh Thảo (Điều dưỡng ca Chiều)', 'dd.thao@ttythaichau.vn', '0905000018', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
-('ND019', '048200000019', 'ĐD. Huỳnh Văn Dũng (Điều dưỡng trực Đêm)', 'dd.dung@ttythaichau.vn', '0905000019', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
-('ND020', '048200000020', 'ĐD. Nguyễn Thị Bích Ngọc (Điều dưỡng trực Đêm)', 'dd.ngoc@ttythaichau.vn', '0905000020', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND016', '048200000016', 'ĐD. Trần Thị Mai (Tiếp nhận)', 'dd.mai@ttythaichau.vn', '0905000016', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND017', '048200000017', 'ĐD. Lê Thị Hồng Nhung (Tiếp nhận)', 'dd.nhung@ttythaichau.vn', '0905000017', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND018', '048200000018', 'ĐD. Phạm Thị Thanh Thảo (Đo sinh hiệu)', 'dd.thao@ttythaichau.vn', '0905000018', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND019', '048200000019', 'ĐD. Huỳnh Văn Dũng (Đo sinh hiệu)', 'dd.dung@ttythaichau.vn', '0905000019', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND020', '048200000020', 'ĐD. Nguyễn Thị Bích Ngọc (Đo sinh hiệu)', 'dd.ngoc@ttythaichau.vn', '0905000020', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
 
 ('ND021', '048200000021', 'KTV. Đặng Quốc Huy (X-Quang & CT Scanner)', 'ktv.huy@ttythaichau.vn', '0905000021', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
 ('ND022', '048200000022', 'KTV. Nguyễn Thị Kim Oanh (Siêu âm 4D & Doppler)', 'ktv.oanh@ttythaichau.vn', '0905000022', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
@@ -464,7 +537,17 @@ INSERT INTO NGUOI_DUNG (ma_nguoi_dung, vneid, ho_ten, email, so_dien_thoai, mat_
 ('ND053', '048200000053', 'BS.CKI Nguyễn Tấn Phát (Trưởng khoa Cấp Cứu)', 'bs.phat@ttythaichau.vn', '0905000053', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'BacSi', 'HoatDong'),
 ('ND054', '048200000054', 'BS. Trần Hoàng Long (Khoa Cấp Cứu ca Chiều)', 'bs.long@ttythaichau.vn', '0905000054', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'BacSi', 'HoatDong'),
 ('ND055', '048200000055', 'BS. Lê Anh Kiệt (Khoa Cấp Cứu trực Đêm)', 'bs.kiet@ttythaichau.vn', '0905000055', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'BacSi', 'HoatDong'),
-('ND056', '048200000056', 'BS. Phạm Quốc Cường (Khoa Cấp Cứu xoay ca 24/7)', 'bs.cuong@ttythaichau.vn', '0905000056', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'BacSi', 'HoatDong');
+('ND056', '048200000056', 'BS. Phạm Quốc Cường (Khoa Cấp Cứu xoay ca 24/7)', 'bs.cuong@ttythaichau.vn', '0905000056', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'BacSi', 'HoatDong'),
+
+-- 8 Nhân sự tăng cường: 2 Tiếp nhận (ND057-058), 2 Đo sinh hiệu (ND059-060), 2 Kế toán (ND061-062), 2 Dược sĩ (ND063-064)
+('ND057', '048200000057', 'ĐD. Võ Thị Bích Ngọc (Tiếp nhận)', 'ddngoc@ttythaichau.vn', '0905000057', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND058', '048200000058', 'ĐD. Trần Thị Hồng Nhung (Tiếp nhận)', 'ddnhung@ttythaichau.vn', '0905000058', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND059', '048200000059', 'ĐD. Phạm Minh Tuấn (Đo sinh hiệu)', 'ddtuan@ttythaichau.vn', '0905000059', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND060', '048200000060', 'ĐD. Lê Thị Kim Oanh (Đo sinh hiệu)', 'ddoanh@ttythaichau.vn', '0905000060', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NVYT', 'HoatDong'),
+('ND061', '048200000061', 'CN. Võ Thị Thanh Tâm (Kế toán)', 'kttam@ttythaichau.vn', '0905000061', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'KeToan', 'HoatDong'),
+('ND062', '048200000062', 'CN. Huỳnh Văn Thành (Kế toán)', 'ktthanh@ttythaichau.vn', '0905000062', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'KeToan', 'HoatDong'),
+('ND063', '048200000063', 'DS. Lê Thị Mỹ Linh (Dược sĩ)', 'dslinh@ttythaichau.vn', '0905000063', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'DuocSi', 'HoatDong'),
+('ND064', '048200000064', 'DS. Trần Quốc Huy (Dược sĩ)', 'dshuy@ttythaichau.vn', '0905000064', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'DuocSi', 'HoatDong');
 
 -- 4. MA_XAC_THUC_OTP (5 bản ghi)
 INSERT INTO MA_XAC_THUC_OTP (ma_otp, ma_nguoi_dung, ma_xac_thuc, thoi_gian_het_han, trang_thai_su_dung, thoi_gian_tao) VALUES
@@ -474,10 +557,10 @@ INSERT INTO MA_XAC_THUC_OTP (ma_otp, ma_nguoi_dung, ma_xac_thuc, thoi_gian_het_h
 ('OTP004', 'ND012', '482604', '2026-11-20 15:10:00', 'ChuaSuDung', '2026-11-20 15:00:00'),
 ('OTP005', 'ND013', '753951', '2026-11-20 15:30:00', 'ChuaSuDung', '2026-11-20 15:20:00');
 
--- 5. NHAN_VIEN (50 nhân sự theo chuẩn NV261120XX: NV26112001 -> NV26112050)
+-- 5. NHAN_VIEN (58 nhân sự: tách rõ 5 Tiếp nhận [TiepDon], 5 Đo sinh hiệu [DieuDuong], 6 KTV CLS [KTV_CLS])
 INSERT INTO NHAN_VIEN (ma_nhan_vien, ma_nguoi_dung, ma_khoa, chuc_vu, chuyen_mon, chung_chi_hanh_nghe) VALUES
 ('NV26112001', 'ND001', 'KH001', 'QuanTriVien', 'Quản trị Hệ thống Y tế Số', 'CCHN-QT-001'),
-('NV26112002', 'ND002', 'KH001', 'DieuDuong', 'Điều dưỡng Tiếp đón & Khám sàng lọc', 'CCHN-DD-002'),
+('NV26112002', 'ND002', 'KH001', 'TiepDon', 'Nhân viên Tiếp nhận bệnh nhân & Quét BHYT', 'CCHN-TN-002'),
 ('NV26112003', 'ND003', 'KH001', 'BacSi', 'Bác sĩ CKI Nội Tổng Quát', 'CCHN-BS-003'),
 ('NV26112004', 'ND004', 'KH001', 'KeToan', 'Kế toán Thu ngân Viện phí', 'CCHN-KT-004'),
 ('NV26112005', 'ND005', 'KH001', 'DuocSi', 'Dược sĩ Lâm sàng & Kho BHYT', 'CCHN-DS-005'),
@@ -485,11 +568,11 @@ INSERT INTO NHAN_VIEN (ma_nhan_vien, ma_nguoi_dung, ma_khoa, chuc_vu, chuyen_mon
 ('NV26112007', 'ND007', 'KH004', 'BacSi', 'Bác sĩ CKI Cơ Xương Khớp', 'CCHN-BS-007'),
 ('NV26112008', 'ND008', 'KH003', 'KTV_CLS', 'Kỹ thuật viên Xét nghiệm & CĐHA', 'CCHN-CLS-008'),
 ('NV26112009', 'ND015', 'KH001', 'QuanTriVien', 'Quản trị Hạ tầng & Cơ sở dữ liệu HIS', 'CCHN-QT-009'),
-('NV26112010', 'ND016', 'KH001', 'DieuDuong', 'Điều dưỡng Tiếp đón & Khám sàng lọc (Ca Sáng)', 'CCHN-DD-010'),
-('NV26112011', 'ND017', 'KH001', 'DieuDuong', 'Điều dưỡng Tiếp đón & Khám sàng lọc (Ca Chiều)', 'CCHN-DD-011'),
-('NV26112012', 'ND018', 'KH001', 'DieuDuong', 'Điều dưỡng Tiếp đón & Khám sàng lọc (Ca Chiều)', 'CCHN-DD-012'),
-('NV26112013', 'ND019', 'KH001', 'DieuDuong', 'Điều dưỡng Cấp cứu & Khám sàng lọc (Ca Đêm)', 'CCHN-DD-013'),
-('NV26112014', 'ND020', 'KH001', 'DieuDuong', 'Điều dưỡng Tiếp đón & Sàng lọc (Ca Đêm)', 'CCHN-DD-014'),
+('NV26112010', 'ND016', 'KH001', 'TiepDon', 'Nhân viên Tiếp nhận bệnh nhân & Quét BHYT', 'CCHN-TN-010'),
+('NV26112011', 'ND017', 'KH001', 'TiepDon', 'Nhân viên Tiếp nhận bệnh nhân & Quét BHYT', 'CCHN-TN-011'),
+('NV26112012', 'ND018', 'KH001', 'DieuDuong', 'Điều dưỡng Đo chỉ số sinh hiệu & Khám sàng lọc', 'CCHN-DD-012'),
+('NV26112013', 'ND019', 'KH001', 'DieuDuong', 'Điều dưỡng Đo chỉ số sinh hiệu & Khám sàng lọc', 'CCHN-DD-013'),
+('NV26112014', 'ND020', 'KH001', 'DieuDuong', 'Điều dưỡng Đo chỉ số sinh hiệu & Khám sàng lọc', 'CCHN-DD-014'),
 ('NV26112015', 'ND021', 'KH003', 'KTV_CLS', 'Kỹ thuật viên Chụp X-Quang & CT Scanner', 'CCHN-CLS-015'),
 ('NV26112016', 'ND022', 'KH003', 'KTV_CLS', 'Kỹ thuật viên Siêu âm 4D & Doppler màu', 'CCHN-CLS-016'),
 ('NV26112017', 'ND023', 'KH003', 'KTV_CLS', 'Kỹ thuật viên Xét nghiệm Huyết học & Sinh hóa', 'CCHN-CLS-017'),
@@ -525,7 +608,15 @@ INSERT INTO NHAN_VIEN (ma_nhan_vien, ma_nguoi_dung, ma_khoa, chuc_vu, chuyen_mon
 ('NV26112047', 'ND053', 'KH012', 'BacSi', 'Bác sĩ CKI Hồi Sức Cấp Cứu (Ca Sáng)', 'CCHN-BS-047'),
 ('NV26112048', 'ND054', 'KH012', 'BacSi', 'Bác sĩ Hồi Sức Cấp Cứu (Ca Chiều)', 'CCHN-BS-048'),
 ('NV26112049', 'ND055', 'KH012', 'BacSi', 'Bác sĩ Hồi Sức Cấp Cứu (Ca Đêm)', 'CCHN-BS-049'),
-('NV26112050', 'ND056', 'KH012', 'BacSi', 'Bác sĩ Hồi Sức Cấp Cứu (Xoay ca 24/7)', 'CCHN-BS-050');
+('NV26112050', 'ND056', 'KH012', 'BacSi', 'Bác sĩ Hồi Sức Cấp Cứu (Xoay ca 24/7)', 'CCHN-BS-050'),
+('NV26112051', 'ND057', 'KH001', 'TiepDon', 'Nhân viên Tiếp nhận bệnh nhân & Quét BHYT', 'CCHN-TN-051'),
+('NV26112052', 'ND058', 'KH001', 'TiepDon', 'Nhân viên Tiếp nhận bệnh nhân & Quét BHYT', 'CCHN-TN-052'),
+('NV26112053', 'ND059', 'KH012', 'DieuDuong', 'Điều dưỡng Đo chỉ số sinh hiệu & Khám sàng lọc', 'CCHN-DD-053'),
+('NV26112054', 'ND060', 'KH001', 'DieuDuong', 'Điều dưỡng Đo chỉ số sinh hiệu & Khám sàng lọc', 'CCHN-DD-054'),
+('NV26112055', 'ND061', 'KH001', 'KeToan', 'Kế toán thu ngân viện phí BHYT', 'CCHN-KT-055'),
+('NV26112056', 'ND062', 'KH001', 'KeToan', 'Kế toán quyết toán & thu ngân', 'CCHN-KT-056'),
+('NV26112057', 'ND063', 'KH001', 'DuocSi', 'Dược sĩ cấp phát thuốc BHYT', 'CCHN-DS-057'),
+('NV26112058', 'ND064', 'KH001', 'DuocSi', 'Dược sĩ quản lý kho thuốc', 'CCHN-DS-058');
 
 -- 6. BENH_NHAN (6 bệnh nhân mẫu theo chuẩn BN261120XX: BN26112001 -> BN26112006)
 INSERT INTO BENH_NHAN (ma_benh_nhan, ma_nguoi_dung, ngay_sinh, gioi_tinh, dia_chi, so_the_bhyt, han_the_bhyt, noi_dang_ky_bhyt, tien_su_di_ung_benh_nen, stk_ngan_hang) VALUES
@@ -541,7 +632,7 @@ INSERT INTO BENH_NHAN (ma_benh_nhan, ma_nguoi_dung, ngay_sinh, gioi_tinh, dia_ch
 -- PHẦN 4: LỊCH LÀM VIỆC 3 CA (SÁNG 07:00-11:30 | CHIỀU 13:00-16:30 | ĐÊM 16:30-07:00)
 -- =========================================================================
 
--- 7. LICH_LAM_VIEC (43 phân ca mẫu ngày 2026-11-20 phủ kín 3 ca)
+-- 7. LICH_LAM_VIEC (45 phân ca mẫu ngày 2026-11-20 phủ kín đủ 6 nhóm ở cả 3 ca)
 INSERT INTO LICH_LAM_VIEC (ma_lich_lam, ma_nhan_vien, ma_phong, ngay_lam_viec, ca_truc, so_luong_bn_toi_da) VALUES
 -- CA SÁNG (07:00 - 11:30)
 ('LLV001', 'NV26112002', 'PH001', '2026-11-20', 'Sang', 40),
@@ -551,7 +642,7 @@ INSERT INTO LICH_LAM_VIEC (ma_lich_lam, ma_nhan_vien, ma_phong, ngay_lam_viec, c
 ('LLV005', 'NV26112007', 'PH007', '2026-11-20', 'Sang', 35),
 ('LLV006', 'NV26112008', 'PH004', '2026-11-20', 'Sang', 40),
 ('LLV007', 'NV26112005', 'PH006', '2026-11-20', 'Sang', 50),
-('LLV008', 'NV26112010', 'PH001', '2026-11-20', 'Sang', 40),
+('LLV008', 'NV26112012', 'PH001', '2026-11-20', 'Sang', 40),
 ('LLV009', 'NV26112015', 'PH016', '2026-11-20', 'Sang', 35),
 ('LLV010', 'NV26112016', 'PH017', '2026-11-20', 'Sang', 35),
 ('LLV011', 'NV26112030', 'PH008', '2026-11-20', 'Sang', 30),
@@ -580,6 +671,7 @@ INSERT INTO LICH_LAM_VIEC (ma_lich_lam, ma_nhan_vien, ma_phong, ngay_lam_viec, c
 ('LLV032', 'NV26112018', 'PH019', '2026-11-20', 'Chieu', 25),
 ('LLV033', 'NV26112020', 'PH005', '2026-11-20', 'Chieu', 50),
 ('LLV034', 'NV26112023', 'PH006', '2026-11-20', 'Chieu', 50),
+('LLV044', 'NV26112054', 'PH001', '2026-11-20', 'Chieu', 40),
 
 -- CA TRỰC ĐÊM (16:30 - 07:00 HÔM SAU)
 ('LLV035', 'NV26112013', 'PH001', '2026-11-20', 'Dem', 30),
@@ -590,7 +682,8 @@ INSERT INTO LICH_LAM_VIEC (ma_lich_lam, ma_nhan_vien, ma_phong, ngay_lam_viec, c
 ('LLV040', 'NV26112049', 'PH015', '2026-11-20', 'Dem', 50),
 ('LLV041', 'NV26112019', 'PH020', '2026-11-20', 'Dem', 30),
 ('LLV042', 'NV26112021', 'PH005', '2026-11-20', 'Dem', 40),
-('LLV043', 'NV26112024', 'PH006', '2026-11-20', 'Dem', 40);
+('LLV043', 'NV26112024', 'PH006', '2026-11-20', 'Dem', 40),
+('LLV045', 'NV26112051', 'PH001', '2026-11-20', 'Dem', 30);
 
 
 -- =========================================================================
@@ -613,15 +706,15 @@ INSERT INTO HO_SO_KHAM_BENH (ma_ho_so_kham, ma_lich_hen, ma_benh_nhan, ma_nhan_v
 ('HS004', NULL, 'BN26112001', 'NV26112003', 4, 'HoanTat', '- Triệu chứng: Sốt nhẹ 38.2°C, đau rát họng, mệt mỏi.\n- Tiền sử: Không dị ứng thuốc.', 'Niêm mạc họng đỏ xung huyết, hai amidan sưng nhẹ', 'Viêm họng cấp do vi khuẩn', 'KeDonThuoc', 'Uống thuốc đúng liều sau ăn, súc họng nước muối sinh lý.', '2026-11-25', '2026-11-18 08:10:00', '2026-11-18 09:20:00'),
 ('HS005', NULL, 'BN26112002', 'NV26112003', 5, 'HoanTat', '- Triệu chứng: Hoa mắt, chóng mặt, HA cao 155/95 mmHg.\n- Dị ứng: Aspirin.', 'Đau đầu vùng chẩm, huyết áp đo tại phòng khám 150/95 mmHg', 'Tăng huyết áp vô căn (nguyên phát)', 'KeDonThuoc', 'Uống thuốc hạ áp mỗi sáng, ăn nhạt, theo dõi HA hàng ngày.', '2026-11-30', '2026-11-18 09:00:00', '2026-11-18 10:15:00');
 
--- 10. CHI_SO_SINH_HIEU (5 bản ghi)
+-- 10. CHI_SO_SINH_HIEU (5 bản ghi — gắn đúng Điều dưỡng Đo sinh hiệu NV26112012)
 INSERT INTO CHI_SO_SINH_HIEU (ma_sinh_hieu, ma_ho_so_kham, ma_nhan_vien, mach, nhiet_do, huyet_ap, nhip_tho, can_nang, chieu_cao, thoi_gian_do) VALUES
-('SH001', 'HS001', 'NV26112002', 78, 36.8, '130/80', 18, 64.0, 165.0, '2026-11-19 07:35:00'),
-('SH002', 'HS002', 'NV26112002', 76, 37.0, '115/75', 18, 54.0, 158.0, '2026-11-19 07:50:00'),
-('SH003', 'HS003', 'NV26112002', 84, 37.8, '125/80', 19, 68.0, 170.0, '2026-11-19 08:05:00'),
-('SH004', 'HS004', 'NV26112002', 80, 38.2, '120/75', 18, 65.0, 172.0, '2026-11-18 08:15:00'),
-('SH005', 'HS005', 'NV26112002', 88, 37.1, '150/95', 20, 70.0, 168.0, '2026-11-18 09:05:00');
+('SH001', 'HS001', 'NV26112012', 78, 36.8, '130/80', 18, 64.0, 165.0, '2026-11-19 07:35:00'),
+('SH002', 'HS002', 'NV26112012', 76, 37.0, '115/75', 18, 54.0, 158.0, '2026-11-19 07:50:00'),
+('SH003', 'HS003', 'NV26112012', 84, 37.8, '125/80', 19, 68.0, 170.0, '2026-11-19 08:05:00'),
+('SH004', 'HS004', 'NV26112012', 80, 38.2, '120/75', 18, 65.0, 172.0, '2026-11-18 08:15:00'),
+('SH005', 'HS005', 'NV26112012', 88, 37.1, '150/95', 20, 70.0, 168.0, '2026-11-18 09:05:00');
 
--- 12. CHI_DINH_CAN_LAM_SANG (5 bản ghi)
+-- 13. CHI_DINH_CAN_LAM_SANG (5 bản ghi)
 INSERT INTO CHI_DINH_CAN_LAM_SANG (ma_chi_dinh_cls, ma_ho_so_kham, ma_dich_vu_cls, ma_nhan_vien, trang_thai_nop_tien, trang_thai_thuc_hien, ket_qua_cls, ai_phan_tich_cls, thoi_gian_co_ket_qua) VALUES
 ('CDCLS001', 'HS003', 'DVCLS001', 'NV26112015', 'DaNop', 'ChoLamCLS', NULL, NULL, NULL),
 ('CDCLS002', 'HS003', 'DVCLS002', 'NV26112016', 'ChuaNop', 'ChoLamCLS', NULL, NULL, NULL),
@@ -629,7 +722,7 @@ INSERT INTO CHI_DINH_CAN_LAM_SANG (ma_chi_dinh_cls, ma_ho_so_kham, ma_dich_vu_cl
 ('CDCLS004', 'HS005', 'DVCLS004', 'NV26112019', 'DaNop', 'DaCoKetQua', 'Nhịp xoang đều 88 chu kỳ/phút, trục trung gian, chưa thấy thiếu máu cơ tim.', 'Điện tâm đồ trong giới hạn bình thường.', '2026-11-18 09:35:00'),
 ('CDCLS005', 'HS005', 'DVCLS005', 'NV26112017', 'DaNop', 'DaCoKetQua', 'Glucose lúc đói: 5.4 mmol/L; Cholesterol toàn phần: 5.6 mmol/L (Tăng nhẹ).', 'Mỡ máu tăng nhẹ, khuyến nghị điều chỉnh chế độ ăn.', '2026-11-18 09:40:00');
 
--- 13. ANH_KET_QUA_CLS (5 bản ghi)
+-- 14. ANH_KET_QUA_CLS (5 bản ghi)
 INSERT INTO ANH_KET_QUA_CLS (ma_anh_cls, ma_chi_dinh_cls, duong_dan_anh_cls, ghi_chu_anh, thoi_gian_tai_len) VALUES
 ('ACLS001', 'CDCLS003', 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=600&q=80', 'Phiếu kết quả xét nghiệm huyết học BN Cao Trung', '2026-11-18 08:45:00'),
 ('ACLS002', 'CDCLS004', 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=600&q=80', 'Bản ghi Điện tâm đồ ECG 12 chuyển đạo BN Nguyễn Văn An', '2026-11-18 09:35:00'),
@@ -637,7 +730,7 @@ INSERT INTO ANH_KET_QUA_CLS (ma_anh_cls, ma_chi_dinh_cls, duong_dan_anh_cls, ghi
 ('ACLS004', 'CDCLS001', 'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=600&q=80', 'Ảnh chụp X-Quang tim phổi thẳng mẫu', '2026-11-19 08:20:00'),
 ('ACLS005', 'CDCLS002', 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80', 'Hình ảnh siêu âm ổ bụng tổng quát 4D', '2026-11-19 08:25:00');
 
--- 15. DON_THUOC (5 bản ghi)
+-- 16. DON_THUOC (5 bản ghi)
 INSERT INTO DON_THUOC (ma_don_thuoc, ma_ho_so_kham, ma_nhan_vien, trang_thai_thanh_toan, trang_thai_cap_thuoc, ghi_chu_don_thuoc, thoi_gian_ke_don, thoi_gian_cap_thuoc) VALUES
 ('DT001', 'HS001', 'NV26112005', 'ChuaThu', 'ChoCapThuoc', 'Uống sau ăn no, hạn chế vận động mạnh vùng thắt lưng', '2026-11-19 08:10:00', NULL),
 ('DT002', 'HS002', 'NV26112005', 'ChuaThu', 'ChoCapThuoc', 'Uống thuốc dạ dày trước ăn 30 phút', '2026-11-19 08:20:00', NULL),
@@ -645,7 +738,7 @@ INSERT INTO DON_THUOC (ma_don_thuoc, ma_ho_so_kham, ma_nhan_vien, trang_thai_tha
 ('DT004', 'HS004', 'NV26112005', 'DaThu', 'DaCapThuoc', 'Uống sau ăn no, kiêng nước đá lạnh', '2026-11-18 09:00:00', '2026-11-18 09:18:00'),
 ('DT005', 'HS005', 'NV26112005', 'DaThu', 'DaCapThuoc', 'Uống thuốc huyết áp cố định vào 7h sáng hàng ngày', '2026-11-18 09:50:00', '2026-11-18 10:12:00');
 
--- 16. CHI_TIET_DON_THUOC (6 bản ghi)
+-- 17. CHI_TIET_DON_THUOC (6 bản ghi)
 INSERT INTO CHI_TIET_DON_THUOC (ma_chi_tiet_don, ma_don_thuoc, ma_thuoc, so_luong, lieu_dung_huong_dan, don_gia_luc_ke) VALUES
 ('CTDT001', 'DT004', 'TH001', 10, 'Ngày uống 2 lần, mỗi lần 1 viên (Sáng - Tối sau ăn)', 2500),
 ('CTDT002', 'DT004', 'TH002', 10, 'Uống 1 viên khi sốt trên 38.5°C (Cách nhau 4-6 tiếng)', 1500),
@@ -654,7 +747,7 @@ INSERT INTO CHI_TIET_DON_THUOC (ma_chi_tiet_don, ma_don_thuoc, ma_thuoc, so_luon
 ('CTDT005', 'DT002', 'TH004', 14, 'Ngày uống 2 lần, mỗi lần 1 viên trước ăn 30 phút', 2500),
 ('CTDT006', 'DT001', 'TH002', 10, 'Ngày uống 2 lần, mỗi lần 1 viên sau ăn khi đau lưng', 1500);
 
--- 17. HOA_DON_VIEN_PHI (5 bản ghi — Khớp 100% với bảng giá mới)
+-- 18. HOA_DON_VIEN_PHI (5 bản ghi — Khớp 100% với bảng giá mới)
 INSERT INTO HOA_DON_VIEN_PHI (ma_hoa_don, ma_ho_so_kham, ma_nhan_vien, loai_hoa_don, tong_tien_goc, tien_bhyt_chi_tra, tien_benh_nhan_tra, phuong_thuc_thanh_toan, trang_thai_thu, thoi_gian_thu, stk_benh_vien, ma_giao_dich_ngan_hang) VALUES
 ('HD001', 'HS004', 'NV26112004', 'Dot2_ThuTienKhamVaThuoc', 160000, 128000, 32000, 'ChuyenKhoan_VietQR', 'DaThu', '2026-11-18 09:10:00', '0041000888999 - Vietcombank (TTYT Phường Hải Châu)', 'VCB-FT2611180910'),
 ('HD002', 'HS005', 'NV26112004', 'Dot2_ThuTienKhamVaThuoc', 267000, 213600, 53400, 'ChuyenKhoan_VietQR', 'DaThu', '2026-11-18 10:05:00', '0041000888999 - Vietcombank (TTYT Phường Hải Châu)', 'VCB-FT2611181005'),
@@ -662,7 +755,7 @@ INSERT INTO HOA_DON_VIEN_PHI (ma_hoa_don, ma_ho_so_kham, ma_nhan_vien, loai_hoa_
 ('HD004', 'HS001', 'NV26112004', 'Dot2_ThuTienKhamVaThuoc', 70000, 56000, 14000, 'ChuyenKhoan_VietQR', 'ChuaThu', NULL, '0041000888999 - Vietcombank (TTYT Phường Hải Châu)', NULL),
 ('HD005', 'HS002', 'NV26112004', 'Dot2_ThuTienKhamVaThuoc', 85000, 68000, 17000, 'ChuyenKhoan_VietQR', 'ChuaThu', NULL, '0041000888999 - Vietcombank (TTYT Phường Hải Châu)', NULL);
 
--- 18. CHI_TIET_HOA_DON (7 bản ghi)
+-- 19. CHI_TIET_HOA_DON (7 bản ghi)
 INSERT INTO CHI_TIET_HOA_DON (ma_chi_tiet_hd, ma_hoa_don, loai_hang_muc, ten_hang_muc, so_luong, don_gia, thanh_tien) VALUES
 ('CTHD001', 'HD001', 'PhiKhamKhoa', 'Công khám Khoa Nội Tổng Quát (P102)', 1, 50000, 50000),
 ('CTHD002', 'HD001', 'DichVuCLS', 'Xét Nghiệm Tổng Phân Tích Tế Bào Máu Ngoại Vi (P201)', 1, 60000, 60000),
@@ -672,7 +765,7 @@ INSERT INTO CHI_TIET_HOA_DON (ma_chi_tiet_hd, ma_hoa_don, loai_hang_muc, ten_han
 ('CTHD006', 'HD002', 'ThuocKeDon', 'Đơn thuốc ngoại trú DT005 (Amlodipine 5mg x 14 viên)', 1, 42000, 42000),
 ('CTHD007', 'HD003', 'DichVuCLS', 'Chụp X-Quang Tim Phổi Thẳng Kỹ Thuật Số (P202)', 1, 85000, 85000);
 
--- 19. PHIEN_TRO_CHUYEN_AI (5 bản ghi)
+-- 20. PHIEN_TRO_CHUYEN_AI (5 bản ghi)
 INSERT INTO PHIEN_TRO_CHUYEN_AI (ma_phien_chat, ma_nguoi_dung, tieu_de_cuoc_tro_chuyen, thoi_gian_tao) VALUES
 ('PC001', 'ND009', 'Tư vấn sưng đau khớp cổ tay phải', '2026-11-18 19:00:00'),
 ('PC002', 'ND010', 'Tư vấn đau đầu chóng mặt huyết áp cao', '2026-11-18 20:15:00'),
@@ -680,7 +773,7 @@ INSERT INTO PHIEN_TRO_CHUYEN_AI (ma_phien_chat, ma_nguoi_dung, tieu_de_cuoc_tro_
 ('PC004', 'ND012', 'Tư vấn đau nhức thắt lưng L4-L5', '2026-11-19 15:20:00'),
 ('PC005', 'ND013', 'Hỏi thủ tục khám BHYT bằng VNeID', '2026-11-20 07:10:00');
 
--- 20. LICH_SU_TIN_NHAN_AI (6 bản ghi)
+-- 21. LICH_SU_TIN_NHAN_AI (6 bản ghi)
 INSERT INTO LICH_SU_TIN_NHAN_AI (ma_tin_nhan, ma_phien_chat, nguoi_gui, noi_dung_tin_nhan, thoi_gian_gui) VALUES
 ('TN001', 'PC001', 'NguoiDung', 'Bác sĩ ơi tôi bị sưng đau cổ tay phải sau khi chơi thể thao thì khám phòng nào?', '2026-11-18 19:00:10'),
 ('TN002', 'PC001', 'AI', 'Chào bạn! Với triệu chứng sưng đau khớp cổ tay, bạn nên đăng ký khám tại Khoa Cơ - Xương - Khớp (Phòng P106 - Giá khám 55.000đ).', '2026-11-18 19:00:15'),
@@ -689,7 +782,7 @@ INSERT INTO LICH_SU_TIN_NHAN_AI (ma_tin_nhan, ma_phien_chat, nguoi_gui, noi_dung
 ('TN005', 'PC003', 'NguoiDung', 'Đau họng sốt nhẹ 3 ngày khám khoa nào ạ?', '2026-11-19 08:30:05'),
 ('TN006', 'PC003', 'AI', 'Bạn nên đặt lịch khám tại Khoa Tai - Mũi - Họng (Phòng P103 - Giá khám 55.000đ) để nội soi họng nhé.', '2026-11-19 08:30:12');
 
--- 21. ANH_TIN_NHAN_AI (5 bản ghi)
+-- 22. ANH_TIN_NHAN_AI (5 bản ghi)
 INSERT INTO ANH_TIN_NHAN_AI (ma_anh_tin_nhan, ma_tin_nhan, duong_dan_anh, thoi_gian_tai_len) VALUES
 ('ATN001', 'TN001', 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=400&q=80', '2026-11-18 19:00:10'),
 ('ATN002', 'TN003', 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=400&q=80', '2026-11-18 20:15:10'),
@@ -697,7 +790,7 @@ INSERT INTO ANH_TIN_NHAN_AI (ma_anh_tin_nhan, ma_tin_nhan, duong_dan_anh, thoi_g
 ('ATN004', 'TN001', 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=400&q=80', '2026-11-18 19:00:12'),
 ('ATN005', 'TN003', 'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?auto=format&fit=crop&w=400&q=80', '2026-11-18 20:15:12');
 
--- 22. TAI_LIEU_HUAN_LUYEN_AI (5 bản ghi)
+-- 23. TAI_LIEU_HUAN_LUYEN_AI (5 bản ghi)
 INSERT INTO TAI_LIEU_HUAN_LUYEN_AI (ma_tai_lieu, ma_nhan_vien, tieu_de_tai_lieu, phan_loai_tri_thuc, duong_dan_file_tai_lieu, noi_dung_van_ban, ten_collection_chromadb, danh_sach_ma_vector, trang_thai_dong_bo, thoi_gian_cap_nhat) VALUES
 ('TL001', 'NV26112001', 'Quy tắc phân luồng triệu chứng & Danh mục 12 Khoa Phòng TTYT Hải Châu', 'ThongTinKhoaPhong', '/storage/ai-docs/thong_tin_khoa_phong_haichau.txt', '1. Khoa Nội Tổng Quát (P102 - 50.000đ).\n2. Khoa Tai - Mũi - Họng (P103 - 55.000đ).\n3. Khoa Cơ - Xương - Khớp (P106 - 55.000đ).\n4. Khoa Ngoại (P108 - 55.000đ), Phụ Sản (P109 - 55.000đ), Nhi (P110 - 50.000đ), RHM (P111 - 55.000đ), Mắt (P112 - 55.000đ), Da liễu (P113 - 50.000đ), Cấp cứu 24/7 (P114 - 70.000đ).\n5. Cận Lâm Sàng (P201-P206).', 'tri_thuc_y_te_hai_chau', 'vec_doc_1_chunk_1', 'DaDongBoChromaDB', '2026-11-20 07:30:00'),
 ('TL002', 'NV26112001', 'Phác đồ chẩn đoán & Điều trị ngoại trú Nội khoa - TMH - Nhi - Sản', 'PhacDoDieuTri', '/storage/ai-docs/phac_do_dieu_tri_ngoai_tru_byt.pdf', 'Viêm họng cấp, Tăng huyết áp vô căn, Thoái hóa cột sống thắt lưng, Đái tháo đường type 2, Viêm dạ dày tá tràng.', 'tri_thuc_y_te_hai_chau', 'vec_doc_2_chunk_1', 'DaDongBoChromaDB', '2026-11-20 08:00:00'),
@@ -705,15 +798,14 @@ INSERT INTO TAI_LIEU_HUAN_LUYEN_AI (ma_tai_lieu, ma_nhan_vien, tieu_de_tai_lieu,
 ('TL004', 'NV26112001', 'Danh mục 25 Thuốc BHYT tồn kho & Cảnh báo chống chỉ định dị ứng thuốc', 'DanhMucThuoc', '/storage/ai-docs/danh_muc_thuoc_bhyt_p105.xlsx', 'Amoxicillin 500mg, Augmentin 625mg, Paracetamol 500mg, Omeprazole 20mg, Amlodipine 5mg, Losartan 50mg, Metformin 850mg, Atorvastatin 20mg...', 'tri_thuc_y_te_hai_chau', 'vec_doc_4_chunk_1', 'DaDongBoChromaDB', '2026-11-20 08:30:00'),
 ('TL005', 'NV26112001', 'Hướng dẫn nhận diện dấu hiệu Cấp cứu nội khoa & Chuyển tuyến 24/7', 'PhacDoDieuTri', '/storage/ai-docs/huong_dan_xu_tri_cap_cuu.pdf', 'Các dấu hiệu cảnh báo đỏ: Đau ngực dữ dội, khó thở SpO2 < 92%, sốt cao co giật, cơn tăng huyết áp khẩn cấp >= 180/110 mmHg -> Chuyển ngay Phòng Cấp cứu P114.', 'tri_thuc_y_te_hai_chau', 'vec_doc_5_chunk_1', 'DaDongBoChromaDB', '2026-11-20 09:00:00');
 
--- 23. THONG_BAO (2 bản ghi mẫu cho bệnh nhân Cao Trung - ND009)
+-- 24. THONG_BAO (2 bản ghi mẫu cho bệnh nhân Cao Trung - ND009)
 INSERT INTO THONG_BAO (ma_thong_bao, ma_nguoi_dung, loai_thong_bao, tieu_de, noi_dung, ngay_tao) VALUES
 ('TB001', 'ND009', 'NhacLichHen', 'Nhắc lịch hẹn khám hôm nay (2026-11-20) [#LH001]', 'Trung tâm Y tế Phường Hải Châu nhắc lịch hẹn khám của bạn tại Phòng P106 (Khoa Cơ - Xương - Khớp) với BS.CKI Trần Ngọc Sơn. Vui lòng mang theo VNeID/CCCD và thẻ BHYT đến Quầy P101 trước 15 phút.', '2026-11-20 06:30:00'),
 ('TB002', 'ND009', 'UuDai', 'Ưu đãi 30% Gói Khám Sức Khỏe Tổng Quát & Tầm Soát Định Kỳ', 'Trung tâm Y tế Phường Hải Châu giảm 30% chi phí gói khám tổng quát, xét nghiệm sinh hóa máu và miễn phí đo huyết áp, đường huyết sàng lọc cho người dân phường Hải Châu.', '2026-11-20 08:00:00');
 
 
 -- =========================================================================
--- PHẦN 6: TRIGGER TỰ ĐỘNG SINH MÃ BN{YYMMDD}{XX} VÀ NV{YYMMDD}{XX}
--- (Ví dụ: BN26112007, NV26112051 — tự tăng theo từng ngày hiện tại)
+-- PHẦN 6: TRIGGER TỰ ĐỘNG SINH MÃ BN{YYMMDD}{XX}, NV{YYMMDD}{XX} & KCLS{XXX}
 -- =========================================================================
 DELIMITER $$
 
@@ -752,6 +844,22 @@ BEGIN
         WHERE ma_nhan_vien LIKE CONCAT(v_prefix, '%');
 
         SET NEW.ma_nhan_vien = CONCAT(v_prefix, LPAD(v_max_seq + 1, 2, '0'));
+    END IF;
+END$$
+
+CREATE TRIGGER trg_auto_ma_khoa_cls
+BEFORE INSERT ON KHOA_DICH_VU_CLS
+FOR EACH ROW
+BEGIN
+    DECLARE v_max_seq INT DEFAULT 0;
+
+    IF NEW.ma_khoa_cls IS NULL OR TRIM(NEW.ma_khoa_cls) = '' THEN
+        SELECT IFNULL(MAX(CAST(SUBSTRING(ma_khoa_cls, 5) AS UNSIGNED)), 0)
+        INTO v_max_seq
+        FROM KHOA_DICH_VU_CLS
+        WHERE ma_khoa_cls LIKE 'KCLS%';
+
+        SET NEW.ma_khoa_cls = CONCAT('KCLS', LPAD(v_max_seq + 1, 3, '0'));
     END IF;
 END$$
 

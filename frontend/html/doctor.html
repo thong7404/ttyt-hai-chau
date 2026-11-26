@@ -61,7 +61,7 @@
             <div class="flex items-center gap-4 font-semibold text-slate-500">
                 <span class="inline-flex items-center gap-1 text-emerald-700">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                    MySQL Trực Tuyến (`ttyt_haichau_db`)
+                    MySQL Trực Tuyến (ttyt_haichau_db)
                 </span>
                 <span class="hidden md:inline">✉️ ttythaichau@danang.gov.vn</span>
             </div>
@@ -72,13 +72,13 @@
     <!-- THANH HEADER MENU NGANG CỦA BÁC SĨ                                        -->
     <!-- ========================================================================= -->
     <header class="bg-white/95 backdrop-blur-md border-b border-sky-200/90 sticky top-0 z-50 shadow-xs">
-        <div class="max-w-[1440px] mx-auto px-4 lg:px-8 h-16 flex items-center justify-between gap-3">
+        <div class="max-w-[1440px] mx-auto px-4 lg:px-6 h-16 flex items-center justify-between gap-2">
 
             <!-- 1. Logo Bệnh viện bên trái -->
-            <a href="doctor.html" class="flex items-center gap-3 shrink-0">
-                <img src="../img/logo3.jpg" alt="TTYT Phường Hải Châu" class="w-11 h-11 rounded-xl object-contain bg-white p-0.5 border border-teal-200 shadow-2xs"/>
+            <a href="doctor.html" class="flex items-center gap-2.5 shrink-0">
+                <img src="../img/logo3.jpg" alt="TTYT Phường Hải Châu" class="w-10 h-10 rounded-xl object-contain bg-white p-0.5 border border-teal-200 shadow-2xs"/>
                 <div>
-                    <span class="block font-heading font-extrabold text-sm sm:text-base text-teal-900 tracking-tight leading-tight whitespace-nowrap">
+                    <span class="block font-heading font-extrabold text-sm text-teal-900 tracking-tight leading-tight whitespace-nowrap">
                         TTYT PHƯỜNG HẢI CHÂU
                     </span>
                     <span class="block text-[10px] font-bold text-teal-600 uppercase tracking-wider whitespace-nowrap">
@@ -88,13 +88,13 @@
             </a>
 
             <!-- 2. Thanh Menu chính ở giữa -->
-            <nav class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <nav class="flex items-center gap-1 lg:gap-1.5 min-w-0">
 
                 <!-- MENU 1: KHÁM BỆNH & KÊ ĐƠN ▾ -->
                 <div class="relative group py-2">
                     <button type="button" id="top-nav-exam" onclick="openDoctorMenu('exam-queue')"
-                            class="px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm text-white bg-teal-600 shadow-xs flex items-center gap-1.5 whitespace-nowrap transition">
-                        <span class="material-symbols-outlined text-lg">stethoscope</span>
+                            class="px-3 py-2 rounded-xl font-bold text-xs text-white bg-teal-600 shadow-xs flex items-center gap-1.5 whitespace-nowrap transition">
+                        <span class="material-symbols-outlined text-base">stethoscope</span>
                         <span>Khám bệnh & Kê đơn</span>
                         <span id="badge-doc-waiting" class="px-1.5 py-0.2 rounded-full bg-white/25 text-white text-[10px] font-extrabold">0</span>
                         <span class="material-symbols-outlined text-base transition-transform group-hover:rotate-180">expand_more</span>
@@ -120,36 +120,30 @@
 
                 <!-- MENU 2: AI HỘI CHẨN CẬN LÂM SÀNG -->
                 <button type="button" id="top-nav-ai" onclick="openDoctorMenu('ai')"
-                        class="px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm text-slate-700 hover:bg-teal-50 hover:text-teal-700 flex items-center gap-1.5 whitespace-nowrap transition">
-                    <span class="material-symbols-outlined text-lg text-emerald-600">smart_toy</span>
+                        class="px-3 py-2 rounded-xl font-bold text-xs text-slate-700 hover:bg-teal-50 hover:text-teal-700 flex items-center gap-1.5 whitespace-nowrap transition">
+                    <span class="material-symbols-outlined text-base text-emerald-600">smart_toy</span>
                     <span>AI Hội chẩn CLS</span>
                     <span class="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">Gemini</span>
                 </button>
 
                 <!-- MENU 3: TRA CỨU HỒ SƠ BỆNH ÁN -->
                 <button type="button" id="top-nav-records" onclick="openDoctorMenu('records')"
-                        class="px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm text-slate-700 hover:bg-teal-50 hover:text-teal-700 flex items-center gap-1.5 whitespace-nowrap transition">
-                    <span class="material-symbols-outlined text-lg text-sky-600">folder_shared</span>
+                        class="px-3 py-2 rounded-xl font-bold text-xs text-slate-700 hover:bg-teal-50 hover:text-teal-700 flex items-center gap-1.5 whitespace-nowrap transition">
+                    <span class="material-symbols-outlined text-base text-sky-600">folder_shared</span>
                     <span>Tra cứu bệnh án</span>
                     <span id="badge-doc-total-records" class="px-1.5 py-0.2 rounded-full bg-sky-600 text-white text-[10px] font-extrabold">0</span>
                 </button>
 
             </nav>
 
-            <!-- 3. Cụm Đồng bộ + Hộp Tài khoản Bác sĩ góc phải -->
-            <div class="flex items-center gap-2.5 shrink-0">
-                <button type="button" onclick="loadDoctorDashboard()"
-                        class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-600 text-sky-800 hover:text-white border border-sky-200 font-bold text-xs flex items-center gap-1.5 whitespace-nowrap transition">
-                    <span class="material-symbols-outlined text-base">sync</span>
-                    <span class="hidden xl:inline">Đồng bộ</span>
-                </button>
-
+            <!-- 3. Hộp Tài khoản Bác sĩ góc phải (Đã xóa nút Đồng bộ) -->
+            <div class="flex items-center shrink-0">
                 <div class="relative group py-1">
-                    <button type="button" class="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full bg-teal-50/90 hover:bg-teal-100/80 border border-teal-200 transition">
+                    <button type="button" class="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full bg-teal-50/90 hover:bg-teal-100/80 border border-teal-200 transition">
                         <div id="doc-sidebar-initials" class="w-8 h-8 rounded-full bg-teal-600 text-white font-extrabold text-xs flex items-center justify-center shadow-2xs shrink-0">
                             BS
                         </div>
-                        <div class="text-left hidden sm:block max-w-[180px]">
+                        <div class="text-left hidden sm:block max-w-[145px]">
                             <div id="doc-sidebar-name" class="font-extrabold text-xs text-teal-950 truncate leading-tight">
                                 BS.CKI Nguyễn Văn Hưng
                             </div>
@@ -157,7 +151,7 @@
                                 Bác sĩ khám & Chẩn đoán
                             </div>
                         </div>
-                        <span class="material-symbols-outlined text-base text-teal-700 transition-transform group-hover:rotate-180">expand_more</span>
+                        <span class="material-symbols-outlined text-base text-teal-700 transition-transform group-hover:rotate-180 shrink-0">expand_more</span>
                     </button>
 
                     <!-- Menu đổ xuống của Tài khoản Bác sĩ -->
@@ -235,7 +229,6 @@
             <!-- ============================================================= -->
             <div id="doc-subview-queue" class="hospital-card rounded-2xl p-6 space-y-4">
 
-                <!-- Tiêu đề & Nút Đặt lại bộ lọc -->
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                     <div>
                         <h3 class="font-heading font-bold text-base text-teal-950">Bảng Danh Sách Bệnh Nhân Khám Bệnh</h3>
@@ -248,7 +241,6 @@
                     </button>
                 </div>
 
-                <!-- Thanh công cụ Bộ lọc: Tìm kiếm + Lọc Trạng thái + Lọc theo Ngày + Sắp xếp theo Ngày -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 p-3.5 rounded-xl bg-sky-50/60 border border-sky-200/80 text-xs">
                     <div class="lg:col-span-4">
                         <label class="font-bold text-slate-700 block mb-1">Tìm kiếm bệnh nhân</label>
@@ -284,7 +276,6 @@
                     </div>
                 </div>
 
-                <!-- BẢNG DANH SÁCH BỆNH NHÂN -->
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
@@ -311,7 +302,6 @@
             <!-- ============================================================= -->
             <div id="doc-subview-form" class="hidden space-y-5">
 
-                <!-- Thanh điều hướng quay lại Bảng danh sách chờ khám & Nút tiện ích -->
                 <div class="hospital-card rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
                     <button type="button" onclick="openDoctorMenu('exam-queue')"
                             class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-teal-50 text-slate-700 hover:text-teal-800 font-bold flex items-center gap-1.5 transition">
@@ -355,7 +345,6 @@
                         </div>
                     </div>
 
-                    <!-- 6 Ô Chỉ số Sinh hiệu (Đo tại P101) -->
                     <div class="grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
                         <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
                             <span class="text-[10px] font-bold text-slate-500 uppercase block">Mạch</span>
@@ -389,7 +378,6 @@
                         </div>
                     </div>
 
-                    <!-- Cảnh báo Tiền sử dị ứng & Tóm tắt bệnh sử AI -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
                         <div class="p-3.5 rounded-xl bg-rose-50/80 border border-rose-200">
                             <div class="font-bold text-rose-900 flex items-center gap-1.5 mb-1">
@@ -409,20 +397,20 @@
                     </div>
                 </div>
 
-                <!-- 2. Chỉ định Cận lâm sàng (P201) & Xem Kết quả + Hình ảnh CLS -->
+                <!-- 2. Chỉ định Cận lâm sàng (P201–P206) & Xem Kết quả + Hình ảnh CLS -->
                 <div class="hospital-card rounded-2xl p-6 space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                         <div>
                             <h3 class="font-heading font-bold text-base text-indigo-950 flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-indigo-600">radiology</span>
-                                <span>Chỉ Định Cận Lâm Sàng (P201) & Kết Quả Hình Ảnh</span>
+                                <span>Chỉ Định Cận Lâm Sàng (P201–P206) & Kết Quả Hình Ảnh</span>
                             </h3>
-                            <p class="text-[11px] text-slate-500">Khi Bác sĩ chỉ định CLS, phiếu thu sẽ chuyển sang Kế toán (P104) trước khi Phòng P201 thực hiện</p>
+                            <p class="text-[11px] text-slate-500">Chỉ hiển thị các dịch vụ Cận lâm sàng phù hợp với chuyên khoa của Bác sĩ. Phiếu thu sẽ chuyển sang Kế toán (P104) trước khi Phòng CLS (P201–P206) thực hiện.</p>
                         </div>
                     </div>
 
                     <div class="p-4 rounded-xl bg-indigo-50/50 border border-indigo-200 space-y-3">
-                        <label class="text-xs font-bold text-indigo-950 block">Chọn dịch vụ Cận lâm sàng cần chỉ định thêm:</label>
+                        <label id="doc-cls-catalog-label" class="text-xs font-bold text-indigo-950 block">Chọn dịch vụ Cận lâm sàng cần chỉ định thêm:</label>
                         <div id="doc-cls-catalog-checkboxes" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs"></div>
                         <div class="flex justify-end">
                             <button type="button" onclick="submitDoctorOrderCls()"
@@ -434,17 +422,17 @@
                     </div>
 
                     <div>
-                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Kết quả & Hình ảnh Cận lâm sàng từ Phòng P201:</h4>
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Kết quả & Hình ảnh Cận lâm sàng từ Phòng CLS (P201–P206):</h4>
                         <div id="doc-existing-cls-results" class="space-y-3"></div>
                     </div>
                 </div>
 
-                <!-- 3. Biểu mẫu Kết luận Chẩn đoán (ICD-10) & Kê Đơn Thuốc Điện Tử -->
+                <!-- 3. Biểu mẫu Kết luận Chẩn đoán & Kê Đơn Thuốc Điện Tử -->
                 <form id="doc-complete-exam-form" onsubmit="submitCompleteExamination(event)" class="hospital-card rounded-2xl p-6 space-y-4 text-xs">
                     <div class="border-b border-slate-100 pb-3">
                         <h3 class="font-heading font-bold text-base text-teal-900 flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-teal-600">prescriptions</span>
-                            <span>Kết Luận Chẩn Đoán (ICD-10) & Kê Đơn Thuốc Điện Tử BHYT</span>
+                            <span>Kết Luận Chẩn Đoán & Kê Đơn Thuốc Điện Tử BHYT</span>
                         </h3>
                     </div>
 
@@ -470,7 +458,6 @@
                         </div>
                     </div>
 
-                    <!-- Khối Kê đơn thuốc lấy từ bảng DANH_MUC_THUOC -->
                     <div class="p-4 rounded-xl bg-teal-50/60 border border-teal-200 space-y-3">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <span class="font-bold text-teal-950 flex items-center gap-1.5">
@@ -597,7 +584,7 @@
                             <th class="p-3.5">Phòng / Khoa</th>
                             <th class="p-3.5">Sinh hiệu</th>
                             <th class="p-3.5">Ngày khám</th>
-                            <th class="p-3.5">Chẩn đoán (ICD-10)</th>
+                            <th class="p-3.5">Chẩn đoán</th>
                             <th class="p-3.5">Trạng thái</th>
                             <th class="p-3.5 text-right">Thao tác</th>
                         </tr>
@@ -623,5 +610,6 @@
     </div>
 
     <script src="../js/doctor.js"></script>
+    <script src="../js/staff-schedule-widget.js"></script>
 </body>
 </html>

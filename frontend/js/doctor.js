@@ -58,6 +58,25 @@ function extractRecordDateYmd(rec) {
 }
 
 /**
+ * Xác định chuyên khoa của Bác sĩ đang đăng nhập để lọc đúng danh mục CLS
+ */
+function resolveCurrentDoctorDept(rec = null) {
+    const user = getCurrentUser();
+    const maKhoa = (cachedDoctorData && cachedDoctorData.doctor_ma_khoa)
+        || (user && user.ma_khoa)
+        || (rec && rec.ma_khoa)
+        || "";
+    const tenKhoa = (cachedDoctorData && cachedDoctorData.doctor_ten_khoa)
+        || (user && user.ten_khoa)
+        || (rec && rec.ten_khoa)
+        || "";
+    return {
+        maKhoa: String(maKhoa || "").trim(),
+        tenKhoa: String(tenKhoa || "").trim()
+    };
+}
+
+/**
  * Đếm số lượng dịch vụ CLS chưa có kết quả của 1 hồ sơ khám
  */
 function getPendingClsOrders(rec) {
@@ -84,7 +103,6 @@ function removeIcd10FieldFromDOM() {
         }
     }
 
-    // Xóa cụm "(ICD-10)" khỏi tiêu đề nếu có
     document.querySelectorAll("h3, p").forEach(el => {
         if (el.textContent && el.textContent.includes("(ICD-10)")) {
             el.textContent = el.textContent.replace(/\s*\(ICD-10\)/g, "");
@@ -96,7 +114,6 @@ function removeIcd10FieldFromDOM() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Xóa thanh gọi loa màu xanh và xóa ô Mã bệnh ICD-10 trên giao diện Bác sĩ
     document.getElementById("doc-calling-banner")?.remove();
     document.querySelectorAll('button[onclick*="reCallCurrentDoctorPatient"]').forEach(btn => btn.remove());
     removeIcd10FieldFromDOM();
@@ -389,6 +406,15 @@ async function loadDoctorDashboard() {
         ensureDoctorTableQueueLayout();
         removeIcd10FieldFromDOM();
 
+        // Cập nhật thông tin chuyên khoa thực tế từ MySQL lên góc phải nếu có
+        if (user && data.doctor_ten_khoa) {
+            const maNv = user.ma_nhan_vien || user.ma_nguoi_dung || "NV26112003";
+            const subEl = document.getElementById("doc-header-sub");
+            const deptEl = document.getElementById("doc-dropdown-dept");
+            if (subEl) subEl.textContent = `Mã BS: #${maNv} • ${data.doctor_ten_khoa}`;
+            if (deptEl) deptEl.textContent = `Mã BS: #${maNv} • ${data.doctor_ten_khoa}`;
+        }
+
         const rawRecords = data.queue_records || [];
         const myRecords = (user
             ? rawRecords.filter(r => isRecordBelongToLoggedDoctor(r, user))
@@ -421,7 +447,7 @@ async function loadDoctorDashboard() {
         setTxt("qcount-done", doneList.length);
         setTxt("qcount-all", myRecords.length);
 
-        renderClsCatalogCheckboxes(data.cls_catalog || []);
+        renderClsCatalogCheckboxes(data.cls_catalog || [], currentSelectedRecord);
         populateAiStockMedicinesText(data.medicine_catalog || []);
         renderDoctorQueueList();
         renderDoctorAllRecordsTable();
@@ -642,6 +668,8 @@ function populateDoctorExamForm(rec) {
     document.getElementById("exam-doctor-advice").value =
         rec.loi_dan_bac_si || "Uống thuốc đúng liều sau ăn no, uống nhiều nước ấm, tái khám nếu triệu chứng không giảm.";
 
+    // Nạp lại danh sách checkbox chỉ định CLS đúng theo chuyên khoa của Bác sĩ
+    renderClsCatalogCheckboxes((cachedDoctorData && cachedDoctorData.cls_catalog) || [], rec);
     renderExistingClsResultsForRecord(rec.cls_orders || []);
 
     // Khóa nút Hoàn tất khám nếu còn dịch vụ CLS chưa cập nhật kết quả
@@ -685,12 +713,41 @@ function reCallCurrentDoctorPatient() {
 }
 
 // =========================================================================
-// 3. CHỈ ĐỊNH CẬN LÂM SÀNG & XEM ĐA ẢNH KẾT QUẢ CLS
+// 3. CHỈ ĐỊNH CẬN LÂM SÀNG (LỌC THEO CHUYÊN KHOA) & XEM ĐA ẢNH KẾT QUẢ CLS
 // =========================================================================
-function renderClsCatalogCheckboxes(catalog) {
+function renderClsCatalogCheckboxes(catalog, rec = null) {
     const box = document.getElementById("doc-cls-catalog-checkboxes");
     if (!box) return;
-    box.innerHTML = catalog.map(c => `
+
+    const { maKhoa, tenKhoa } = resolveCurrentDoctorDept(rec);
+    const useMapping = Boolean(cachedDoctorData && cachedDoctorData.has_khoa_cls_mapping && maKhoa);
+
+    const filteredCatalog = useMapping
+        ? (catalog || []).filter(c =>
+            Array.isArray(c.ma_khoa_ap_dung) &&
+            c.ma_khoa_ap_dung.map(String).includes(maKhoa)
+        )
+        : (catalog || []);
+
+    const labelEl = document.getElementById("doc-cls-catalog-label");
+    if (labelEl) {
+        if (useMapping) {
+            labelEl.textContent = `Chọn dịch vụ Cận lâm sàng cần chỉ định thêm — ${tenKhoa || maKhoa} (${filteredCatalog.length} dịch vụ thuộc chuyên khoa):`;
+        } else {
+            labelEl.textContent = `Chọn dịch vụ Cận lâm sàng cần chỉ định thêm (${filteredCatalog.length} dịch vụ):`;
+        }
+    }
+
+    if (filteredCatalog.length === 0) {
+        box.innerHTML = `
+            <div class="sm:col-span-3 p-3.5 rounded-xl bg-white border border-amber-200 text-amber-800 text-xs font-semibold text-center">
+                Chuyên khoa ${tenKhoa || maKhoa} hiện chưa được cấu hình danh mục chỉ định Cận lâm sàng trong bảng KHOA_DICH_VU_CLS.
+            </div>
+        `;
+        return;
+    }
+
+    box.innerHTML = filteredCatalog.map(c => `
         <label class="p-2.5 rounded-xl bg-white border border-indigo-200 hover:border-indigo-500 flex items-start gap-2 cursor-pointer transition">
             <input type="checkbox" name="doc_cls_check" value="${c.ma_dich_vu_cls}" class="mt-0.5 rounded text-indigo-600 focus:ring-0"/>
             <div>
